@@ -14,7 +14,7 @@ code), and the page headers, footers, page numbers and the contents
 with page numbers of the printed original are left out.  `make specs`
 builds HTML, EPUB and PDF of each, with a linked table of contents and
 PDF bookmarks, and the whole set as one EPUB and PDF in build/specs
-(pandoc; Chrome or Chromium for PDF).
+(pandoc; LuaLaTeX for PDF).
 
 | File | Original | Specification | Terms |
 |---|---|---|---|
