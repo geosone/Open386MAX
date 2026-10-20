@@ -1,0 +1,98 @@
+# Test coverage of Open 386MAX
+
+What has an automatic test, what is only tested by hand, and what has no
+test yet.  Goal:  every function and every 386MAX.PRO keyword has a
+test.  Status:  **yes** (automatic test), **part** (some of it), **hand**
+(a script boots it, a person looks at the result), **no**.
+
+## Client interfaces
+
+| Interface | Function | Status | Test |
+|---|---|---|---|
+| XMS 2.0/3.0 | 00h-0Fh, 88h, 89h, 8Eh, 8Fh | yes | XMS/XMSFUNC |
+| XMS | 03h/04h global A20 | part | XMS/XMSFUNC (05h-07h only) |
+| XMS | 10h-12h UMBs | no | planned XMS/XMSUMB |
+| XMS 3.5 | C8h, C9h, CBh, CCh, handle functions | yes | XMS/XMS35 (MEMSIZE=6144) |
+| XMS 3.5 | CBh while a DPMI client's page directory is current | no | planned DPMI/XMS35PM |
+| XMS 3.5 | E820h above 4GB reserved, INT 15h 87h F00Fh | no (not implemented) | |
+| EMS 4.0 | 40h-59h, 5Bh | yes | EMS/EMSFUNC |
+| EMS 4.0 | 4Ch, 4Dh, 52h, 5Ah (raw pages), 5Ch, 5Dh (OS/E) | no | planned EMS/EMSMORE |
+| VCPI | DE00h-DE0Ch | yes | VCPI/VCPIFUNC |
+| VDS | 8102h-810Ch | yes | VDS/VDSFUNC |
+| DPMI 1.0 (16-bit) | most functions | yes | DPMI/DPMI10 |
+| DPMI 0.9 (32-bit client) | all functions | part | DPMI/XLAT32, HDP*, EXEC32 |
+| DPMI | 0600h-0603h lock, 0700h-0703h paging, 0900h-0902h virtual IF | no | planned DPMI/DPMIMISC |
+| DPMI | 0B00h-0B03h debug watchpoints | no | planned DPMI/DPMIWP |
+| DPMI | 0E00h/0E01h coprocessor | no | planned DPMI/DPMIMISC |
+| DPMI | 0A00h "386MAX" vendor API | no | planned DPMI/MAXAPI |
+| DPMI | DOS/BIOS translation | yes | DPMI/DOSXLAT, XLAT32, PM26, DISKIO |
+| DPMI | 0504h fixed address, LOWDPMI= | yes | DPMI/LOWLIN |
+| DPMI | large RAM | yes | DPMI/BIGMEM |
+| HDPMI vendor API | 5, 6, 7, 8, 9 | yes | DPMI/HDPAPI, HDPTRAP, HDPSHR |
+| INT 33h | 0Ch, 12h, 18h, 19h in protected mode | yes | DPMI/MOUSE12, MOUSE18 (mouse driver) |
+| QPI | see TESTS/README.md | yes | QPI/* |
+| QPI | functions of the QEMM manual not yet checked | part | planned QPI/QPIALL |
+
+## V86 monitor and BIOS
+
+| Function | Status | Test |
+|---|---|---|
+| exceptions, INT 3, HLT, CLI/STI, INT >80h, INT 67h hook | yes | V86/V86FUNC |
+| INT 15h 87h, 88h | yes | V86/V86FUNC |
+| INT 15h 89h, 24xxh (A20), C0h, C1h, E801h, E820h | no | planned V86/INT15 |
+| A20 through port 92h and the 8042 | no | planned V86/A20 |
+| DMA port trapping, buffering of ISA DMA above 16MB | part | DPMI/DISKIO, SCENARIO (sound) |
+| Ctrl-Alt-Del (INT 15h 4F53h), warm boot | no | planned (script) |
+
+## 386MAX's own interfaces
+
+| Function | Status | Test |
+|---|---|---|
+| 386MAX$$ device, IOCTL info (386UTIL, MAXIMIZE) | no | planned MAX/MAXINFO |
+| INT 2Fh 1605h/1606h Windows start/end | hand | linux/test/win311.sh |
+| 386MAX.VXD (Windows 3.1 enhanced mode) | hand | linux/test/win311.sh |
+| GOREAL (Windows 9x, other V86 monitors) | hand | linux/test/win98.sh |
+
+## 386MAX.PRO keywords
+
+None of these has an automatic test yet except EXTSIZE=, LOWDPMI= and
+NOSXMS (by hand).  Planned:  `linux/test/kwtest.py` boots once per line of
+`TESTS/KEYWORDS.LST` (keywords plus expected results) and runs
+`MAXPROBE.COM`, which reports EMS (frame, pages), XMS (total, handles,
+HMA), UMBs, DPMI, VCPI, VDS, XMS 3.5 and the first megabyte's map, so one
+line can check what a keyword should change.
+
+| Group | Keywords |
+|---|---|
+| memory sizes | EMS=, EXT=, EXTSIZE=, DPMIMEM=, HMAMIN=, NUMHANDLES=, XMSHNDL=, LOWDPMI=, TOP384, PSMEM |
+| EMS frame | FRAME=, LOWFRAME, NOFRAME, SHORTFRAME, IGNOREFLEXFRAME, EMS30, EEMS |
+| first megabyte | INCLUDE=, EXCLUDE=, RAM=, USE=, ROM=, NOROM, VIDMEM=, MONO, CGA, EGA, VGA, NOHIGH, NOLOW, HIGHDOS, NOSCAN, NOXRAM |
+| ROMs | FLEXROM=, VGASWAP, NOFLEX, NOVGASIG, SHADOWRAM, SHADOWROM, NOCOMPROM, XBIOSHI, NOXBIOS |
+| services off | NODPMI, NOEMS (via EMS=0), NOHMA, NOVCPI (DEBUG=), NOSXMS, NOWIN3, NOWIN30, NOPNP, NOVME, NODMA |
+| DMA | DMA=, 32BITDMA, SLOWDMA, NOEISADMA, NOSCSI |
+| others | AUTO, ON, OFF, PRO=, SWAP, SWAPFILE, STACKS=, ISTACKS, NOCACHE, CACHESIZE, NOPARITY, NOPULSE, NOSCRUB, NOTIME, NOWARMBOOT, RESETKEYB, SLOWKEYB, FORCEA20, NOGATE, AMRS=, TERSE, TRACE, NO4B, NO58, NOABIOS, MCE, LOAD=, LMLTOP, WEITEK=, BCF=, AUTOBCF, FORCEBCF |
+| DEBUG=... | debugging only, not tested |
+
+## Programs
+
+| Program | Status | Test |
+|---|---|---|
+| 386MAX.SYS on MS-DOS 6.22/7.1, FreeDOS, EDR-DOS, SvarDOS | yes | suite.py -d ... |
+| 386LOAD (loading high, SIZE=, PROG=) | part | MAXIMIZE runs |
+| 386DISK (/XMS, /EMS, sizes) | part | by hand (RAMTEMP test) |
+| RAMTEMP | hand | docs/ramdisk.md (five DOSes) |
+| 386UTIL (all switches) | no | planned MAX/UTIL |
+| MAXIMIZE | hand | linux/test/maxsh.sh |
+| SETUPDOS (install from floppies) | hand | linux/test/floppyinst.sh |
+| STRIPMGR, ASQ, QMT, ROMSRCH, XLAT, MEMLIMIT, EXTRADOS, RAMBASIC | no | |
+| Windows programs (MAXMETER, TOOLBOX, ...) | no | |
+
+## Environments
+
+| Environment | Status |
+|---|---|
+| Windows 3.1 enhanced mode | hand (win311.sh) |
+| Windows 98 | hand (win98.sh) |
+| DESQview 2.80 | hand |
+| HX programs (HDPMI regression tests) | yes (suite hx) |
+| Jemm's tests | yes (suite jemm) |
