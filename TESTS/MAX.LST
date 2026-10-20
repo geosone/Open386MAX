@@ -12,6 +12,9 @@ VCPI/VCPIFUNC needs=vcpi
 VDS/VDSFUNC   needs=vds
 V86/V86FUNC
 V86/INT15
+V86/A20
+MAX/MAXINFO
+MAX/UTIL      timeout=120
 DPMI/DPMI10   needs=dpmi,dpmi1
 DPMI/PM26     needs=dpmi timeout=60
 DPMI/STKFLT   needs=dpmi term

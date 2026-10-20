@@ -1407,6 +1407,13 @@ This behavior is also present on some 386s.
 ; Check for EMC87 from Cyrix
 ; If the high-order bit of 387 control word sticks at 1,
 ; then an EMC87 is present
+; Open 386MAX:  only on a 386 (the EMC87 sits in the 387 socket).  The
+; FPU of a 486 or later keeps bit 15 too, which was taken for an EMC87:
+; Weitek forced present, INT 11h bit 24, and 386UTIL WEITEK=ON mapped
+; the Weitek space over the HMA (hang with DOS=HIGH).
+
+	 cmp	 CPUTYPE,04h	; Izit a 486 or later?
+	 jae	 short CHECK_NDP1 ; Jump if so (no EMC87 there)
 
 	 fninit 		; Set NDP to a known state
 	 fnstcw  CTL387 	; Save control word

@@ -102,6 +102,8 @@ endif				; IF @OEM_FLEXROM
 
 if @OEM_XMS
 	 extrn	 HIMEM_CS:word
+	 extrn	 DEVICE_CS:word
+	 extrn	 SEL_4GB:word
 	 extrn	 SEL_4GB3:word
 	 extrn	 SEL_DSJG3:word
 endif				; IF @OEM_XMS
@@ -2097,6 +2099,108 @@ MAC_UCHK_EXIT:
 
 MAC_UCHK endp			; End MAC_UCHK procedure
 endif				; IF @OEM_HIFILL
+
+	 FPPROC  XMS_HMASET -- Mark The HMA In Use
+	 assume  ds:PGROUP,es:nothing,fs:nothing,gs:nothing,ss:nothing
+COMMENT|
+
+XMS 01h/02h (Open 386MAX):  set or clear @GLB_HMA in GLB_FLAG here and
+in the copies of PGROUP in DOS memory (DEVICE_CS, and HIMEM_CS where the
+device code runs in high DOS):  4402h (INFO, 386UTIL, MAXIMIZE) reads
+the latter.  They kept the HMA free with DOS=HIGH, so 386UTIL WEITEK=ON
+mapped the Weitek over DOS in the HMA.
+
+|
+
+	 or	 GLB_FLAG,@GLB_HMA ; Mark as in use
+
+	 REGSAVE <eax,ebx,gs>	; Save registers
+
+	 mov	 ax,DEVICE_CS	; Get segment of the resident copy
+	 call	 XMS_HMALOW	; GS:EBX ==> its GLB_FLAG, ZF=1 if none
+	 assume  gs:AGROUP	; Tell the assembler about it
+	 jz	 short @F	; Jump if none
+
+	 or	 AGROUP:[ebx].ELO,@GLB_HMA ; Mark as in use
+@@:
+	 mov	 ax,HIMEM_CS	; Get segment of the high DOS copy
+	 call	 XMS_HMALOW	; GS:EBX ==> its GLB_FLAG, ZF=1 if none
+	 jz	 short @F	; Jump if none
+
+	 or	 AGROUP:[ebx].ELO,@GLB_HMA ; Mark as in use
+@@:
+	 REGREST <gs,ebx,eax>	; Restore
+	 assume  gs:nothing	; Tell the assembler about it
+
+	 ret			; Return to caller
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+XMS_HMASET endp 		; End XMS_HMASET procedure
+
+	 FPPROC  XMS_HMACLR -- Mark The HMA Not In Use
+	 assume  ds:PGROUP,es:nothing,fs:nothing,gs:nothing,ss:nothing
+COMMENT|
+
+See XMS_HMASET.
+
+|
+
+	 and	 GLB_FLAG,not @GLB_HMA ; Mark as not in use
+
+	 REGSAVE <eax,ebx,gs>	; Save registers
+
+	 mov	 ax,DEVICE_CS	; Get segment of the resident copy
+	 call	 XMS_HMALOW	; GS:EBX ==> its GLB_FLAG, ZF=1 if none
+	 assume  gs:AGROUP	; Tell the assembler about it
+	 jz	 short @F	; Jump if none
+
+	 and	 AGROUP:[ebx].ELO,not @GLB_HMA ; Mark as not in use
+@@:
+	 mov	 ax,HIMEM_CS	; Get segment of the high DOS copy
+	 call	 XMS_HMALOW	; GS:EBX ==> its GLB_FLAG, ZF=1 if none
+	 jz	 short @F	; Jump if none
+
+	 and	 AGROUP:[ebx].ELO,not @GLB_HMA ; Mark as not in use
+@@:
+	 REGREST <gs,ebx,eax>	; Restore
+	 assume  gs:nothing	; Tell the assembler about it
+
+	 ret			; Return to caller
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+XMS_HMACLR endp 		; End XMS_HMACLR procedure
+
+	 NPPROC  XMS_HMALOW -- Address GLB_FLAG In A Copy Of PGROUP
+	 assume  ds:PGROUP,es:nothing,fs:nothing,gs:nothing,ss:nothing
+COMMENT|
+
+On entry:
+
+AX	 =	 segment of a copy of PGROUP in DOS memory (0 = none)
+
+On exit:
+
+GS:EBX	 ==>	 its GLB_FLAG
+ZF	 =	 1 if none
+
+|
+
+	 mov	 gs,SEL_4GB	; Get all memory selector
+	 assume  gs:AGROUP	; Tell the assembler about it
+
+	 movzx	 ebx,ax 	; Copy the segment
+	 shl	 ebx,4-0	; Convert from paras to bytes
+	 jz	 short @F	; Jump if none
+
+	 add	 ebx,offset PGROUP:GLB_FLAG ; Plus offset of GLB_FLAG (ZF=0)
+@@:
+	 ret			; Return to caller
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+XMS_HMALOW endp 		; End XMS_HMALOW procedure
 
 JCODE	 ends			; End JCODE segment
 

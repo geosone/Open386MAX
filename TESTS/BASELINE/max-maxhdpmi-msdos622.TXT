@@ -12,6 +12,8 @@ max/PM26                 PASS
 max/QPITEST              SKIP
 max/QPITRAP              SKIP
 max/STKFLT               PASS
+max/UMBDOS               PASS
+max/UTIL                 PASS
 max/V86FUNC              PASS
 max/VCPIFUNC             PASS
 max/VDSFUNC              PASS

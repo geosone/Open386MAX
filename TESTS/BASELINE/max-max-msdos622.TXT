@@ -3,6 +3,8 @@ max/EMSFUNC              PASS
 max/INT15                PASS
 max/PM26                 PASS
 max/STKFLT               PASS
+max/UMBDOS               PASS
+max/UTIL                 PASS
 max/V86FUNC              PASS
 max/VCPIFUNC             PASS
 max/VDSFUNC              PASS

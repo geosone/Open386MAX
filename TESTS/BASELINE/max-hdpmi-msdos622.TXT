@@ -11,6 +11,8 @@ max/MOUSE18              SKIP
 max/PM26                 PASS
 max/QPITEST              SKIP
 max/STKFLT               PASS
+max/UMBDOS               PASS
+max/UTIL                 PASS
 max/V86FUNC              PASS
 max/VCPIFUNC             SKIP
 max/VDSFUNC              SKIP
