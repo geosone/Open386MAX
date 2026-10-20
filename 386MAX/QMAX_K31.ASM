@@ -89,7 +89,8 @@ SIMVMI_USEVEC db 0		; 1 = DPMI_SIMVMI2 takes SIMVMI_VEC
 
 	 extrn	 I31_FLAG:word
 	 extrn	 PPL0STK_MIN:dword
-@SIMVMI_STKRES equ 2048		; PL0 stack one more 0300h-0302h level needs
+@SIMVMI_STKRES equ 2048		; PL0 stack a client's 0300h-0302h level needs
+@SIMVMI_STKMIN equ 768		; ... our own (DOS translation) call needs
 
 	 extrn	 SEL_4GB3:word
 	 extrn	 LAST_DPMI_FS:word
@@ -1087,13 +1088,21 @@ SIMVMC_STR ends
 ; Each nested 0300h-0302h and real-mode callback keeps its frames on
 ; this stack; without the check about 70 levels (TESTS/DPMI/RMCBNEST)
 ; ran past the bottom into the memory tables below, as with nested
-; clients (VM2PM).
+; clients (VM2PM).  Our own calls (the DOS translation at PL0, which
+; treats a failure as fatal) get the rest:  a client refused at the
+; deepest level can still print its message.
 
 	 mov	 eax,esp	; Get current stack offset
 	 sub	 eax,PPL0STK_MIN ; Less the minimum = room left
 	 jb	 short @F	; Jump if none at all
 
-	 cmp	 eax,@SIMVMI_STKRES ; Izit enough for another level?
+	 cmp	 eax,@SIMVMI_STKMIN ; Izit enough for one of ours?
+	 jb	 short @F	; Jump if not
+
+	 test	 [ebp].INTXX_CS,mask $PL ; Izit from PL0 (our translation)?
+	 jz	 short DPMI_SIMVMI_COM1 ; Jump if so
+
+	 cmp	 eax,@SIMVMI_STKRES ; Izit enough for another client level?
 	 jae	 short DPMI_SIMVMI_COM1 ; Jump if so
 @@:
 	 mov	 SIMVMI_USEVEC,0 ; Not used
