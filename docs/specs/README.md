@@ -37,5 +37,8 @@ nothing):
   https://www.freecalypso.org/pub/micro/msdos/above640k/TrueDPMI/dpmiext.txt
 * Virtual DMA Services 1.0 (Microsoft, 1990):  DMA_API.TXT, e.g.
   https://discmaster.textfiles.com/view/10567/HPAVC%20CD-ROM.iso/pc/FAQSYS18.ZIP/FAQS.DAT/DMA_API.TXT
+* Intel's CSM specification and the Intel/AMD processor datasheets on
+  shadow RAM in C000-FFFF:  "No license ... is granted"; see
+  ../shadowram.md for the links.
 * Debugger extensions to VCPI (Qualitas):  VCPIDBG.DOC in 386SWAT
   (GPL 3), https://github.com/sudleyplace/386SWAT

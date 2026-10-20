@@ -46,7 +46,11 @@ upper memory from the shadow RAM of many PC chipsets, without a V86
 monitor.  The author was asked for its source; with it, 386MAX could
 learn more chipset-specific detection (shadow RAM and its write enable)
 for the motherboards it covers.  Nothing is taken over before there is
-an answer.
+an answer.  For the generations after UMBPCI (Intel from the 8th Core
+generation, AMD from Family 10h) the public datasheets describe the
+mechanism (PAM registers with a LOCK bit, AMD fixed MTRRs with
+RdDram/WrDram), see shadowram.md; a 386MAX option could use them
+(checking LOCK first).
 
 ## 10.x:  more than about 1GB with VCPI
 
