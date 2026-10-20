@@ -29,7 +29,7 @@ TESTPROJECTS := TESTS
 JWASM_SRC  := $(wildcard linux/jwasm/src/*.c linux/jwasm/src/H/*.h)
 JWLINK_SRC := $(shell find linux/jwlink -name '*.[ch]' -not -path '*/build/*')
 
-.PHONY: all tools $(PROJECTS) $(NEWPROJECTS) $(WINPROJECTS) $(TESTPROJECTS) devpkg clean distclean
+.PHONY: all tools $(PROJECTS) $(NEWPROJECTS) $(WINPROJECTS) $(TESTPROJECTS) devpkg clean testclean distclean
 
 all: $(PROJECTS) $(NEWPROJECTS) $(WINPROJECTS) $(TESTPROJECTS)
 
@@ -68,6 +68,14 @@ MAXCTRL: SFTTABS
 # unattended installs
 clean:
 	find build -mindepth 1 -maxdepth 1 ! -name win311 ! -name dosdisk ! -name win98 -exec rm -rf {} + 2>/dev/null || true
+
+# test outputs only (linux/test/*.sh, suite.py runs with a tag); the
+# builds, the test images and the suite's untagged runs (--check) stay
+testclean:
+	rm -rf build/test build/test-* build/win98test build/win311test build/w98*
+	find build/suite -mindepth 1 -maxdepth 1 -type d ! -name bin \
+	    -regextype posix-extended ! -regex '.*/(max|hx|jemm)-[a-z0-9]+-(msdos622|msdos71|freedos|edrdos|svardos|qemm622)' \
+	    -exec rm -rf {} + 2>/dev/null || true
 
 distclean:
 	rm -rf build linux/bin linux/jwasm/build linux/jwlink/build

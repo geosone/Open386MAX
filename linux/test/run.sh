@@ -12,6 +12,7 @@
 #   MEMSIZE  QEMU memory in MB (default 64)
 #   QEMU_EXTRA  more QEMU arguments
 #   TIMEOUT  seconds until the screen is captured (default 240; 386MAX needs ~150 s in QEMU)
+#   KEEP=1   keep the boot floppy copy (boot.img) after the run
 #
 # Output (build/test/): serial.log, screen.png
 set -uo pipefail
@@ -54,6 +55,7 @@ qemu-system-i386 -machine pc -m "${MEMSIZE:-64}" -display none -vga std -monitor
     -serial file:"$OUT/serial.log" \
     -device isa-debug-exit,iobase=0x501,iosize=0x02 >/dev/null 2>&1
 [ -f "$OUT/screen.ppm" ] && command -v magick >/dev/null && magick "$OUT/screen.ppm" "$OUT/screen.png"
+[ "${KEEP:-0}" = 1 ] || rm -f "$OUT/boot.img" "$OUT/screen.ppm"
 
 echo "=== CONFIG.SYS"; tr -d '\r' < "$OUT/CONFIG.SYS"
 echo "=== serial.log"; tr -d '\r' < "$OUT/serial.log"
