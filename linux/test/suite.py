@@ -395,6 +395,23 @@ def read_result(path):
     return r
 
 
+MATRIX_HEAD = [
+    '# Test matrix', '',
+    'Results of the test suites (TESTS/) for Open 386MAX and the memory',
+    'managers and DPMI hosts it is compared with, on each DOS.  Made by',
+    '`linux/test/suite.py --matrix` from the baselines in TESTS/BASELINE',
+    '(QEMU, TCG, 64MB); a run with `--update` refreshes a column.', '',
+    'Profiles:  max = 386MAX; emm386, himem = MS-DOS 6.22/7.1; jemmex,',
+    'jemm386 (on HimemX), himemx = Jemm/HimemX; hdpmi = HDPMI16/32 on',
+    'HimemX; cwsdpmi = CWSDPMI on HimemX; maxcws, maxhdpmi, maxhdpmii =',
+    'CWSDPMI / HDPMI / HDPMI IOPL 0 as VCPI clients of 386MAX NODPMI;',
+    'qemm = QEMM 97 with QDPMI.  HIMEM/EMM386 exist only on the MS-DOS',
+    'images, QEMM only on its own image.', '',
+    'PASS / END = as expected, SKIP = the profile lacks what the test needs',
+    '(or the test found nothing to check), FAIL = a check failed, HANG,',
+    'CRASH, QEMUFAULT = the run did not end normally.  The hx and jemm',
+    'suites run test programs of HX and Jemm, which are not part of this',
+    'repository.', '']
 ORDER = ['emm386', 'himem', 'qemm', 'jemmex', 'jemm386', 'himemx', 'hdpmi', 'cwsdpmi', 'maxcws', 'maxhdpmi', 'maxhdpmii', 'max']
 DOSORDER = ['msdos622', 'msdos71', 'edrdos', 'svardos', 'freedos', 'qemm622']
 
@@ -433,6 +450,7 @@ def matrix():
             table('suite %s:  386MAX on all DOSes' % suite, mx, lambda c: c[1])
     path = os.path.join(BUILD, 'matrix.md')
     open(path, 'w').write('\n'.join(out))
+    open(os.path.join(ROOT, 'docs', 'testmatrix.md'), 'w').write('\n'.join(MATRIX_HEAD + out))
     print('\n'.join(out))
     print('->', path)
 
