@@ -1814,6 +1814,8 @@ The Get Status function returns a status code indicating whether the memory mana
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The manager is present in the system, and the hardware is working correctly.
 
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
@@ -1821,6 +1823,8 @@ The Get Status function returns a status code indicating whether the memory mana
 **AH = 81h**  NON-RECOVERABLE. The manager detected a malfunction in the expanded memory hardware.
 
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the memory manager is not defined.
+
+:::
 
 #### Example
 
@@ -1853,6 +1857,8 @@ These results are valid only if the status returned is zero.
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The manager has returned the page frame address in the BX register.
 
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
@@ -1860,6 +1866,8 @@ These results are valid only if the status returned is zero.
 **AH = 81h**  NON-RECOVERABLE. The manager detected a malfunction in the expanded memory hardware.
 
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the memory manager is not defined.
+
+:::
 
 #### Example
 
@@ -1889,15 +1897,21 @@ The Get Unallocated Page Count function returns the number of unallocated pages 
 
 These results are valid only if the status returned is zero.
 
+::: regs
+
 **BX = unallocated**  pages The number of expanded memory pages that are currently available for use (unallocated).
 
 **DX = total**  pages The total number of expanded memory pages.
+
+:::
 
 #### Registers Modified
 
 AX, BX, DX
 
 #### Status
+
+::: regs
 
 **AH = 0**  SUCCESSFUL. The manager has returned the number of unallocated pages and the number of total pages in expanded memory.
 
@@ -1906,6 +1920,8 @@ AX, BX, DX
 **AH = 81h**  NON-RECOVERABLE. The manager detected a malfunction in the expanded memory hardware.
 
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the memory manager is not defined.
+
+:::
 
 #### Example
 
@@ -1947,9 +1963,13 @@ There are two special cases for this handle:
 
 #### Calling Parameters
 
+::: regs
+
 **AH = 43h**  Contains the Allocate Pages function.
 
 **BX = num\_of\_pages\_to\_alloc**  Contains the number of pages you want your program to allocate.
+
+:::
 
 #### Results
 
@@ -1962,6 +1982,8 @@ These results are valid only if the status returned is zero.
 | AX, DX
 
 #### Status
+
+::: regs
 
 **AH = 0**  SUCCESSFUL. The manager has allocated the requested pages to the assigned EMM handle.
 
@@ -1978,6 +2000,8 @@ These results are valid only if the status returned is zero.
 **AH = 88h**  RECOVERABLE. There aren't enough unallocated pages to satisfy your program's request.
 
 **AH = 89h**  RECOVERABLE. Your program attempted to allocate zero pages.
+
+:::
 
 #### Example
 
@@ -2009,6 +2033,8 @@ The handle determines what type of pages are being mapped. Logical pages allocat
 
 #### Calling Parameters
 
+::: regs
+
 **AH = 44h**  Contains the Map Handle Page function.
 
 **AL = physical\_page\_number**  Contains the number of the physical page into which the logical page number is to be mapped.  Physical pages are numbered zero-relative.
@@ -2017,11 +2043,15 @@ The handle determines what type of pages are being mapped. Logical pages allocat
 
 **DX = emm\_handle**  Contains the EMM handle your program received from Function 4 (Allocate Pages).
 
+:::
+
 #### Registers Modified
 
 | AX
 
 #### Status
+
+::: regs
 
 **AH = 0**  SUCCESSFUL. The manager has mapped the page.  The page is ready to be accessed.
 
@@ -2036,6 +2066,8 @@ The handle determines what type of pages are being mapped. Logical pages allocat
 **AH = 8Ah**  RECOVERABLE. The logical page is out of the range of logical pages which are allocated to the EMM handle.  This status is also returned if a program attempts to map a logical page when no logical pages are allocated to the handle.
 
 **AH = 8Bh**  RECOVERABLE. The physical page number is out of the range of allowable physical pages.  The program can recover by attempting to map into memory at a physical page which is within the range of allowable physical pages.
+
+:::
 
 #### Example
 
@@ -2065,15 +2097,21 @@ Note............................................................ A program must 
 
 #### Calling Parameters
 
+::: regs
+
 **AH = 45h**  Contains the Deallocate Pages function.
 
 **DX = handle**  Contains the EMM handle returned by Function 4 (Allocate Pages).
+
+:::
 
 #### Registers Modified
 
 | AX
 
 #### Status
+
+::: regs
 
 **AH = 0**  SUCCESSFUL. The manager has deallocated the pages previously allocated to the EMM handle.
 
@@ -2086,6 +2124,8 @@ Note............................................................ A program must 
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the memory manager is not defined.
 
 **AH = 86h**  RECOVERABLE. The memory manager detected a save or restore page mapping context error (Function 8 or 9).  There is a page mapping register state in the save area for the specified EMM handle.  Save Page Map (Function 8) placed it there and a subsequent Restore Page Map (Function 9) has not removed it.
+
+:::
 
 If you have saved the mapping context, you must restore it before you deallocate the EMM handle's pages.
 
@@ -2133,6 +2173,8 @@ When checking for a version number, an application should check for a version nu
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The manager is present in the system and the hardware is working correctly.
 
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
@@ -2140,6 +2182,8 @@ When checking for a version number, an application should check for a version nu
 **AH = 81h**  NON-RECOVERABLE. The manager detected a malfunction in the expanded memory hardware.
 
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the memory manager is not defined.
+
+:::
 
 #### Example
 
@@ -2169,15 +2213,21 @@ The Save Page Map function saves the state of the map registers for only the 64K
 
 #### Calling Parameters
 
+::: regs
+
 **AH = 47h**  Contains the Save Page Map function.
 
 **DX = handle**  Contains the EMM handle assigned to the interrupt service routine that's servicing the software or hardware interrupt.  The interrupt service routine needs to save the state of the page mapping hardware before mapping any pages.
+
+:::
 
 #### Registers Modified
 
 | AX
 
 #### Status
+
+::: regs
 
 **AH = 0**  SUCCESSFUL. The manager has saved the state of the page mapping hardware.
 
@@ -2192,6 +2242,8 @@ The Save Page Map function saves the state of the map registers for only the 64K
 **AH = 8Ch**  NON-RECOVERABLE. There is no room in the save area to store the state of the page mapping registers.  The state of the map registers has not been saved.
 
 **AH = 8Dh**  CONDITIONALLY-RECOVERABLE. The save area already contains the page mapping register state for the EMM handle your program specified.
+
+:::
 
 #### Example
 
@@ -2221,15 +2273,21 @@ The Restore Page Map function restores the state of the map registers for only t
 
 #### Calling Parameters
 
+::: regs
+
 **AH = 48h**  Contains the Restore Page Map function.
 
 **DX = emm\_handle**  Contains the EMM handle assigned to the interrupt service routine that's servicing the software or hardware interrupt.  The interrupt service routine needs to restore the state of the page mapping hardware.
+
+:::
 
 #### Registers Modified
 
 | AX
 
 #### Status
+
+::: regs
 
 **AH = 0**  SUCCESSFUL. The manager has restored the state of the page mapping registers.
 
@@ -2242,6 +2300,8 @@ The Restore Page Map function restores the state of the map registers for only t
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the memory manager is not defined.
 
 **AH = 8Eh**  CONDITIONALLY-RECOVERABLE. There is no page mapping register state in the save area for the specified EMM handle.  Your program didn't save the contents of the page mapping hardware, so Restore Page can't restore it.
+
+:::
 
 #### Example
 
@@ -2291,6 +2351,8 @@ These results are valid only if the status returned is zero.
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The manager has returned the number of active EMM handles.
 
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
@@ -2298,6 +2360,8 @@ These results are valid only if the status returned is zero.
 **AH = 81h**  NON-RECOVERABLE. The manager detected a malfunction in the expanded memory hardware.
 
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the memory manager is not defined.
+
+:::
 
 #### Example
 
@@ -2323,9 +2387,13 @@ The Get Handle Pages function returns the number of pages allocated to a specifi
 
 #### Calling Parameters
 
+::: regs
+
 **AH = 4Ch**  Contains the Get Handle Pages function.
 
 **DX = emm\_handle**  Contains the EMM handle.
+
+:::
 
 #### Results
 
@@ -2339,6 +2407,8 @@ These results are valid only if the status returned is zero.
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The manager has returned the number of pages allocated to the EMM handle.
 
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
@@ -2348,6 +2418,8 @@ These results are valid only if the status returned is zero.
 **AH = 83h**  NON-RECOVERABLE. The memory manager couldn't find the EMM handle your program specified.
 
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the memory manager is not defined.
+
+:::
 
 #### Example
 
@@ -2414,6 +2486,8 @@ These results are valid only if the status returned is zero.
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The manager has returned the array.
 
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
@@ -2421,6 +2495,8 @@ These results are valid only if the status returned is zero.
 **AH = 81h**  NON-RECOVERABLE. The manager detected a malfunction in the expanded memory hardware.
 
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the memory manager is not defined.
+
+:::
 
 #### Example
 
@@ -2451,9 +2527,13 @@ Use this function instead of Functions 8 and 9 if you need to save or restore th
 
 #### Calling Parameters
 
+::: regs
+
 **AX = 4E00h**  Contains the Get Page Map subfunction.
 
 **ES:DI = dest\_page\_map**  Contains a pointer to the destination array address in segment:offset format.  Use the Get Size of Page Map Save Array subfunction to determine the size of the desired array.
+
+:::
 
 #### Results
 
@@ -2479,6 +2559,8 @@ dest_page_map
 | Function 15. Get/Set Page Map
 | Get Page Map subfunction
 
+::: regs
+
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
 
 **AH = 81h**  NON-RECOVERABLE. The manager detected a malfunction in the expanded memory hardware.
@@ -2486,6 +2568,8 @@ dest_page_map
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the memory manager is not defined.
 
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
+
+:::
 
 #### Example
 
@@ -2514,9 +2598,13 @@ Use this function instead of Functions 8 and 9 if you need to save or restore th
 
 #### Calling Parameters
 
+::: regs
+
 **AX = 4E01h**  Contains the Set Page Map subfunction.
 
 **DS:SI = source\_page\_map**  Contains a pointer to the source array address in segment:offset format.  The application must point to an array which contains the mapping register state.  Use the Get Size of Page Map Save Array subfunction to determine the size of the desired array.
+
+:::
 
 #### Registers Modified
 
@@ -2524,20 +2612,28 @@ Use this function instead of Functions 8 and 9 if you need to save or restore th
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The manager has passed the array.
 
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
 
 **AH = 81h**  NON-RECOVERABLE. The manager detected a malfunction in the expanded memory hardware.
 
+:::
+
 | Function 15. Get/Set Page Map
 | Set Page Map subfunction
+
+::: regs
 
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the memory manager is not defined.
 
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
 
 **AH = A3h**  NON-RECOVERABLE. The contents of the source array have been corrupted, or the pointer passed to the subfunction is invalid.
+
+:::
 
 #### Example
 
@@ -2566,11 +2662,15 @@ Use this function instead of Functions 8 and 9 if you need to save or restore th
 
 #### Calling Parameters
 
+::: regs
+
 **AX = 4E02h**  Contains the Get & Set Page Map subfunction.
 
 **ES:DI = dest\_page\_map**  Contains a pointer to the destination array address in segment:offset format.  The current contents of the map registers will be saved in this array.
 
 **DS:SI = source\_page\_map**  Contains a pointer to the source array address in segment:offset format.  The contents of this array will be copied into the map registers.  The application must point to an array which contains the mapping register state.  This address is required only for the Set or Get and Set subfunctions.
+
+:::
 
 #### Results
 
@@ -2593,6 +2693,8 @@ dest_page_map
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The manager has returned and passed both arrays.
 
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
@@ -2604,6 +2706,8 @@ dest_page_map
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
 
 **AH = A3h**  NON-RECOVERABLE. The contents of the source array have been corrupted, or the pointer passed to the subfunction is invalid.
+
+:::
 
 #### Example
 
@@ -2651,18 +2755,26 @@ These results are valid only if the status returned is zero.
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The manager has returned the array size.
 
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
 
 **AH = 81h**  NON-RECOVERABLE. The manager detected a malfunction in the expanded memory hardware.
 
+:::
+
 | Function 15. Get/Set Page Map
 | Get Size of Page Map Save Array subfunction
+
+::: regs
 
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the memory manager is not defined.
 
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
+
+:::
 
 #### Example
 
@@ -2740,6 +2852,8 @@ dest_array
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The manager has saved the partial map context.
 
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
@@ -2748,13 +2862,19 @@ dest_array
 
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the memory manager is not defined.
 
+:::
+
 Function 16. Get/Set Partial Page Map Get Partial Page Map subfunction
+
+::: regs
 
 **AH = 8Bh**  NON-RECOVERABLE. One of the specified segments is not a mappable segment.
 
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
 
 **AH = A3h**  NON-RECOVERABLE. The contents of the partial page map structure have been corrupted, the pointer passed to the subfunction is invalid, or the mappable\_segment\_count exceeds the number of mappable segments in the system.
+
+:::
 
 #### Example
 
@@ -2803,11 +2923,17 @@ source_array     DB ? DUP (?)
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The manager has restored the partial mapping context.
 
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
 
+:::
+
 Function 16. Get/Set Partial Page Map Set Partial Page Map subfunction
+
+::: regs
 
 **AH = 81h**  NON-RECOVERABLE. The manager detected a malfunction in the expanded memory hardware.
 
@@ -2816,6 +2942,8 @@ Function 16. Get/Set Partial Page Map Set Partial Page Map subfunction
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
 
 **AH = A3h**  NON-RECOVERABLE. The contents of the source array have been corrupted, or the pointer passed to the subfunction is invalid.
+
+:::
 
 #### Example
 
@@ -2837,9 +2965,13 @@ The Get Size of Partial Page Map Save Array subfunction returns the storage requ
 
 #### Calling Parameters
 
+::: regs
+
 **AX = 4F02h**  Contains the Get Size of Partial Page Map Save Array subfunction.  The size of this array depends on the expanded memory system configuration and the implementation of the expanded memory manager.  Therefore, it will vary between hardware configurations and implementations and must be determined after a specific memory manager is loaded.
 
 **BX = number**  of pages in the partial array Contains the number of pages in the partial map to be saved by the Get/Set Partial Page Map subfunctions. This number should be the same as the mappable\_segment\_count in the Get Partial Page Map subfunction.
+
+:::
 
 #### Results
 
@@ -2857,6 +2989,8 @@ These results are valid only if the status returned is zero.
 
 Function 16. Get/Set Partial Page Map Get Size of Partial Page Map Save Array subfunction
 
+::: regs
+
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
 
 **AH = 81h**  NON-RECOVERABLE. The manager detected a malfunction in the expanded memory hardware.
@@ -2866,6 +3000,8 @@ Function 16. Get/Set Partial Page Map Get Size of Partial Page Map Save Array su
 **AH = 8Bh**  NON-RECOVERABLE. The number of pages in the partial array is outside the range of physical pages in the system.
 
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
+
+:::
 
 #### Example
 
@@ -2927,11 +3063,15 @@ log_to_phys_map_struct          STRUC
 log_to_phys_map_struct          ENDS
 ~~~
 
+::: regs
+
 **DX = handle**  Contains the EMM handle.
 
 **CX = log\_to\_phys\_map\_len**  Contains the number of entries in the array.  For example, if the array contained four pages to map or unmap, then CX would contain 4.  The number in CX should not exceed the number of mappable pages in the system.
 
 **DS:SI = pointer**  to log\_to\_phys\_map array Contains a pointer to an array of structures that contains the information necessary to map the desired pages.  The array is made up of the following two elements:
+
+:::
 
 ~~~
 .log_page_number
@@ -2963,6 +3103,8 @@ Function 17. Map/Unmap Multiple Handle Pages Logical Page/Physical Page Method
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The logical pages have been mapped, or unmapped, at the specified physical pages.
 
 **AH = 80h**  NON-RECOVERABLE. The manager has detected a malfunction in the memory manager software.
@@ -2976,6 +3118,8 @@ Function 17. Map/Unmap Multiple Handle Pages Logical Page/Physical Page Method
 **AH = 8Ah**  RECOVERABLE. One or more of the mapped logical pages is out of the range of logical pages allocated to the EMM handle.  The program can recover by attempting to map a logical page which is within the bounds for the specified EMM handle. When this error occurs, the only pages mapped were the ones valid up to the point that the error occurred.
 
 **AH = 8Bh**  RECOVERABLE. One or more of the physical pages is out of the range of mappable physical pages, or the log\_to\_phys\_map\_len exceeds the number of mappable pages in the system.  The program can recover from this condition by attempting to map into memory at the physical page which is in the range of the physical page numbers supported by the system.  When this error occurs, the only pages mapped were the ones valid up to the point that the error occurred.
+
+:::
 
 Function 17. Map/Unmap Multiple Handle Pages Logical Page/Physical Page Method
 
@@ -3018,11 +3162,15 @@ log_to_seg_map_struct           STRUC
 log_to_seg_map_struct           ENDS
 ~~~
 
+::: regs
+
 **DX = handle**  Contains the EMM handle.
 
 **CX = log\_to\_segment\_map\_len**  Contains the number of entries in the array.  For example, if the array contained four pages to map or unmap, then CX would contain four.
 
 **DS:SI = pointer**  to log\_to\_segment\_map array Contains a pointer to an array of structures that contains the information necessary to map the desired pages.  The array is made up of the following elements:
+
+:::
 
 ~~~
 .log_page_number
@@ -3053,6 +3201,8 @@ Function 17. Map/Unmap Multiple Handle Pages Logical Page/Segment Address Method
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The logical pages have been mapped (or unmapped) at the specified physical pages.
 
 **AH = 80h**  NON-RECOVERABLE. The manager has detected a malfunction in the memory manager software.
@@ -3068,6 +3218,8 @@ Function 17. Map/Unmap Multiple Handle Pages Logical Page/Segment Address Method
 **AH = 8Bh**  RECOVERABLE. One or more of the mappable segment addresses specified is not mappable, the segment address doesn't fall exactly on a mappable address boundary, or the log\_to\_- segment\_map\_len exceeds the number of mappable segments in the system.  The program can recover from this condition by mapping into memory on an exact mappable segment address.  When this error occurs, the only pages mapped were the ones valid up to the point that the error occurred.
 
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
+
+:::
 
 Function 17. Map/Unmap Multiple Handle Pages Logical Page/Segment Address Method
 
@@ -3113,11 +3265,15 @@ The handle determines what type of logical pages are being reallocated.  Logical
 
 #### Calling Parameters
 
+::: regs
+
 **AH = 51h**  Contains the Reallocate Handle Pages function.
 
 **DX = handle**  Contains the EMM handle.
 
 **BX = reallocation\_count**  Contains the total number of pages this handle should have allocated to it after this function is invoked.
+
+:::
 
 #### Results
 
@@ -3128,6 +3284,8 @@ The handle determines what type of logical pages are being reallocated.  Logical
 | AX, BX
 
 #### Status
+
+::: regs
 
 **AH = 0**  SUCCESSFUL. The pages specified have been added to or subtracted from the handle specified.
 
@@ -3142,6 +3300,8 @@ The handle determines what type of logical pages are being reallocated.  Logical
 **AH = 87h**  RECOVERABLE. The number of pages that are available in the system is insufficient for the new allocation request.  The program can recover from this condition by specifying fewer pages be allocated to the EMM handle.
 
 **AH = 88h**  RECOVERABLE. The number of unallocated pages is insufficient for the new allocation request.  The program can recover from this condition by either requesting again when additional pages are available or specifying fewer pages.
+
+:::
 
 #### Example
 
@@ -3184,9 +3344,13 @@ If the handle's attribute has been set to non-volatile, the handle, its name (if
 
 #### Calling Parameters
 
+::: regs
+
 **AX = 5200h**  Contains the Get Handle Attribute subfunction.
 
 **DX = handle**  Contains the EMM handle.
+
+:::
 
 #### Results
 
@@ -3204,6 +3368,8 @@ These results are valid only if the status returned is zero.
 
 Function 19. Get/Set Handle Attribute Get Handle Attribute subfunction
 
+::: regs
+
 **AH = 80h**  NON-RECOVERABLE. The manager has detected a malfunction in the memory manager software.
 
 **AH = 81h**  NON-RECOVERABLE. The manager has detected a malfunction in the expanded memory hardware.
@@ -3215,6 +3381,8 @@ Function 19. Get/Set Handle Attribute Get Handle Attribute subfunction
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
 
 **AH = 91h**  NON-RECOVERABLE. This feature is not supported.
+
+:::
 
 #### Example
 
@@ -3242,11 +3410,15 @@ If the handle's attribute has been set to non-volatile, the handle, its name (if
 
 #### Calling Parameters
 
+::: regs
+
 **AX = 5201h**  Contains the Set Handle Attribute function.
 
 **DX = handle**  Contains the EMM handle.
 
 **BL = new**  handle attribute Contains the handle's new attribute.  A value of zero indicates that the handle should be made volatile.  A value of one indicates that the handle should be made non-volatile.
+
+:::
 
 A volatile handle attribute instructs the memory manager to deallocate both the handle and the pages allocated to it after a warm boot.  If all handles have the volatile attribute (the default attribute) at warm boot, the handle directory will be empty and all of expanded memory will be initialized to zero immediately after a warm boot.
 
@@ -3257,6 +3429,8 @@ A volatile handle attribute instructs the memory manager to deallocate both the 
 Function 19. Get/Set Handle Attribute Set Handle Attribute subfunction
 
 #### Status
+
+::: regs
 
 **AH = 0**  SUCCESSFUL. The handle's attribute has been modified.
 
@@ -3273,6 +3447,8 @@ Function 19. Get/Set Handle Attribute Set Handle Attribute subfunction
 **AH = 90h**  NON-RECOVERABLE. The attribute type is undefined.
 
 **AH = 91h**  NON-RECOVERABLE. This feature is not supported.
+
+:::
 
 #### Example
 
@@ -3312,6 +3488,8 @@ These results are valid only if the status returned is zero.
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The attribute capability has been returned.
 
 **AH = 80h**  NON-RECOVERABLE. The manager has detected a malfunction in the memory manager software.
@@ -3321,6 +3499,8 @@ These results are valid only if the status returned is zero.
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the manager is not defined.
 
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
+
+:::
 
 Function 19. Get/Set Handle Attribute Get Attribute Capability subfunction
 
@@ -3348,11 +3528,15 @@ The handle name is initialized to ASCII nulls (binary zeros) three times:  when 
 
 #### Calling Parameters
 
+::: regs
+
 **AX = 5300h**  Contains the Get Handle Name function.
 
 **DX = handle**  number Contains the EMM handle.
 
 **ES:DI = pointer**  to handle\_name array Contains a pointer to an eight-byte array into which the name currently assigned to the handle will be copied.
+
+:::
 
 #### Results
 
@@ -3373,6 +3557,8 @@ handle_name array
 
 Function 20. Get/Set Handle Name Get Handle Name subfunction
 
+::: regs
+
 **AH = 80h**  NON-RECOVERABLE. The manager has detected a malfunction in the memory manager software.
 
 **AH = 81h**  NON-RECOVERABLE. The manager has detected a malfunction in the expanded memory hardware.
@@ -3382,6 +3568,8 @@ Function 20. Get/Set Handle Name Get Handle Name subfunction
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the manager is not defined.
 
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
+
+:::
 
 #### Example
 
@@ -3413,11 +3601,15 @@ A handle can be renamed at any time by setting the handle's name to a new value.
 
 #### Calling Parameters
 
+::: regs
+
 **AX = 5301h**  Contains the Set Handle Name function.
 
 **DX = handle**  number Contains the EMM handle.
 
 **DS:SI = pointer**  to handle\_name Contains a pointer to a byte array which contains the name that is to be assigned to the handle.  The handle name must be padded with nulls if the name is less than eight characters long.
+
+:::
 
 #### Registers Modified
 
@@ -3428,6 +3620,8 @@ A handle can be renamed at any time by setting the handle's name to a new value.
 **AH = 0**  SUCCESSFUL. The handle name has been assigned.
 
 Function 20. Get/Set Handle Name Set Handle Name subfunction
+
+::: regs
 
 **AH = 80h**  NON-RECOVERABLE. The manager has detected a malfunction in the memory manager software.
 
@@ -3440,6 +3634,8 @@ Function 20. Get/Set Handle Name Set Handle Name subfunction
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
 
 **AH = A1h**  RECOVERABLE. A handle with this name already exists.  The specified handle was not assigned a name.
+
+:::
 
 #### Example
 
@@ -3520,6 +3716,8 @@ handle_dir
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The handle directory has been returned.
 
 **AH = 80h**  NON-RECOVERABLE. The manager has detected a malfunction in the memory manager software.
@@ -3529,6 +3727,8 @@ handle_dir
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the manager is not defined.
 
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
+
+:::
 
 Function 21. Get Handle Directory Get Handle Directory subfunction
 
@@ -3562,9 +3762,13 @@ This subfunction searches the handle name directory for a handle with a particul
 
 #### Calling Parameters
 
+::: regs
+
 **AX = 5401h**  Contains the Search for Named Handle subfunction.
 
 **DS:SI = handle\_name**  Contains a pointer to an 8-byte string that contains the name of the handle being searched for.
+
+:::
 
 #### Results
 
@@ -3578,11 +3782,17 @@ These results are valid only if the status returned is zero.
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The handle value for the named handle has been found.
 
 **AH = 80h**  NON-RECOVERABLE. The manager has detected a malfunction in the memory manager software.
 
+:::
+
 Function 21. Get Handle Directory Search For Named Handle subfunction
+
+::: regs
 
 **AH = 81h**  NON-RECOVERABLE. The manager has detected a malfunction in the expanded memory hardware.
 
@@ -3593,6 +3803,8 @@ Function 21. Get Handle Directory Search For Named Handle subfunction
 **AH = A0h**  NON-RECOVERABLE. No corresponding handle could be found for the handle name specified.
 
 **AH = A1h**  NON-RECOVERABLE. A handle found had no name (all ASCII nulls).
+
+:::
 
 #### Example
 
@@ -3634,6 +3846,8 @@ These results are valid only if the status returned is zero.
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The total number of handles supported has been returned.
 
 **AH = 80h**  NON-RECOVERABLE. The manager has detected a malfunction in the memory manager software.
@@ -3643,6 +3857,8 @@ These results are valid only if the status returned is zero.
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the manager is not defined.
 
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
+
+:::
 
 Function 21. Get Handle Directory Get Total Handles subfunction
 
@@ -3691,9 +3907,13 @@ map_and_jump_struct             ENDS
 
 .log\_phys\_map.phys\_page\_number\_seg members are physical page numbers or are the segment address representation of the physical page numbers.  A zero in AL indicates that the values are physical page numbers.  A one in AL indicates that the values in these members are the segment address representations of the physical page numbers.
 
+::: regs
+
 **DX = handle**  number Contains the EMM handle.
 
 **DS:SI = pointer**  to map\_and\_jump structure Contains a pointer to a structure that contains the information necessary to map the desired physical pages and jump to the target address.  The structure consists of the following elements:
+
+:::
 
 ~~~
 .target_address
@@ -3749,6 +3969,8 @@ Note............................................................ Values in regis
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. Control has been transferred to the target address.
 
 **AH = 80h**  NON-RECOVERABLE. The manager has detected a malfunction in the memory manager software.
@@ -3764,6 +3986,8 @@ Note............................................................ Values in regis
 **AH = 8Bh**  RECOVERABLE. One or more of the physical pages is out of the range of allowable physical pages, or the log\_phys\_map\_len exceeds the number of mappable pages in the system. Physical page numbers are numbered zero-relative.  The program can recover from this condition by mapping into memory at a physical page which is in the range of supported physical pages.
 
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
+
+:::
 
 #### Example
 
@@ -3837,9 +4061,13 @@ map_and_call_struct             ENDS
 
 .new\_page\_map.phys\_page\_number\_seg .old\_page\_map.phys\_page\_number\_seg members are physical page numbers or are the segment address representation of the physical page numbers.  A value of zero in AL indicates that the values in these members are physical page numbers.  A value of one in AL indicates that the values in these members are the segment address representations of the physical page numbers.
 
+::: regs
+
 **DX = handle**  number Contains the EMM handle.
 
 **DS:SI = pointer**  to map\_and\_call structure Contains a pointer to a structure which contains the information necessary to map the desired physical pages and call the target address.  The structure members are described here:
+
+:::
 
 ~~~
 .target_address
@@ -3930,6 +4158,8 @@ Note............................................................ Values in regis
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. Control has been transferred to the target address.
 
 **AH = 80h**  NON-RECOVERABLE. The manager has detected a malfunction in the memory manager software.
@@ -3942,11 +4172,17 @@ Note............................................................ Values in regis
 
 **AH = 8Ah**  RECOVERABLE. One or more of the logical pages to map into a corresponding physical page is out of the range of logical pages which are allocated to the EMM handle.  The program can recover from this condition by mapping a logical page which is within the bounds for the EMM handle.
 
+:::
+
 Function 23. Alter Page Map & Call Alter Page Map & Call subfunction
+
+::: regs
 
 **AH = 8Bh**  RECOVERABLE. One or more of the physical pages is out of the range of allowable physical pages, or you've specified more physical pages than exist in the system.  Physical page numbers are numbered zero-relative.  The program can recover from this condition by mapping a physical page which is in the range from zero to three.
 
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
+
+:::
 
 #### Example
 
@@ -4006,6 +4242,8 @@ These results are valid only if the status returned is zero.
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The size of the array has been returned.
 
 **AH = 80h**  NON-RECOVERABLE. The manager has detected a malfunction in the memory manager software.
@@ -4013,6 +4251,8 @@ These results are valid only if the status returned is zero.
 **AH = 81h**  NON-RECOVERABLE. The manager has detected a malfunction in the expanded memory hardware.
 
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the manager is not defined.
+
+:::
 
 Function 23. Alter Page Map & Call Get Page Map Stack Space Size subfunction
 
@@ -4185,13 +4425,19 @@ If the destination region resides in conventional memory, the dest\_initial\_seg
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The memory regions have been moved.
 
 **AH = 80h**  NON-RECOVERABLE. The manager has detected a malfunction in the memory manager software.
 
 **AH = 81h**  NON-RECOVERABLE. The manager has detected a malfunction in the expanded memory hardware.
 
+:::
+
 Function 24. Move/Exchange Memory Region Move Memory Region subfunction
+
+::: regs
 
 **AH = 83h**  NON-RECOVERABLE. The manager couldn't find either the source or destination EMM handles.  The memory manager doesn't have any information on the handles specified.  The program may have corrupted its EMM handles.
 
@@ -4207,7 +4453,11 @@ Function 24. Move/Exchange Memory Region Move Memory Region subfunction
 
 **AH = 94h**  NON-RECOVERABLE. The conventional memory region and expanded memory region overlap.  This is invalid, the conventional memory region cannot overlap the expanded memory region.
 
+:::
+
 Function 24. Move/Exchange Memory Region Move Memory Region subfunction
+
+::: regs
 
 **AH = 95h**  NON-RECOVERABLE. The offset within the logical page exceeds the length of the logical page.  The initial source or destination offsets within an expanded memory region must be between 0000h and 3FFFh (16383 or (length of a logical page - 1)).
 
@@ -4216,6 +4466,8 @@ Function 24. Move/Exchange Memory Region Move Memory Region subfunction
 **AH = 98h**  NON-RECOVERABLE. The memory source and destination types are undefined.
 
 **AH = A2h**  NON-RECOVERABLE. An attempt was made to wrap around the 1M-byte address space of conventional memory during the move.  The combination of source/destination starting address and length of the region to be moved exceeds 1M bytes.  No data was moved.
+
+:::
 
 #### Example
 
@@ -4386,6 +4638,8 @@ If the destination region resides in conventional memory, the dest\_initial\_seg
 
 Function 24. Move/Exchange Memory Region Exchange Memory Region subfunction
 
+::: regs
+
 **AH = 80h**  NON-RECOVERABLE. The manager has detected a malfunction in the memory manager software.
 
 **AH = 81h**  NON-RECOVERABLE. The manager has detected a malfunction in the expanded memory hardware.
@@ -4402,7 +4656,11 @@ Function 24. Move/Exchange Memory Region Exchange Memory Region subfunction
 
 **AH = 94h**  NON-RECOVERABLE. The conventional memory region and expanded memory region overlap.  This is invalid, the conventional memory region cannot overlap the expanded memory region.
 
+:::
+
 Function 24. Move/Exchange Memory Region Exchange Memory Region subfunction
+
+::: regs
 
 **AH = 95h**  NON-RECOVERABLE. The offset within the logical page exceeds the length of the logical page.  The initial source or destination offsets within an expanded memory region must be between 0000h and 3FFFh (16383 or (length of a logical page - 1)).
 
@@ -4413,6 +4671,8 @@ Function 24. Move/Exchange Memory Region Exchange Memory Region subfunction
 **AH = 98h**  NON-RECOVERABLE. The memory source and destination types are undefined.
 
 **AH = A2h**  NON-RECOVERABLE. An attempt was made to wrap around the 1M-byte address space of conventional memory during the exchange.  The combination of source/destination starting address and length of the region to be exchanged exceeds 1M bytes. No data was exchanged.
+
+:::
 
 #### Example
 
@@ -4514,6 +4774,8 @@ These results are valid only if the status returned is zero.
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The hardware configuration array has been returned.
 
 **AH = 80h**  NON-RECOVERABLE. The manager has detected a malfunction in the memory manager software.
@@ -4523,6 +4785,8 @@ These results are valid only if the status returned is zero.
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the manager is not defined.
 
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
+
+:::
 
 Function 25. Get Mappable Physical Address Array Get Mappable Physical Address Array subfunction
 
@@ -4573,6 +4837,8 @@ These results are valid only if the status returned is zero.
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The number of mappable physical pages has been returned.
 
 **AH = 80h**  NON-RECOVERABLE. The manager has detected a malfunction in the memory manager software.
@@ -4580,6 +4846,8 @@ These results are valid only if the status returned is zero.
 **AH = 81h**  NON-RECOVERABLE. The manager has detected a malfunction in the expanded memory hardware.
 
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the manager is not defined.
+
+:::
 
 Function 25. Get Mappable Physical Address Array Get Mappable Physical Address Array Entries subfunction
 
@@ -4706,6 +4974,8 @@ hardware_info
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The hardware configuration array has been returned.
 
 **AH = 80h**  NON-RECOVERABLE. The manager has detected a malfunction in the memory manager software.
@@ -4714,11 +4984,17 @@ hardware_info
 
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the manager is not defined.
 
+:::
+
 Function 26. Get Expanded Memory Hardware Information Get Hardware Configuration Array subfunction
+
+::: regs
 
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
 
 **AH = A4h**  NON-RECOVERABLE. Access to this function has been denied by the operating system.  The function cannot be used at this time.
+
+:::
 
 #### Example
 
@@ -4754,9 +5030,13 @@ If the expanded memory board supplies pages in exact multiples of 16K bytes, the
 
 These results are valid only if the status returned is zero.
 
+::: regs
+
 **BX = unallocated**  raw pages The number of raw pages that are currently available for use.
 
 **DX = total**  raw pages The total number of raw pages in expanded memory.
+
+:::
 
 #### Registers Modified
 
@@ -4765,6 +5045,8 @@ AX, BX, DX
 Function 26. Get Expanded Memory Hardware Information Get Unallocated Raw Page Count subfunction
 
 #### Status
+
+::: regs
 
 **AH = 0**  SUCCESSFUL. The manager has returned the number of unallocated raw pages and the number of total raw pages in expanded memory.
 
@@ -4775,6 +5057,8 @@ Function 26. Get Expanded Memory Hardware Information Get Unallocated Raw Page C
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the memory manager is not defined.
 
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
+
+:::
 
 #### Example
 
@@ -4816,9 +5100,13 @@ handle value of zero, an application will never gain access to this special hand
 
 #### Calling Parameters
 
+::: regs
+
 **AX = 5A00h**  Contains the Allocate Standard Pages subfunction.
 
 **BX = num\_of\_standard\_pages\_to\_alloc**  Contains the number of standard pages the operating system wants to allocate.
+
+:::
 
 #### Results
 
@@ -4836,6 +5124,8 @@ Function 27. Allocate Standard/Raw Pages Allocate Standard Pages subfunction
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The manager has allocated the pages to an assigned EMM standard handle.
 
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
@@ -4851,6 +5141,8 @@ Function 27. Allocate Standard/Raw Pages Allocate Standard Pages subfunction
 **AH = 88h**  RECOVERABLE. There aren't enough unallocated pages to satisfy the operating system's request.
 
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
+
+:::
 
 #### Example
 
@@ -4901,9 +5193,13 @@ Function 27. Allocate Standard/Raw Pages Allocate Raw Pages subfunction
 
 #### Calling Parameters
 
+::: regs
+
 **AX = 5A01h**  Contains the Allocate Raw Pages subfunction.
 
 **BX = num\_of\_raw\_pages\_to\_alloc**  Contains the number of raw pages the operating system wishes to allocate.
+
+:::
 
 #### Results
 
@@ -4919,13 +5215,19 @@ For all functions using this raw handle, the length of the physical and logical 
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The manager has allocated the raw pages to an assigned EMM raw handle.
 
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
 
 **AH = 81h**  NON-RECOVERABLE. The manager detected a malfunction in the expanded memory hardware.
 
+:::
+
 Function 27. Allocate Standard/Raw Pages Allocate Raw Pages subfunction
+
+::: regs
 
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the memory manager is not defined.
 
@@ -4936,6 +5238,8 @@ Function 27. Allocate Standard/Raw Pages Allocate Raw Pages subfunction
 **AH = 88h**  RECOVERABLE. There aren't enough unallocated raw pages to satisfy the operating system's request.
 
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
+
+:::
 
 #### Example
 
@@ -5047,6 +5351,8 @@ AX, BX, ES:DI
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The manager got the alternate map register set.
 
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
@@ -5056,6 +5362,8 @@ AX, BX, ES:DI
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the memory manager is not defined.
 
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
+
+:::
 
 Function 28. Alternate Map Register Set Get Alternate Map Register Set subfunction
 
@@ -5141,6 +5449,8 @@ Function 28. Alternate Map Register Set Set Alternate Map Register Set subfuncti
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The manager set the alternate map register set.
 
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
@@ -5160,6 +5470,8 @@ Function 28. Alternate Map Register Set Set Alternate Map Register Set subfuncti
 **AH = A3h**  NON-RECOVERABLE. The contents of the source array have been corrupted, or the pointer passed to the subfunction is invalid.
 
 **AH = A4h**  NON-RECOVERABLE. The operating system has denied access to this function. The function cannot be used at this time.
+
+:::
 
 Function 28. Alternate Map Register Set Set Alternate Map Register Set subfunction
 
@@ -5216,11 +5528,17 @@ These results are valid only if the status returned is zero.
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The manager has returned the array size.
 
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
 
+:::
+
 Function 28. Alternate Map Register Set Get Alternate Map Save Array Size subfunction
+
+::: regs
 
 **AH = 81h**  NON-RECOVERABLE. The manager detected a malfunction in the expanded memory hardware.
 
@@ -5229,6 +5547,8 @@ Function 28. Alternate Map Register Set Get Alternate Map Save Array Size subfun
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
 
 **AH = A4h**  NON-RECOVERABLE. The operating system has denied access to this function. The function cannot be used at this time.
+
+:::
 
 #### Example
 
@@ -5274,6 +5594,8 @@ These results are valid only if the status returned is zero.
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The manager has returned the alternate map register set number.
 
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
@@ -5285,6 +5607,8 @@ These results are valid only if the status returned is zero.
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
 
 **AH = 9Bh**  NON-RECOVERABLE. Alternate map register sets are supported.  However, all alternate map register sets are currently allocated.
+
+:::
 
 Function 28. Alternate Map Register Set Allocate Alternate Map Register Set subfunction
 
@@ -5317,9 +5641,13 @@ This subfunction also makes the mapping context of the alternate map register sp
 
 #### Calling Parameters
 
+::: regs
+
 **AX = 5B04h**  Contains the Deallocate Alternate Map Register Set subfunction.
 
 **BL = alternate**  register set number Contains the number of the alternate map register set to deallocate.  Map register set zero cannot be allocated or deallocated.  However, if alternate map register set zero is specified and this subfunction is invoked, no error will be returned.  The function invocation is ignored in this case.
+
+:::
 
 #### Registers Modified
 
@@ -5328,6 +5656,8 @@ This subfunction also makes the mapping context of the alternate map register sp
 Function 28. Alternate Map Register Set Deallocate Alternate Map Register Set subfunction
 
 #### Status
+
+::: regs
 
 **AH = 0**  SUCCESSFUL. The manager has deallocated the alternate map register set.
 
@@ -5344,6 +5674,8 @@ Function 28. Alternate Map Register Set Deallocate Alternate Map Register Set su
 **AH = 9Dh**  NON-RECOVERABLE. Alternate map register sets are supported, but the alternate map register set specified is either not defined or not allocated.
 
 **AH = A4h**  NON-RECOVERABLE. The operating system has denied access to this function. The function cannot be used at this time.
+
+:::
 
 #### Example
 
@@ -5391,6 +5723,8 @@ Function 28. Alternate Map Register Set Allocate DMA Register Set subfunction
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The manager has allocated the DMA register set.
 
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
@@ -5404,6 +5738,8 @@ Function 28. Alternate Map Register Set Allocate DMA Register Set subfunction
 **AH = 9Bh**  NON-RECOVERABLE. DMA register sets are supported.  However, all DMA register sets are currently allocated.
 
 **AH = A4h**  NON-RECOVERABLE. Access to this function has been denied by the operating system.  The function cannot be used at this time.
+
+:::
 
 #### Example
 
@@ -5433,11 +5769,15 @@ Any DMA on the specified channel will go through the specified DMA register set 
 
 #### Calling Parameters
 
+::: regs
+
 **AX = 5B06h**  Contains the Enable DMA on Alternate Map Register Set subfunction.
 
 **BL = DMA**  register set number Contains the number of the alternate map register set to be used for DMA operations on the DMA channel specified by DL.  If the alternate map register set specified is zero, no special action will be taken on DMA accesses for the DMA channel specified.
 
 **DL = DMA**  channel number Contains the DMA channel which is to be associated with the DMA map register set specified in BL.
+
+:::
 
 #### Registers Modified
 
@@ -5446,6 +5786,8 @@ Any DMA on the specified channel will go through the specified DMA register set 
 Function 28. Alternate Map Register Set Enable DMA on Alternate Map Register Set subfunction
 
 #### Status
+
+::: regs
 
 **AH = 0**  SUCCESSFUL. The manager has enabled DMA on the DMA register set and the DMA channel specified.
 
@@ -5468,6 +5810,8 @@ Function 28. Alternate Map Register Set Enable DMA on Alternate Map Register Set
 **AH = 9Fh**  NON-RECOVERABLE. Dedicated DMA channels are supported, but the DMA channel specified is not supported.
 
 **AH = A4h**  NON-RECOVERABLE. The operating system has denied access to this function. The function cannot be used at this time.
+
+:::
 
 Function 28. Alternate Map Register Set Enable DMA on Alternate Map Register Set subfunction
 
@@ -5497,9 +5841,13 @@ This subfunction disables DMA accesses for all DMA channels which were associate
 
 #### Calling Parameters
 
+::: regs
+
 **AX = 5B07h**  Contains the Disable DMA on Alternate Map Register Set subfunction.
 
 **BL = alternate**  register set number Contains the number of the DMA register set for which all operations are to be disabled.  If the alternate map register set specified is zero, no action will be taken.
+
+:::
 
 #### Registers Modified
 
@@ -5507,13 +5855,19 @@ This subfunction disables DMA accesses for all DMA channels which were associate
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The manager has disabled DMA operations on the alternate DMA register set.
 
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
 
 **AH = 81h**  NON-RECOVERABLE. The manager detected a malfunction in the expanded memory hardware.
 
+:::
+
 Function 28. Alternate Map Register Set Disable DMA on Alternate Map Register Set subfunction
+
+::: regs
 
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the memory manager is not defined.
 
@@ -5530,6 +5884,8 @@ Function 28. Alternate Map Register Set Disable DMA on Alternate Map Register Se
 **AH = 9Fh**  NON-RECOVERABLE. Dedicated DMA channels are supported, but the DMA channel specified is not supported.
 
 **AH = A4h**  NON-RECOVERABLE. The operating system has denied access to this function. The function cannot be used at this time.
+
+:::
 
 #### Example
 
@@ -5555,9 +5911,13 @@ The Deallocate DMA Register Set subfunction deallocates the specified DMA regist
 
 #### Calling Parameters
 
+::: regs
+
 **AX = 5B08h**  Contains the Deallocate DMA Register Set subfunction.
 
 **BL = DMA**  register set number Contains the number of the DMA register set which should not be used for DMA operations any longer.  The DMA register set would have been previously allocated and enabled for DMA operations on a specific DMA channel. If the DMA register set specified is zero, no action will be taken.
+
+:::
 
 #### Registers Modified
 
@@ -5565,13 +5925,19 @@ The Deallocate DMA Register Set subfunction deallocates the specified DMA regist
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The manager has deallocated the DMA register set.
 
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
 
 **AH = 81h**  NON-RECOVERABLE. The manager detected a malfunction in the expanded memory hardware.
 
+:::
+
 Function 28. Alternate Map Register Set Deallocate DMA on Alternate Map Register Set subfunction
+
+::: regs
 
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the memory manager is not defined.
 
@@ -5582,6 +5948,8 @@ Function 28. Alternate Map Register Set Deallocate DMA on Alternate Map Register
 **AH = 9Dh**  NON-RECOVERABLE. DMA register sets are supported, but the DMA register set specified is either not defined or not allocated.
 
 **AH = A4h**  NON-RECOVERABLE. The operating system has denied access to this function. The function cannot be used at this time.
+
+:::
 
 #### Example
 
@@ -5613,6 +5981,8 @@ This function prepares the expanded memory hardware for an impending warm boot. 
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The manager has prepared the expanded memory hardware for a warm boot.
 
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
@@ -5621,7 +5991,7 @@ This function prepares the expanded memory hardware for an impending warm boot. 
 
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the memory manager is not defined.
 
-### Function 29. Prepare Expanded Memory Hardware for Warm Boot
+:::
 
 #### Example
 
@@ -5689,6 +6059,8 @@ AX, BX, CX
 
 Function 30. Enable/Disable OS/E Function Set Functions Enable OS/E Function Set subfunction
 
+::: regs
+
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
 
 **AH = 81h**  NON-RECOVERABLE. The manager detected a malfunction in the expanded memory hardware.
@@ -5698,6 +6070,8 @@ Function 30. Enable/Disable OS/E Function Set Functions Enable OS/E Function Set
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
 
 **AH = A4h**  NON-RECOVERABLE. The operating system has denied access to this function. The function cannot be used at this time.  The value of the key which was passed to this function does not entitle the program to execute this function.
+
+:::
 
 #### Example
 
@@ -5776,6 +6150,8 @@ AX, BX, CX
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The operating system function set has been disabled.
 
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
@@ -5787,6 +6163,8 @@ AX, BX, CX
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
 
 **AH = A4h**  NON-RECOVERABLE. The operating system has denied access to this function. The function cannot be used at this time.  The value of the key which was passed to this function does not entitle the program to execute this function.
+
+:::
 
 Function 30. Enable/Disable OS/E Function Set Functions Disable OS/E Function Set subfunction
 
@@ -5847,19 +6225,27 @@ BX,CX = access_key
 
 #### Status
 
+::: regs
+
 **AH = 0**  SUCCESSFUL. The access key has been returned to the memory manager.
 
 **AH = 80h**  NON-RECOVERABLE. The manager detected a malfunction in the memory manager software.
 
 **AH = 81h**  NON-RECOVERABLE. The manager detected a malfunction in the expanded memory hardware.
 
+:::
+
 Function 30. Enable/Disable OS/E Function Set Functions Return Access Key subfunction
+
+::: regs
 
 **AH = 84h**  NON-RECOVERABLE. The function code passed to the memory manager is not defined.
 
 **AH = 8Fh**  NON-RECOVERABLE. The subfunction parameter is invalid.
 
 **AH = A4h**  NON-RECOVERABLE. The operating system has denied access to this function. The function cannot be used at this time.  The value of the key which was passed to this function does not entitle the program to execute this function.
+
+:::
 
 #### Example
 
@@ -7270,5 +7656,4 @@ Save Page Map  9, 13, 34, 50, 53, 55
 
 Search For Named Handle  7, 35, 105 Set Alternate Map Register Set  36, 153-155, 157, 158, 163, 190 Set Handle Attribute  9, 35, 91, 92, 94, 96 Set Handle Name  7, 10, 35, 98, 100 Set Page Map  9, 13, 35, 65, 67, 69, 71, 188 Set Partial Page Map  9, 13, 35, 73, 76, 78 Standard Handle  146 Standard Page  147 System DMA Capabilities  151 TSR  12, 13, 208 Unmapping Multiple Pages  6, 80
 
-| 
 

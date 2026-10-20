@@ -46,6 +46,8 @@ To be considered fully XMS 3.0 compliant, all calls except those associated with
 
 ## DEFINITIONS
 
+::: regs
+
 **Extended Memory:**  Memory in 80286 and 80386 based machines which is located above the 1MB address boundary.
 
 **High Memory Area (HMA):**  The first 64K of extended memory.  The High Memory Area is unique because code can be executed in it while in real mode.  The HMA officially starts at FFFF:10h and ends at FFFF:FFFFh making it 64K-16 bytes in length.
@@ -59,6 +61,8 @@ To be considered fully XMS 3.0 compliant, all calls except those associated with
 **XMM:**  An Extended Memory Manager.  A DOS device driver which implements XMS.  XMMs are machine specific but allow programs to use extended memory in a machine-independent manner.
 
 **HIMEM.SYS:**  The Extended Memory Manager currently being distributed by Microsoft.
+
+:::
 
 | Helpful Diagram:
 

@@ -278,6 +278,8 @@ The Get Status function modifies the contents of the AX register.
 
 The Get Status function returns one of the following status codes.
 
+::: regs
+
 **AH = 0**  The manager is present in the system and the hardware is working correctly.
 
 **AH = 80h**  The manager detected a malfunction in the EMM software.
@@ -285,6 +287,8 @@ The Get Status function returns one of the following status codes.
 **AH = 81h**  The manager detected a malfunction in the expanded memory hardware.
 
 **AH = 84h**  The function code passed to the EMM is not defined.
+
+:::
 
 ### Function 2.  Get Page Frame Address
 
@@ -317,6 +321,8 @@ The Get Page Frame Address function modifies the contents of the AX and BX regis
 
 The Get Page Frame Address function returns one of the following status codes.
 
+::: regs
+
 **AH = 0**  The manager has returned the page frame address.
 
 **AH = 80h**  The manager detected a malfunction in the EMM software.
@@ -324,6 +330,8 @@ The Get Page Frame Address function returns one of the following status codes.
 **AH = 81h**  The manager detected a malfunction in the expanded memory hardware.
 
 **AH = 84h**  The function code passed to the EMM is not defined.
+
+:::
 
 #### Results returned
 
@@ -363,6 +371,8 @@ The Get Unallocated Pages Count function modifies the contents of the AX, BX, an
 
 The Get Unallocated Pages Count function returns one of the following status codes.
 
+::: regs
+
 **AH = 0**  The manager has returned the number unallocated pages and the number of total pages in expanded memory.
 
 **AH = 80h**  The manager detected a malfunction in the EMM software.
@@ -371,15 +381,21 @@ The Get Unallocated Pages Count function returns one of the following status cod
 
 **AH = 84h**  The function code passed to the EMM is not defined.
 
+:::
+
 #### Results returned
 
 The Get Unallocated Page Count function returns these results.
+
+::: regs
 
 **BX = 0**  All pages in expanded memory have already been allocated.  None are currently available for expanded memory.
 
 **BX \<\> 0**  The number of pages that are currently available.
 
 **DX \<\> 0**  The total number of pages in expanded memory
+
+:::
 
 ### Function 4.  Allocate Pages
 
@@ -418,6 +434,8 @@ The Allocate Pages function modifies the contents of the AX and DX registers.
 
 The Allocate Pages function returns one of the following status codes.
 
+::: regs
+
 **AH = 0**  The manager has allocated the pages to an assigned EMM handle.
 
 **AH = 80h**  The manager detected a malfunction in the EMM software.
@@ -433,6 +451,8 @@ The Allocate Pages function returns one of the following status codes.
 **AH = 88h**  There aren't enough unallocated pages to supply your program's request.
 
 **AH = 89h**  Can't allocate zero pages.
+
+:::
 
 #### Results returned
 
@@ -492,6 +512,8 @@ The Map Handle Page function modifies the contents of the AX register.
 
 The Map Handle Page function returns one of the following status codes.
 
+::: regs
+
 **AH = 0**  The manager has mapped the page.  The page is now ready to be accessed.
 
 **AH = 80h**  The manager detected a malfunction in the EMM software.
@@ -505,6 +527,8 @@ The Map Handle Page function returns one of the following status codes.
 **AH = 8Ah**  The logical page is out of the range of logical pages which are allocated to the EMM handle.
 
 **AH = 8Bh**  The physical page at which the logical page was supposed to be mapped is out of the range of physical pages.
+
+:::
 
 ### Function 6.  Deallocate Pages
 
@@ -544,6 +568,8 @@ The Deallocate Pages function modifies the contents of the AX register.
 
 The Deallocate Pages function returns one of the following status codes.
 
+::: regs
+
 **AH = 0**  The manager has deallocated the pages previously allocated to the EMM handle.
 
 **AH = 80h**  The manager detected a malfunction in the EMM software.
@@ -555,6 +581,8 @@ The Deallocate Pages function returns one of the following status codes.
 **AH = 84h**  The function code passed to the EMM is not defined.
 
 **AH = 86h**  The EMM detected a "save" or "restore"  page mapping context error (FUNCTION 8 or 9).  There is a page mapping register state in the "save area" for the EMM handle specified.  Save Page Map (FUNCTION 8) placed it there and it has not been removed by a subsequent Restore Page Map (FUNCTION 9).
+
+:::
 
 You need to restore the contents of the page mapping register before you deallocate the EMM handle's page(s).
 
@@ -588,6 +616,8 @@ The Get EMM Version function modifies the contents of the AX register.
 
 The Get EMM Version function returns one of the following status codes.
 
+::: regs
+
 **AH = 0**  The manager is present in the system and the hardware is working correctly.
 
 **AH = 80h**  The manager detected a malfunction in the EMM software.
@@ -595,6 +625,8 @@ The Get EMM Version function returns one of the following status codes.
 **AH = 81h**  The manager detected a malfunction in the expanded memory hardware.
 
 **AH = 84h**  The function code passed to the EMM is not defined.
+
+:::
 
 #### Results returned
 
@@ -649,6 +681,8 @@ The Save Page Map function modifies the contents of the AX register.
 
 The Save Page Map function returns one of the following status codes.
 
+::: regs
+
 **AH = 0**  The manager has saved the state of the page mapping hardware.
 
 **AH = 80h**  The manager detected a malfunction in the EMM software.
@@ -662,6 +696,8 @@ The Save Page Map function returns one of the following status codes.
 **AH = 8Ch**  There is no room in the "save" area to store the state of the page mapping registers.
 
 **AH = 8Dh**  The "save area" already contains the page mapping register state for the EMM handle your program specified..
+
+:::
 
 ### Function 9.  Restore Page Map
 
@@ -708,6 +744,8 @@ The Restore Page Map function modifies the contents of the AX register.
 
 The Restore Page Map function returns one of the following status codes.
 
+::: regs
+
 **AH = 0**  The manager has restored the state of the page mapping registers.
 
 **AH = 80h**  The manager detected a malfunction in the EMM software.
@@ -719,6 +757,8 @@ The Restore Page Map function returns one of the following status codes.
 **AH = 84h**  The function code passed to the EMM is not defined.
 
 **AH = 8Eh**  There is no page mapping register state in the save area for the EMM handle your program specified.  Your program didn't save the contents of the page mapping hardware, so Restore Page Map can't restore it.
+
+:::
 
 ### Function 10.  Reserved
 
@@ -763,6 +803,8 @@ The Get EMM Handle Count function modifies the contents of the AX and BX registe
 
 The Get EMM Handle Count function returns one of the following status codes.
 
+::: regs
+
 **AH = 0**  The manager has returned the number of active EMM handles.
 
 **AH = 80h**  The manager detected a malfunction in the EMM software.
@@ -772,6 +814,8 @@ The Get EMM Handle Count function returns one of the following status codes.
 **AH = 83h**  The EMM couldn't find the EMM handle your program specified.
 
 **AH = 84h**  The function code passed to the EMM is not defined.
+
+:::
 
 #### Results returned
 
@@ -815,6 +859,8 @@ The Get EMM Handle Pages function modifies the contents of the AX and BX registe
 
 The Get EMM Handle Pages function returns one of the following status codes.
 
+::: regs
+
 **AH = 0**  The manager has returned the number of pages allocated to the EMM handle.
 
 **AH = 80h**  The manager detected a malfunction in the EMM software.
@@ -824,6 +870,8 @@ The Get EMM Handle Pages function returns one of the following status codes.
 **AH = 83h**  THe EMM couldn't find the EMM handle your program specified.
 
 **AH = 84h**  The function code passed to the EMM is not defined.
+
+:::
 
 #### Results returned
 
@@ -885,6 +933,8 @@ The Get All EMM Handle Pages function modifies the contents of the AX and BX reg
 
 The Get All EMM Handle Pages function returns one of the following status codes.
 
+::: regs
+
 **AH = 0**  The manager has returned the array.
 
 **AH = 80h**  The manager detected a malfunction in the EMM software.
@@ -892,6 +942,8 @@ The Get All EMM Handle Pages function returns one of the following status codes.
 **AH = 81h**  The manager detected a malfunction in the expanded memory hardware.
 
 **AH = 84h**  The function code passed to the EMM is not defined.
+
+:::
 
 #### Results returned
 
@@ -961,6 +1013,8 @@ The Get subfunction modifies the contents of the AX register.
 
 The Get subfunction returns one of the following status codes.
 
+::: regs
+
 **AH = 0**  The manager has returned the array.
 
 **AH = 80h**  The manager detected a malfunction in the EMM software.
@@ -970,6 +1024,8 @@ The Get subfunction returns one of the following status codes.
 **AH = 84h**  The function code passed to the EMM is not defined.
 
 **AH = 8Fh**  The subfunction parameter isn't equal to a Get request.
+
+:::
 
 #### Results returned
 
@@ -1025,6 +1081,8 @@ The Set subfunction modifies the contents of the AX register.
 
 The Set subfunction returns one of the following status codes.
 
+::: regs
+
 **AH = 0**  The manager has passed the array.
 
 **AH = 80h**  The manager detected a malfunction in the EMM software.
@@ -1034,6 +1092,8 @@ The Set subfunction returns one of the following status codes.
 **AH = 84h**  The function code passed to the EMM is not defined.
 
 **AH = 8Fh**  The subfunction parameter isn't equal to a Set request or the length of the array passed during the Set request doesn't match the number of mapping registers in the system.
+
+:::
 
 #### Results returned
 
@@ -1095,6 +1155,8 @@ The Get and Set subfunction modifies the contents of the AX register.
 
 The Get and Set subfunction returns one of the following status codes.
 
+::: regs
+
 **AH = 0**  The manager has returned and passed both arrays
 
 **AH = 80h**  The manager detected a malfunction in the EMM software.
@@ -1104,6 +1166,8 @@ The Get and Set subfunction returns one of the following status codes.
 **AH = 84h**  The function code passed to the EMM is not defined.
 
 **AH = 8Fh**  The subfunction parameter isn't equal to a Get and Set request.
+
+:::
 
 #### Results returned
 
@@ -1147,6 +1211,8 @@ The Return Size subfunction modifies the contents of the AX register.
 
 The Return Size subfunction returns one of the following status codes.
 
+::: regs
+
 **AH = 0**  The manager has returned the array size.
 
 **AH = 80h**  The manager detected a malfunction in the EMM software.
@@ -1156,6 +1222,8 @@ The Return Size subfunction returns one of the following status codes.
 **AH = 84h**  The function code passed to the EMM is not defined.
 
 **AH = 8Fh**  The subfunction parameter isn't equal to a Return Size request.
+
+:::
 
 #### Results returned
 
@@ -1173,9 +1241,13 @@ Table 2-1.  Summary of status codes
 Code              Definition
 ~~~
 
+::: regs
+
 **AH = 0**  The manager is present in the system and the hardware is working correctly.
 
 **AH = 80h**  The manager detected a malfunction in the EMM software.
+
+:::
 
 ~~~
   AH = 81h          The manager detected a malfunction in the
@@ -1189,6 +1261,8 @@ program
                     specified.
 ~~~
 
+::: regs
+
 **AH = 84h**  The function code passed to the EMM is not defined.
 
 **AH = 85h**  All EMM handles are being used.
@@ -1196,6 +1270,8 @@ program
 **AH = 86h**  The EMM detected a "save" or "restore"  page mapping context error.
 
 **AH = 87h**  There aren't enough expanded memory pages to satisfy your program's request.
+
+:::
 
 ~~~
   AH = 88h          There aren't enough unallocated pages to

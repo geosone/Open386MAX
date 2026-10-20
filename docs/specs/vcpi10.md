@@ -807,5 +807,4 @@ top-down allocation      Allocation of extended memory starting at the top of
                          technique for allocating extended memory.
 ~~~
 
-| 
 
