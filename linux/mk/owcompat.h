@@ -19,6 +19,12 @@
  * with DS = DGROUP like cdecl functions ("parm loadds"); otherwise the
  * same as OpenWatcom's predefined __pascal */
 #pragma aux __pascal "^" parm reverse routine [] loadds value struct float struct caller [] modify [ax bx cx dx es]
+#elif !defined(__WINDOWS__)
+/* ES:  in the small and medium model the compiler takes ES as kept across
+ * a call of the library, but the far string functions change it
+ * (_fstricmp:  MBPARSE's find_sect followed the next pointer of the
+ * wrong segment, STRIPMGR found no section of a MultiConfig CONFIG.SYS) */
+#pragma aux __watcall modify [ax bx cx dx es]
 #endif
 
 #include <stdio.h>
