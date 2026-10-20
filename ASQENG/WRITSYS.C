@@ -1015,9 +1015,9 @@ static void near prt_MODERN(void)
 		lprintf("%-10s %X %X %X %X %X %X\n", RwKeyword[K_SHADOW].name,
 			m->bShdKind, m->bShdReg, m->bShdLock, m->wShdRd, m->wShdWr, m->wShdDev);
 	if (m->flags & MOD_CSM)
-		lprintf("%-10s %lX %X %X %X %lX %lX\n", RwKeyword[K_CSM].name,
+		lprintf("%-10s %lX %X %X %X %lX %lX %X\n", RwKeyword[K_CSM].name,
 			m->dwCsmTab, m->bCsmLen, m->bCsmRev[0], m->bCsmRev[1],
-			m->dwUmaAddr, m->dwUmaSize);
+			m->dwUmaAddr, m->dwUmaSize, m->bCsmSum);
 	if (m->nOptRom) {
 		OPTROM *o = sysbuf_ptr(m->hOptRom);
 

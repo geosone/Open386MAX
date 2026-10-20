@@ -1,15 +1,17 @@
-; CSMFAKE.SYS - test driver: make QEMU look like a UEFI CSM that leaves an
-; upper memory area (UMA) read/write, for the shadow DRAM tests of 386MAX
-; (GET_SHDMAP, CSMUMA.INC), MAXIMIZE and ASQ.  Loads nothing.
+; CSMFAKE.SYS - test driver: make QEMU look like a UEFI CSM which leaves
+; shadow DRAM read/write (as CSMWrap), for the shadow DRAM tests of 386MAX
+; (GET_SHDMAP, CSMROM.INC), MAXIMIZE and ASQ.  Loads nothing.
 ;
 ; * D0000-DFFFF:  PAM3/PAM4 of the host bridge (440FX:  59h, Q35:  90h)
-;   switched to DRAM read/write and zeroed, as the firmware does with UnLock;
+;   switched to DRAM read/write and zeroed;
 ; * unless /N:  an EFI_COMPATIBILITY16_TABLE (CSM 0.98, "IFE$", 99 bytes,
-;   UmaAddress D0000h, UmaSize 10000h) written to unused (zero) bytes of
-;   the F segment, which is opened for it and write-protected again.
+;   UmaAddress D8000h, UmaSize 8000h:  option ROM space C0000-D7FFF, the
+;   UMA D8000-DFFFF the legacy BIOS's own) written to unused (zero) bytes
+;   of the F segment, which is opened for it and write-protected again;
+;   /B:  with a wrong checksum (as CSMWrap).
 ;
 ;   nasm -f bin -o CSMFAKE.SYS linux/test/csmfake.asm
-;   CONFIG.SYS: DEVICE=CSMFAKE.SYS [/N]   (before 386MAX.SYS)
+;   CONFIG.SYS: DEVICE=CSMFAKE.SYS [/N | /B]   (before 386MAX.SYS)
 
 	cpu	386
 	org	0
@@ -62,7 +64,10 @@ fake:
 	jne	.arg
 	mov	al,[es:si]
 	or	al,20h
-	cmp	al,'n'
+	cmp	al,'b'
+	jne	.argn
+	mov	byte [badsum],1
+.argn:	cmp	al,'n'
 	jne	.arg
 	mov	byte [notab],1
 	jmp	.arg
@@ -131,6 +136,7 @@ fake:
 	inc	si
 	loop	.sum
 	neg	al
+	add	al,[badsum]		; /B:  wrong
 	mov	[es:di+4],al
 	mov	dx,msg_tab
 .lock:	mov	bl,[pam0]		; PAM0 as it was
@@ -178,11 +184,12 @@ pci_wr8:
 	ret
 
 notab	db	0
+badsum	db	0
 oldpam	db	0
 msg_hb	db	'CSMFAKE: not a 440FX or Q35 host bridge', 13, 10, '$'
 msg_uma	db	'CSMFAKE: D0000-DFFFF read/write, no CSM table', 13, 10, '$'
 msg_full db	'CSMFAKE: D0000-DFFFF read/write, no room for the CSM table', 13, 10, '$'
-msg_tab	db	'CSMFAKE: D0000-DFFFF read/write, CSM table with UMA D0000-DFFFF', 13, 10, '$'
+msg_tab	db	'CSMFAKE: D0000-DFFFF read/write, CSM table with UMA D8000-DFFFF', 13, 10, '$'
 
 ; EFI_COMPATIBILITY16_TABLE (packed), checksum at 4 filled in
 table:
@@ -192,6 +199,6 @@ table:
 	db	1, 0			; EfiMajor/MinorRevision
 	db	1, 0			; TableMajor/MinorRevision
 	times	83 - ($ - table) db 0	; (up to LastPciBus)
-	dd	0D0000h			; UmaAddress
-	dd	10000h			; UmaSize
+	dd	0D8000h			; UmaAddress
+	dd	8000h			; UmaSize
 	dd	0, 0			; HiPermanentMemoryAddress/Size

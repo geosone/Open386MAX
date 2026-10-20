@@ -1724,10 +1724,11 @@ static int near scn_MODERN(RWKEY key)
 		m->wShdWr = (WORD)v[4]; m->wShdDev = (WORD)v[5];
 		break;
 	case K_CSM:
-		if (scn_HEXDWORDS(v, 6)) return -1;
+		if (scn_HEXDWORDS(v, 7)) return -1;
 		m->dwCsmTab = v[0]; m->bCsmLen = (BYTE)v[1];
 		m->bCsmRev[0] = (BYTE)v[2]; m->bCsmRev[1] = (BYTE)v[3];
 		m->dwUmaAddr = v[4]; m->dwUmaSize = v[5];
+		m->bCsmSum = (BYTE)v[6];
 		break;
 	case K_ACPI:
 		if (scn_HEXDWORDS(v, 5)) return -1;

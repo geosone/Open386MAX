@@ -352,10 +352,21 @@ static void shadow_report(HANDLE info)
 		if (!MOD.dwCsmTab)
 			strcpy(line, L("none (no UEFI CSM)", "keine (kein UEFI-CSM)"));
 		else
-			sprintf(line, L("%05lX, table %u.%u", "%05lX, Tabelle %u.%u"),
-				MOD.dwCsmTab, MOD.bCsmRev[0], MOD.bCsmRev[1]);
+			sprintf(line, L("%05lX, table %u.%u%s", "%05lX, Tabelle %u.%u%s"),
+				MOD.dwCsmTab, MOD.bCsmRev[0], MOD.bCsmRev[1],
+				!MOD.bCsmSum ? "" :
+				L(", checksum wrong", ", Pr\x81fsumme falsch"));
 		item(info, L("CSM ($EFI)", "CSM ($EFI)"), line);
 		if (MOD.dwCsmTab) {
+			/* C0000 to UmaAddress-1, C0000-DFFFF without a valid UMA */
+			DWORD end = 0xE0000UL;
+
+			if (MOD.bCsmLen >= 99 && MOD.dwUmaAddr >= 0xC0000UL &&
+			    MOD.dwUmaAddr < 0x100000UL &&
+			    MOD.dwUmaSize <= 0x100000UL - MOD.dwUmaAddr)
+				end = MOD.dwUmaAddr;
+			sprintf(line, "C0000-%05lX", end - 1);
+			item(info, L("Option ROM space", "Option-ROM-Bereich"), line);
 			if (MOD.bCsmLen < 99)
 				strcpy(line, L("not in this table (before CSM 0.98)",
 						 "nicht in dieser Tabelle (vor CSM 0.98)"));

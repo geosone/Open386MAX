@@ -37,7 +37,7 @@ typedef struct {
 	unsigned rd;		// 16KB blocks read from DRAM (bit 0 = C0000)
 	unsigned wr;		// ...	       written to DRAM
 	unsigned dev;		// Host bridge device ID
-	unsigned uma;		// 16KB blocks in the UMA of a UEFI CSM (CSMUMA.INC)
+	unsigned csm;		// 16KB blocks of unused option ROM space of a UEFI CSM (CSMROM.INC)
 } SHDINFO;
 
 int shd_get (SHDINFO far *info);
@@ -48,15 +48,15 @@ Intel PAM, 2 = AMD fixed MTRRs, 3 = AMD, but in V86 mode (not readable).
 unsigned shd_protmap (void);
 
 Returns the 16KB blocks of C0000-EFFFF (bit 0 = C0000) which are free
-shadow DRAM:  read from DRAM but write-protected, or in the UMA a UEFI
-CSM leaves read/write; 0 if unknown.
+shadow DRAM:  read from DRAM but write-protected, or unused option ROM
+space of a UEFI CSM; 0 if unknown.
 
 |
 
 .model large,c
 
 	 include SHDTAB.INC	; Host bridges (made of SHADOWRAM.TXT)
-	 include CSMUMA.INC	; UMA of a UEFI CSM
+	 include CSMROM.INC	; Option ROM space of a UEFI CSM
 
 SHD_STR  struc
 SHD_KIND db	 ?		; 0 = unknown, 1 = Intel, 2 = AMD, 3 = AMD in V86
@@ -66,7 +66,7 @@ SHD_RES  db	 ?		; (reserved)
 SHD_RD	 dw	 ?		; 16KB blocks read from DRAM
 SHD_WR	 dw	 ?		; ...	      written to DRAM
 SHD_DEV  dw	 ?		; Host bridge device ID
-SHD_UMA  dw	 ?		; 16KB blocks in the UMA of a UEFI CSM
+SHD_CSM  dw	 ?		; 16KB blocks of unused option ROM space (CSM)
 SHD_STR  ends
 
 .code
@@ -311,8 +311,8 @@ SHD_EXIT:
 	 les	 bx,info	; ES:BX ==> SHDINFO
 	 mov	 es:[bx].SHD_RD,di ; Save read  enable map
 	 mov	 es:[bx].SHD_WR,si ; ...  write ...
-	 call	 CSM_UMAMAP	; AX = 16KB blocks in the UMA of a UEFI CSM
-	 mov	 es:[bx].SHD_UMA,ax ; Save them
+	 call	 CSM_ROMMAP	; AX = 16KB blocks of unused option ROM space
+	 mov	 es:[bx].SHD_CSM,ax ; Save them
 	 movzx	 ax,es:[bx].SHD_KIND ; Return the kind
 
 	 ret			; Return to caller
@@ -331,12 +331,12 @@ shd_protmap proc far
 	 mov	 ax,shd.SHD_WR	; Get write enable map
 	 not	 ax		; Not write enabled
 	 and	 ax,shd.SHD_RD	; Read from DRAM, write-protected
-	 or	 ax,shd.SHD_UMA ; Or in the UMA of a UEFI CSM
+	 or	 ax,shd.SHD_CSM ; Or in unused option ROM space (CSM)
 	 and	 ax,0FFFh	; Only C0000-EFFFF
 
 	 ret			; Return to caller
 shd_protmap endp
 
-	 CSM_UMAMAP_PROC	; CSM_UMAMAP (CSMUMA.INC)
+	 CSM_ROMMAP_PROC	; CSM_ROMMAP (CSMROM.INC)
 
 	 end

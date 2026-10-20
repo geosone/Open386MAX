@@ -191,7 +191,9 @@ static void get_shadow(void)
 
 /* CSM:  the EFI_COMPATIBILITY16_TABLE of the legacy BIOS (CSM
    specification 0.98, "IFE$" in memory, packed, on a 16-byte boundary in
-   F0000-FFFFF); UmaAddress (83) and UmaSize (87) since 0.98 (length 99) */
+   F0000-FFFFF); UmaAddress (83) and UmaSize (87) since 0.98 (length 99).
+   CSMWrap's table has a wrong checksum:  such a table counts if its UMA
+   is valid (as 386MAX\CSMROM.INC) */
 static void get_csm(void)
 {
 	WORD seg;
@@ -206,7 +208,16 @@ static void get_csm(void)
 		len = p[5];
 		if (len < 16 || (DWORD)seg * 16 + len > 0x100000UL) continue;
 		for (i = 0; i < len; i++) sum += p[i];
-		if (sum) continue;
+		if (sum) {
+			DWORD a, s;
+
+			if (len < 99) continue;
+			a = *(DWORD far *)(p + 83);
+			s = *(DWORD far *)(p + 87);
+			if (a < 0xC0000UL || a >= 0x100000UL || s > 0x100000UL - a)
+				continue;
+		}
+		MOD.bCsmSum = sum;
 		MOD.dwCsmTab = (DWORD)seg << 4;
 		MOD.bCsmLen = len;
 		MOD.bCsmRev[0] = p[8];

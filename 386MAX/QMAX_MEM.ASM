@@ -31,7 +31,7 @@ Modifications by:  None.
 .xlist
 	 include MASM.INC
 	 include SHDTAB.INC	; Host bridges (made of SHADOWRAM.TXT)
-	 include CSMUMA.INC	; UMA of a UEFI CSM
+	 include CSMROM.INC	; Option ROM space of a UEFI CSM
 	 include DOSCALL.INC
 	 include ASCII.INC
 	 include 386.INC
@@ -2602,9 +2602,10 @@ GET_SHDMAP_DONE:
 	 popf			; Restore interrupt flag
 GET_SHDMAP_EXIT:
 
-; The UMA a UEFI CSM leaves read/write is free shadow DRAM as well
+; Unused option ROM space of a UEFI CSM is free shadow DRAM as well,
+; read/write or not (CSMWrap leaves all of it read/write)
 
-	 call	 CSM_UMAMAP	; AX = its 16KB blocks
+	 call	 CSM_ROMMAP	; AX = its 16KB blocks
 	 or	 SHDMAP,ax	; Mark as free shadow DRAM
 	 or	 SHDRD,ax	; ...  read from DRAM
 
@@ -2618,7 +2619,7 @@ GET_SHDMAP_EXIT:
 
 GET_SHDMAP endp 		; End GET_SHDMAP procedure
 
-	 CSM_UMAMAP_PROC	; CSM_UMAMAP (CSMUMA.INC)
+	 CSM_ROMMAP_PROC	; CSM_ROMMAP (CSMROM.INC)
 	 NPPROC  FILL_SHDFREE -- Fill In SHDFREE_MAP
 	 assume  ds:PGROUP,es:nothing,fs:nothing,gs:nothing,ss:nothing
 COMMENT|

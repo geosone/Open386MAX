@@ -107,21 +107,30 @@ The Legacy Region Protocol of the firmware switches C0000-FFFFF between
 read/write and write-protected (Lock, BootLock just before a legacy OS
 boots, UnLock).  Since 0.98 the Compatibility16 table of the legacy BIOS
 (signature "$EFI" in the F segment, EFI_COMPATIBILITY16_TABLE) has
-UmaAddress and UmaSize:  an upper memory area the firmware leaves
-read/write in the shadow RAM (option ROMs below it, from C0000); zero
-size:  all shadow RAM write-protected.  It is a hint from the firmware
-which upper memory is free, independent of the chipset.  ASQ shows the
-table and the UMA (Equipment, PCI devices; snapshot keyword Csm).
+UmaAddress and UmaSize.  The specification says only:  C0000 to
+UmaAddress-1 is the option ROM space (C0000-DFFFF if UmaAddress isn't
+valid), UmaAddress to UmaAddress+UmaSize-1 is set read/write (zero
+size:  all shadow RAM write-protected).  The UMA is not free memory:
+it is the legacy BIOS's own, SeaBIOS keeps its heap and stack there
+(CSMWrap:  EE800-EFFFF).  ASQ shows the table, the option ROM space and
+the UMA (Equipment, PCI devices; snapshot keyword Csm).
 
-386MAX (GET_SHDMAP) and SHDMAP.ASM (MAXIMIZE without 386MAX) take the
-16KB blocks of C0000-EFFFF wholly in the UMA as free shadow DRAM
-(386MAX/CSMUMA.INC):  read/write DRAM is adapter RAM to them otherwise.
-386MAX still requires uniform contents (all 00h or FFh) before it uses
-a block; under 386MAX, MAXIMIZE gets the result through 386MAX's
-RAMSCAN (EMM2 function 11h).  Tested with linux/test/csmuma.sh:
-CSMFAKE.SYS (linux/test/csmfake.asm) switches D0000-DFFFF of QEMU's
-chipset to read/write and writes a CSM table with that UMA; 386MAX
-(NOFRAME) gets 92KB of high DOS memory with the table, 28KB without.
+What the option ROMs leave of their space is free, write-protected or
+not.  386MAX (GET_SHDMAP) and SHDMAP.ASM (MAXIMIZE without 386MAX) take
+the 16KB blocks of C0000-EFFFF wholly in the option ROM space and all
+00h or all FFh as free shadow DRAM (386MAX/CSMROM.INC); read/write DRAM
+is adapter RAM to them otherwise.  386MAX checks every 512 bytes once
+more before it uses them; under 386MAX, MAXIMIZE gets the result
+through 386MAX's RAMSCAN (EMM2 function 11h).  CSMWrap's table has a
+wrong checksum, so a table with a wrong checksum counts if its UMA is
+valid (within C0000-FFFFF).
+
+Tested with linux/test/csmuma.sh:  CSMFAKE.SYS (linux/test/csmfake.asm)
+switches D0000-DFFFF of QEMU's chipset to read/write, zeroes it and
+writes a CSM table with the UMA D8000-DFFFF.  386MAX (NOFRAME) gets 28KB
+of high DOS memory without the table, 60KB with it, with a wrong
+checksum as well:  D0000-D7FFF, not the UMA.  With CSMWRAP= also through
+CSMWrap:  128KB (0KB before).
 
 ## Sources
 
@@ -168,15 +177,20 @@ OVMF, which starts CSMWrap from \EFI\BOOT\BOOTX64.EFI of the DOS partition
 
 Seen with CSMWrap 3.1.2 on QEMU 440FX:
 
-* all PAMs read/write DRAM (ASQ:  Shadow 1 59 0 FFFF FFFF), no CSM table;
-* C0000-C99FF the VGA BIOS, C9A00-EE7FF zeros, EE800-EFFFF and parts of
+* all PAMs read/write DRAM (ASQ:  Shadow 1 59 0 FFFF FFFF);
+* a CSM table at F6450 (length 104, revision 0.0, wrong checksum), UMA
+  EE800-EFFFF;
+* C0000-C99FF the VGA BIOS (SeaVGABIOS, CSMWrap's VGA over the GOP
+  framebuffer), C9A00-EE7FF zeros, EE800-EFFFF (the UMA) and parts of
   F0000-FFFFF data of SeaBIOS/CSMWrap;
+* "SeaBIOS" in the F segment, "CSMWrap" not below 1MB:  CSMWrap shows
+  as SeaBIOS with a CSM table (SMBIOS still names the UEFI firmware);
 * the BIOS proxy runs out of the F segment on the other CPU:  a RAM test
   which writes there for a moment (CHECK_RAM of ASQ and MAXIMIZE, which
   wrote F0000-FFFFF as well) crashes it.  CHECK_RAM (QUILIB/RAMSCAN.ASM)
   now leaves the system ROM alone, as 386MAX always did.
 
-Read/write DRAM is adapter RAM to 386MAX, so it finds no high DOS memory
-under CSMWrap (0KB, no EMS page frame).  Using the zeros of C9A00-EE7FF
-needs a rule which tells them from data a BIOS keeps there (open, see
-docs/ideas.md).
+386MAX takes CC000-EBFFF (128KB) as high DOS memory:  the free option
+ROM space below the UMA (see above).  Whether CSMWrap replaces the
+legacy BIOS completely on a machine with a CSM of its own is still to
+be seen on real hardware (ASQ snapshots with either).
