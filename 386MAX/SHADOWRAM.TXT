@@ -56,6 +56,7 @@
 8086  4600-46FF  pam     80  lock  12th generation Core (Alder Lake), 13th/14th
 8086  A700-A7FF  pam     80  lock  13th/14th generation Core (Raptor Lake)
 8086  7D00-7DFF  pam     80  -     Core Ultra (Meteor Lake, Arrow Lake)
-; any AMD host bridge (all device IDs) with a family 0Fh or later CPU;
+; any AMD host bridge (all device IDs) with a family 0Fh or later CPU
+; (K8 and 10h-16h BKDGs, 17h and 1Ah PPRs checked);
 ; lines for older AMD chipsets (e.g. of UMBPCI) go before it
 1022  0000-FFFF  amdmtrr -   -     AMD K8 and later

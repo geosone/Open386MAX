@@ -189,6 +189,36 @@ static void get_shadow(void)
 	MOD.wShdDev = s.dev;
 }
 
+/* CSM:  the EFI_COMPATIBILITY16_TABLE of the legacy BIOS (CSM
+   specification 0.98, "IFE$" in memory, packed, on a 16-byte boundary in
+   F0000-FFFFF); UmaAddress (83) and UmaSize (87) since 0.98 (length 99) */
+static void get_csm(void)
+{
+	WORD seg;
+
+	MOD.flags |= MOD_CSM;
+	for (seg = 0xF000; seg; seg++) {
+		BYTE far *p = MK_FP(seg, 0);
+		BYTE sum = 0, len;
+		WORD i;
+
+		if (*(DWORD far *)p != 0x24454649UL) continue;
+		len = p[5];
+		if (len < 16 || (DWORD)seg * 16 + len > 0x100000UL) continue;
+		for (i = 0; i < len; i++) sum += p[i];
+		if (sum) continue;
+		MOD.dwCsmTab = (DWORD)seg << 4;
+		MOD.bCsmLen = len;
+		MOD.bCsmRev[0] = p[8];
+		MOD.bCsmRev[1] = p[9];
+		if (len >= 99) {
+			MOD.dwUmaAddr = *(DWORD far *)(p + 83);
+			MOD.dwUmaSize = *(DWORD far *)(p + 87);
+		}
+		break;
+	}
+}
+
 static void get_optroms(void)
 {
 	OPTROM list[MAXOPTROM];
@@ -460,6 +490,7 @@ void modinfo_get(void)
 	get_cpuid();
 	get_pci();
 	get_shadow();
+	get_csm();
 	get_optroms();
 
 	phys_buf = my_malloc(PHYSBUF);

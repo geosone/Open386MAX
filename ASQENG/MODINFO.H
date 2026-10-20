@@ -83,6 +83,7 @@ typedef struct _moderninfo {
 #define MOD_SMBIOS	0x0020	/* SMBIOS entry point found */
 #define MOD_XMOVE	0x0040	/* INT 15h AH=87h failed: tables not read */
 #define MOD_SHADOW	0x0080	/* Shadow DRAM map read (bShdKind) */
+#define MOD_CSM 	0x0100	/* CSM table searched (dwCsmTab) */
 	WORD nE820;		/* E820 entries */
 	SYSBUFH hE820;		/* E820ENT [nE820] */
 	WORD wE801[2];		/* KB 1-16 MB, 64 KB blocks above 16 MB */
@@ -107,6 +108,12 @@ typedef struct _moderninfo {
 	WORD wShdRd;		/* 16 KB blocks of C0000-FFFFF read from DRAM */
 	WORD wShdWr;		/* ... written to DRAM */
 	WORD wShdDev;		/* Host bridge device ID */
+
+	DWORD dwCsmTab; 	/* CSM:  EFI_COMPATIBILITY16_TABLE, 0 = none */
+	BYTE bCsmLen;		/* ... its length */
+	BYTE bCsmRev[2];	/* ... TableMajor/MinorRevision */
+	DWORD dwUmaAddr;	/* ... UMA left read/write (if bCsmLen >= 99) */
+	DWORD dwUmaSize;	/* ... its size, 0 = none */
 
 	BYTE bAcpiRev;		/* RSDP revision */
 	char szAcpiOem[7];	/* RSDP OEM ID */

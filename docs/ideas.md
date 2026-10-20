@@ -47,7 +47,7 @@ mechanism (PAM registers with a LOCK bit, AMD fixed MTRRs with
 RdDram/WrDram), see shadowram.md.  386MAX, MAXIMIZE and ASQ read them
 from the table in 386MAX/SHADOWRAM.TXT; UMBPCI's chipsets come later as
 new methods there.  Open:  an option that switches unused shadow DRAM
-to read/write (checking LOCK first), and the Zen PPRs.
+to read/write (checking LOCK first).
 
 ## 10.x:  more than about 1GB with VCPI
 

@@ -33,10 +33,11 @@ ASQ build) and SHDTAB.H (the names for ASQ) of it.  A new chipset with
 one of these methods is one more line; another register layout (e.g.
 the chipsets of UMBPCI) needs a new method in GET_SHDMAP and SHDMAP.ASM.
 
-The AMD line covers every family from 0Fh (K8) on, Zen included, which
-is not checked yet against the Zen PPRs.  On AMD the MTRRs can only be
-read in real mode:  MAXIMIZE and ASQ under a memory manager (V86 mode)
-don't get them, 386MAX reads them before it switches.
+The AMD line covers every family from 0Fh (K8) on, Zen included (checked
+in the documents below; Family 19h not seen, the same MSRs assumed).
+On AMD the MTRRs can only be read in real mode:  MAXIMIZE and ASQ under a
+memory manager (V86 mode) don't get them, 386MAX reads them before it
+switches.
 
 Tested in QEMU:  pc (440FX, PAM at 59h) and q35 (Q35, PAM at 90h).
 
@@ -87,8 +88,11 @@ MtrrFixDramEn = 1, and they can be read and written only while SYSCFG
 bit 19 MtrrFixDramModEn = 1 (otherwise they read as 0 and writes don't
 change them).  The BKDGs tell the BIOS to set MtrrFixDramModEn only
 while it programs the fixed MTRRs.  The MTRRs exist per core, so every
-core has to get the same values.  Seen in the Family 10h, 15h and 16h
-BKDGs; the Family 17h/19h (Zen) PPRs are still to be checked.
+core has to get the same values.  Seen in the K8 BKDG (Family 0Fh,
+26094), the Family 10h, 15h and 16h BKDGs, the PPRs of Family 17h
+Models 00h-0Fh (Zen, 54945) and Family 1Ah Model 51h (Zen 5, 58264):
+the same MSRs and bits, without MtrrFixDramModEn RdDram/WrDram read as
+00b.
 
 ## The CSM
 
@@ -98,6 +102,16 @@ others, how the firmware opens and locks the legacy region (the PAM or
 MTRR settings above) around loading the legacy BIOS and option ROMs, and
 which upper memory the legacy BIOS reports as free.  It says nothing
 chipset-specific; the PAM and MTRR details are in the datasheets.
+
+The Legacy Region Protocol of the firmware switches C0000-FFFFF between
+read/write and write-protected (Lock, BootLock just before a legacy OS
+boots, UnLock).  Since 0.98 the Compatibility16 table of the legacy BIOS
+(signature "$EFI" in the F segment, EFI_COMPATIBILITY16_TABLE) has
+UmaAddress and UmaSize:  an upper memory area the firmware leaves
+read/write in the shadow RAM (option ROMs below it, from C0000); zero
+size:  all shadow RAM write-protected.  It is a hint from the firmware
+which upper memory is free, independent of the chipset.  ASQ shows the
+table and the UMA (Equipment, PCI devices; snapshot keyword Csm).
 
 ## Sources
 
@@ -120,6 +134,14 @@ Intel (on intel.com; "No license ... is granted by this document"):
   https://edc.intel.com/content/www/us/en/design/publications/core-ultra-200s-series-processors-datasheet-volume-2-of-2
 
 AMD (on amd.com; "No license ... is granted by this document"):
+
+* BIOS and Kernel Developer's Guide for Athlon 64 and Opteron (K8,
+  26094, r3.30)
+* Preliminary Processor Programming Reference for Family 17h Models
+  00h-0Fh (54945), Open-Source Register Reference for Family 17h
+  (56255)
+* Processor Programming Reference for Family 1Ah Model 51h B0 (58264),
+  volume 1:  MSR 250h-26Fh, SYS_CFG (C001_0010h)
 
 * Family 10h BKDG (31116), Family 15h BKDGs (42301, 42300, 49125, 50742,
   55072), Family 16h BKDG (48751):

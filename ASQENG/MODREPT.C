@@ -344,10 +344,31 @@ static void shadow_report(HANDLE info)
 	char label[24], line[80];
 	int i, j;
 
-	if (!(MOD.flags & MOD_SHADOW)) return;
+	if (!(MOD.flags & (MOD_SHADOW | MOD_CSM))) return;
 	blank(info);
 	heading(info, L("Shadow DRAM C0000-FFFFF", "Schatten-DRAM C0000-FFFFF"));
 	blank(info);
+	if (MOD.flags & MOD_CSM) {
+		if (!MOD.dwCsmTab)
+			strcpy(line, L("none (no UEFI CSM)", "keine (kein UEFI-CSM)"));
+		else
+			sprintf(line, L("%05lX, table %u.%u", "%05lX, Tabelle %u.%u"),
+				MOD.dwCsmTab, MOD.bCsmRev[0], MOD.bCsmRev[1]);
+		item(info, L("CSM ($EFI)", "CSM ($EFI)"), line);
+		if (MOD.dwCsmTab) {
+			if (MOD.bCsmLen < 99)
+				strcpy(line, L("not in this table (before CSM 0.98)",
+						 "nicht in dieser Tabelle (vor CSM 0.98)"));
+			else if (!MOD.dwUmaSize)
+				strcpy(line, L("none (shadow RAM write-protected)",
+						 "keine (Schatten-RAM schreibgesch\x81tzt)"));
+			else
+				sprintf(line, "%05lX-%05lX", MOD.dwUmaAddr,
+					MOD.dwUmaAddr + MOD.dwUmaSize - 1);
+			item(info, L("UMA read/write", "UMA les-/schreibbar"), line);
+		}
+	}
+	if (!(MOD.flags & MOD_SHADOW)) return;
 	for (kk = 0; kk < MOD.nPci; kk++, d++)
 		if (!d->bus && !d->devfn) {
 			ven = d->ven;
