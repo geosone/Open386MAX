@@ -55,6 +55,11 @@ if @OEM_SYS eq @OEMSYS_AST386 or @OEM_SYS eq @OEMSYS_MIT
 	 include QMAX_CM2.INC
 endif				; IF @OEM_SYS eq @OEMSYS_AST386
 
+if @OEM_SYS ne @OEMSYS_MIT
+	 extrn	 CM3_FLAG:word
+	 include QMAX_CM3.INC
+endif				; IF @OEM_SYS ne @OEMSYS_MIT
+
 if @OEM_SYS eq @OEMSYS_ILIM or @OEM_SYS eq @OEMSYS_GRID
 	 extrn	 DBG_FLAG:word
 	 include QMAX_DBG.INC
@@ -179,6 +184,12 @@ endif				; IF @OEM_SYS eq @OEMSYS_JET386
 
 if @OEM_SYS eq @OEMSYS_MIT
 	 or	 CM2_FLAG,@CM2_UNSH ; Mark as unshift in effect
+else
+; Virtualize A20 through the 8042 (ports 60h/64h) by default, as
+; FORCEA20:  a program degating A20 there with paging on would cut off
+; our memory above 1MB.  UNSHIFT turns it off.
+
+	 or	 CM3_FLAG,@CM3_XA20 ; Mark as FORCEA20
 endif				; IF @OEM_SYS eq @OEMSYS_MIT
 
 if @OEM_SYS eq @OEMSYS_OLI or @OEM_SYS eq @OEMSYS_OL2
