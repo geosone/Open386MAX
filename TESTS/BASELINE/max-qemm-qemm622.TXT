@@ -1,3 +1,4 @@
+max/BIGMEM               FAIL
 max/DISKIO               SKIP
 max/DOSXLAT              SKIP
 max/DPMI10               SKIP

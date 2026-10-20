@@ -132,6 +132,8 @@ endif				; IF @OEM_WIN3
 	 extrn	 CM2_FLAG:word
 	 include QMAX_CM2.INC
 
+	 extrn	 TOTSIZE:dword
+
 	 extrn	 CM3_FLAG:word
 	 include QMAX_CM3.INC
 
@@ -416,6 +418,9 @@ endif				; IF @OEM_SYS eq @OEMSYS_HPRS
 if @OEM_SYS eq @OEMSYS_RET
 	 CMDARG_MAC 'TERSE',            FCN_TERSE
 	 CMDARG_MAC 'EXTSIZE',          FCN_EXTSIZE
+if @OEM_DPMI and @OEM_XMS
+	 CMDARG_MAC 'LOWDPMI',          FCN_LOWDPMI
+endif				; IF @OEM_DPMI and @OEM_XMS
 	 CMDARG_MAC 'NOSCAN',           FCN_NOSCAN
 endif				; IF @OEM_SYS eq @OEMSYS_RET
 
@@ -770,6 +775,10 @@ NUMBERS_LO db	 '0123456789abcdef' ; Conversion table for BASE2BIN
 
 	 public  DEF_STACKS
 DEF_STACKS db	 '=6',CR        ; Default DOS stacks setting [,128]
+
+@DEF_EXTSIZE equ (2048-64)*1024 ; Default maximum extended memory in 1KB
+	 public  DEF_EXTSIZE
+DEF_EXTSIZE db	 '=2031616',CR  ; Default EXTSIZE= setting (@DEF_EXTSIZE)
 
 XDATA	 ends			; End XDATA segment
 
@@ -2733,6 +2742,27 @@ if @OEM_STATE
 else
 	 call	 FCN_ON 	; Mark initial state as ON
 endif				; IF @OEM_STATE
+
+; Open 386MAX:  map at most 2GB-64MB of extended memory unless EXTSIZE=
+; says otherwise, so that DPMI clients keep about 2GB of linear space
+; above it and the DPMI page directories at 2GB-8MB (see INIT_DPMITAB)
+; stay clear of RAM.
+
+	 cmp	 TOTSIZE,@DEF_EXTSIZE ; Izit more than the default maximum?
+	 jbe	 short @F	; Jump if not
+
+	 REGSAVE <ds,si>	; Save for a moment
+
+	 push	 fs		; Get XGROUP data segment
+	 pop	 ds		; Address it
+	 assume  ds:XGROUP	; Tell the assembler about it
+
+	 lea	 si,DEF_EXTSIZE ; DS:SI ==> default EXTSIZE= line
+	 call	 FCN_EXTSIZE	; Set it
+
+	 REGREST <si,ds>	; Restore
+	 assume  ds:nothing	; Tell the assembler about it
+@@:
 	 mov	 si,DRVPATH_END ; Get end+1 of driver name
 CHECK_ARGS_INIT:		; Initial scan to skip over file name
 	 lodsb			; Get the next byte

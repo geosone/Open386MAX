@@ -17,6 +17,8 @@ check (OK / FAIL) and ends with errorlevel 0 when all checks passed.
 | DPMI | DISKIO  | INT 13h/25h/26h and 7305h from protected mode, buffers above 4 KB, DOS 7 volume lock |
 | DPMI | STKFLT  | a 32-bit client with an invalid stack calls INT 21h (must not reset the machine) |
 | DPMI | XMSMAP  | XMS block allocated first thing by a DPMI client, locked, mapped with 0800h (sound driver DMA buffers: VSBHDA, SBEMU) |
+| DPMI | LOWLIN  | 0504h at the fixed linear address 400000h (HX DPMILD32 PE images), overlap refused, reusable after 0502h; XMS blocks keep clear of 400000h (386MAX LOWDPMI=) |
+| DPMI | BIGMEM  | large RAM (see docs/largemem.md): XMS 88h highest address below 2GB, the largest XMS block's last 8KB, at least 1.5GB free DPMI linear space (0500h) |
 | DPMI | HDPAPI  | HDPMI vendor API ("HDPMI" through 168Ah): 5 (HDPMI=32 flag), 8 (simulate I/O: IN/OUT, port in DX or BH, REP INS/OUTS) |
 | DPMI | HDPTRAP | HDPMI vendor API 6/7/9: protected-mode port traps (handler called with HDPMI's error code for IN/OUT DX and immediate, word/dword, ES: REP OUTSB), ports outside the ranges, CLI handler |
 | DPMI | EXEC32  | INT 21h 4B00h from a 32-bit client: parameter block with 8-byte slots (command line, FCB 1, FCB 2), as HDPMI, Windows 9x/XP and DPMIONE have it; the real-mode child checks PSP:80h/5Ch/6Ch |

@@ -348,6 +348,9 @@ JDATA	 segment use16 dword public 'jcode' ; Start JDATA segment
 
 	 extrn	 NOSCAN_MAP:byte
 	 extrn	 FILLPAT:dword
+if @OEM_DPMI and @OEM_XMS
+	 extrn	 LOWHOLE_REQ:dword
+endif				; IF @OEM_DPMI and @OEM_XMS
 
 JDATA	 ends			; End JDATA segment
 
@@ -3886,6 +3889,58 @@ FCN_EXTSIZE_EXIT:
 
 FCN_EXTSIZE endp		; End FCN_EXTSIZE procedure
 endif				; IF @OEM_SYS eq @OEMSYS_RET
+
+if @OEM_DPMI and @OEM_XMS
+	 FPPROC  FCN_LOWDPMI -- LOWDPMI=nnnn Function
+	 assume  ds:nothing,es:PGROUP,fs:XGROUP,gs:nothing,ss:nothing
+COMMENT|
+
+LOWDPMI=nnnn:  # KB of memory at 4MB to reserve for DPMI clients, which
+may allocate linear memory there (e.g. HX PE images at 400000h), see
+INIT_LOWHOLE.  0 = none.  Default:  a quarter of the extended memory
+below 386MAX, at most 16MB.  Rounded down to 4MB.
+
+|
+
+	 REGSAVE <eax,cx,es>	; Save registers
+
+	 call	 XSKIP_WHITE	; Skip over more white space
+
+	 cmp	 al,'='         ; Must be
+	 jne	 short FCN_LOWDPMI_EQ ; Too bad
+
+	 call	 XSKIP_WHITE	; Skip over more white space
+	 dec	 si		; Back up to character
+
+	 mov	 cx,10		; Use base 10 to convert
+	 call	 BASE2BIND	; Convert the number at DS:SI to binary in EAX
+	 jc	 short FCN_LOWDPMI_ERR ; Jump if too large
+
+	 mov	 cx,seg JGROUP	; Get segment of LOWHOLE_REQ
+	 mov	 es,cx		; Address it
+	 assume  es:JGROUP	; Tell the assembler about it
+
+	 mov	 LOWHOLE_REQ,eax ; Save for INIT_LOWHOLE
+
+	 clc			; Indicate all went well
+
+	 jmp	 short FCN_LOWDPMI_EXIT ; Join common exit code
+
+FCN_LOWDPMI_EQ:
+	 push	 offset YGROUP:MSG_SEP ; Pass address of error message
+	 call	 DISP_ERRLAST	; Display error message with last keyword
+FCN_LOWDPMI_ERR:
+	 stc			; Indicate something went wrong
+FCN_LOWDPMI_EXIT:
+	 REGREST <es,cx,eax>	; Restore
+	 assume  es:nothing	; Tell the assembler about it
+
+	 ret			; Return to caller
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+FCN_LOWDPMI endp		; End FCN_LOWDPMI procedure
+endif				; IF @OEM_DPMI and @OEM_XMS
 if @OEM_SYS eq @OEMSYS_AST386 or @OEM_SOFT
 	 FPPROC  FCN_FASTRAM -- FASTRAM Function
 	 assume  ds:nothing,es:PGROUP,fs:XGROUP,gs:nothing,ss:nothing

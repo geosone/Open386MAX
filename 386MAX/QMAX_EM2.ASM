@@ -123,6 +123,9 @@ JDATA	 segment use16 dword public 'jcode' ; Start JDATA segment
 
 	 extrn	 JSEL_DS3:word
 
+	 public  LOWHOLE_REQ
+LOWHOLE_REQ dd	 -1		; LOWDPMI= in 1KB (-1 = default)
+
 JDATA	 ends			; End JDATA segment
 
 
@@ -3046,8 +3049,8 @@ HX DPMILD32 loads a PE image without relocations at its ImageBase 400000h
 memory:  while a client runs, the V86 side (XMS, EMS, VDS, DMA, INT 15h)
 runs on the client's page directory and expects linear = physical.
 
-Reserve a quarter of the extended memory below PRG, at most 16MB, in 4MB
-units, if it's still available.
+Reserve LOWDPMI= KB (default a quarter of the extended memory below PRG,
+at most 16MB), rounded down to 4MB, if it's still available.
 
 |
 
@@ -3060,12 +3063,25 @@ units, if it's still available.
 	 sub	 eax,@LOWHOLE_LA	; Less the first 4MB
 	 jbe	 short INIT_LOWHOLE_EXIT ; Jump if none
 
+	 mov	 ecx,cs:LOWHOLE_REQ ; Get LOWDPMI= in 1KB
+	 cmp	 ecx,-1 	; Izit the default?
+	 jne	 short INIT_LOWHOLE_USER ; Jump if not
+
 	 shr	 eax,2		; A quarter of it
 	 cmp	 eax,4*@LOWHOLE_LA ; Izit above 16MB?
-	 jbe	 short @F	; Jump if not
+	 jbe	 short INIT_LOWHOLE_ROUND ; Jump if not
 
 	 mov	 eax,4*@LOWHOLE_LA ; Use maximum
-@@:
+
+	 jmp	 short INIT_LOWHOLE_ROUND ; Join common code
+
+INIT_LOWHOLE_USER:
+	 shl	 ecx,10-0	; Convert from 1KB to bytes
+	 cmp	 eax,ecx	; Izit more than there is?
+	 jbe	 short INIT_LOWHOLE_ROUND ; Jump if so (use all of it)
+
+	 mov	 eax,ecx	; Use LOWDPMI=
+INIT_LOWHOLE_ROUND:
 	 and	 eax,not (@LOWHOLE_LA-1) ; Round down to 4MB
 	 jz	 short INIT_LOWHOLE_EXIT ; Jump if none
 

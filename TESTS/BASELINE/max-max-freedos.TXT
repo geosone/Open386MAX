@@ -1,3 +1,4 @@
+max/BIGMEM               PASS
 max/DISKIO               PASS
 max/DOSXLAT              PASS
 max/DPMI10               PASS
