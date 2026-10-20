@@ -29,7 +29,7 @@ TESTPROJECTS := TESTS
 JWASM_SRC  := $(wildcard linux/jwasm/src/*.c linux/jwasm/src/H/*.h)
 JWLINK_SRC := $(shell find linux/jwlink -name '*.[ch]' -not -path '*/build/*')
 
-.PHONY: all tools $(PROJECTS) $(NEWPROJECTS) $(WINPROJECTS) $(TESTPROJECTS) devpkg clean testclean distclean
+.PHONY: all tools $(PROJECTS) $(NEWPROJECTS) $(WINPROJECTS) $(TESTPROJECTS) devpkg specs clean testclean distclean
 
 all: $(PROJECTS) $(NEWPROJECTS) $(WINPROJECTS) $(TESTPROJECTS)
 
@@ -63,6 +63,10 @@ INSTALL: QUILIB HELPENG VERLIB
 MAXSETUP: QUILIB CTL3D
 WINMXMZ: QUILIB STATUTIL
 MAXCTRL: SFTTABS
+
+# the specification texts of docs/specs as HTML, EPUB and PDF (build/specs)
+specs:
+	linux/scripts/specs.sh
 
 # the test images (build/win311, build/win98, build/dosdisk) survive: long
 # unattended installs
