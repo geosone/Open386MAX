@@ -39,6 +39,7 @@ NOFLEX           PASS
 NOFRAME          PASS
 NOGATE           PASS
 NOHIGH           PASS
+NOHIGHUMB        PASS
 NOLOADHI         PASS
 NOLOADHIGH       PASS
 NOLOW            PASS
@@ -72,6 +73,7 @@ SXMS             PASS
 TERSE            PASS
 TOP384           PASS
 UNKNOWN          PASS
+UNSHIFT          PASS
 USEB000          PASS
 USERAM           PASS
 VGA              PASS
@@ -80,3 +82,4 @@ VIDMEM           PASS
 WEITEKOFF        PASS
 XBIOSHI          PASS
 XMSHNDL100       PASS
+XMSUMB           PASS

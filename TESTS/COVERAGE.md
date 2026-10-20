@@ -11,21 +11,21 @@ test.  Status:  **yes** (automatic test), **part** (some of it), **hand**
 |---|---|---|---|
 | XMS 2.0/3.0 | 00h-0Fh, 88h, 89h, 8Eh, 8Fh | yes | XMS/XMSFUNC |
 | XMS | 03h/04h global A20 | part | XMS/XMSFUNC (05h-07h only) |
-| XMS | 10h-12h UMBs | no | planned XMS/XMSUMB |
+| XMS | 10h-12h UMBs | yes | XMS/XMSUMB, KEYWORDS.LST XMSUMB/NOHIGHUMB (found:  11h freed any DOS block, e.g. at A000; 10h B1h left DX) |
 | XMS 3.5 | C8h, C9h, CBh, CCh, handle functions | yes | XMS/XMS35 (MEMSIZE=6144) |
 | XMS 3.5 | CBh while a DPMI client's page directory is current | no | planned DPMI/XMS35PM |
 | XMS 3.5 | E820h above 4GB reserved | yes | KEYWORDS.LST SXMS/NOSXMS |
 | XMS 3.5 | INT 15h 87h F00Fh (Jemm/HimemSX) | no (not implemented) | |
 | EMS 4.0 | 40h-59h, 5Bh | yes | EMS/EMSFUNC |
-| EMS 4.0 | 4Ch, 4Dh, 52h, 5Ah (raw pages), 5Ch, 5Dh (OS/E) | no | planned EMS/EMSMORE |
+| EMS 4.0 | 4Bh-4Dh, 52h, 5Ah, 5Ch, 5Dh (OS/E) | yes | EMS/EMSMORE (found:  5201h volatile refused) |
 | VCPI | DE00h-DE0Ch | yes | VCPI/VCPIFUNC |
 | VDS | 8102h-810Ch | yes | VDS/VDSFUNC |
 | DPMI 1.0 (16-bit) | most functions | yes | DPMI/DPMI10 |
 | DPMI 0.9 (32-bit client) | all functions | part | DPMI/XLAT32, HDP*, EXEC32 |
-| DPMI | 0600h-0603h lock, 0700h-0703h paging, 0900h-0902h virtual IF | no | planned DPMI/DPMIMISC |
-| DPMI | 0B00h-0B03h debug watchpoints | no | planned DPMI/DPMIWP |
-| DPMI | 0E00h/0E01h coprocessor | no | planned DPMI/DPMIMISC |
-| DPMI | 0A00h "386MAX" vendor API | no | planned DPMI/MAXAPI |
+| DPMI | 0600h-0604h, 0702h/0703h, 0900h-0902h | yes | DPMI/DPMIMISC |
+| DPMI | 0B00h-0B03h debug watchpoints (triggered) | yes | DPMI/DPMIMISC |
+| DPMI | 0E00h/0E01h coprocessor | yes | DPMI/DPMIMISC |
+| DPMI | 0A00h vendor API "MS-DOS", "386MAX" | yes | DPMI/MAXAPI |
 | DPMI | DOS/BIOS translation | yes | DPMI/DOSXLAT, XLAT32, PM26, DISKIO |
 | DPMI | 0504h fixed address, LOWDPMI= | yes | DPMI/LOWLIN |
 | DPMI | large RAM | yes | DPMI/BIGMEM |
@@ -42,7 +42,7 @@ test.  Status:  **yes** (automatic test), **part** (some of it), **hand**
 | INT 15h 87h, 88h | yes | V86/V86FUNC |
 | INT 15h 89h, 24xxh (A20), C0h, C1h, E801h, E820h | yes | V86/INT15 (found: 2400h/2401h had no effect, 2402h reported A20 inverted) |
 | INT 15h E801h/E820h report only what 88h does (were:  all as free) | yes | V86/INT15, KEYWORDS.LST (EXT4096, SXMS, NOSXMS) |
-| A20 through port 92h and the 8042 | no | planned V86/A20 |
+| A20 through port 92h and the 8042 | yes | V86/A20 (found:  port 92h trapped on MCA only, 8042 only with FORCEA20:  degating A20 crashed; now both by default) |
 | DMA port trapping, buffering of ISA DMA above 16MB | part | DPMI/DISKIO, SCENARIO (sound) |
 | Ctrl-Alt-Del (INT 15h 4F53h), warm boot | no | planned (script) |
 
@@ -50,7 +50,7 @@ test.  Status:  **yes** (automatic test), **part** (some of it), **hand**
 
 | Function | Status | Test |
 |---|---|---|
-| 386MAX$$ device, IOCTL info (386UTIL, MAXIMIZE) | no | planned MAX/MAXINFO |
+| 386MAX$$ device, IOCTL info (386UTIL, MAXIMIZE) | yes | MAX/MAXINFO |
 | INT 2Fh 1605h/1606h Windows start/end | hand | linux/test/win311.sh |
 | 386MAX.VXD (Windows 3.1 enhanced mode) | hand | linux/test/win311.sh |
 | GOREAL (Windows 9x, other V86 monitors) | hand | linux/test/win98.sh |

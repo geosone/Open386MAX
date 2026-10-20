@@ -6,12 +6,15 @@ what MAXPROBE reports.
 
 A line of KEYWORDS.LST:
 
-    NAME  [@mem=MB] [@cpu=MODEL] [@cfg=LINE] KEYWORD;KEYWORD... | EXPECT ...
+    NAME  [@mem=MB] [@cpu=MODEL] [@cfg=LINE] [@noumb] [@run=TEST]
+          KEYWORD;KEYWORD... | EXPECT ...
 
 The keywords (; separated, - for none) become C:\\MAX\\386MAX.PRO, loaded
 with DEVICE=C:\\MAX\\386MAX.SYS PRO=C:\\MAX\\386MAX.PRO (no DOS=HIGH, so the
-HMA can be checked; DOS=UMB).  AUTOEXEC.BAT runs MAXPROBE (TESTS/MAX) and
-ends QEMU.  An expectation compares a value of MAXPROBE (hex):
+HMA can be checked; DOS=UMB unless @noumb).  AUTOEXEC.BAT runs MAXPROBE
+(TESTS/MAX), then the test program TEST (build/TESTS/TEST.EXE, output in
+run.txt; expected:  errorlevel 0) and ends QEMU.  An expectation compares
+a value of MAXPROBE (hex):
 
     NAME=v  NAME!=v  NAME<v  NAME>v  NAME<=v  NAME>=v
     %OK        no Unknown keyword/Invalid/error on the screen, MAXPROBE ran,
@@ -60,8 +63,13 @@ class Line:
         left, _, right = text.partition('|')
         w = left.split()
         self.name, self.mem, self.cpu, self.cfg, kw = w[0], '64', None, [], []
+        self.umb, self.run = True, None
         for x in w[1:]:
-            if x.startswith('@mem='):
+            if x == '@noumb':
+                self.umb = False
+            elif x.startswith('@run='):
+                self.run = x[5:].upper()
+            elif x.startswith('@mem='):
                 self.mem = x[5:]
             elif x.startswith('@cpu='):
                 self.cpu = x[5:]
@@ -74,6 +82,8 @@ class Line:
         self.expect = []
         for e in right.split():
             self.expect += OKSET if e == '%OK' else [e]
+        if self.run:
+            self.expect.append('RUNOK=1')
 
 
 def write_dos(p, name, lines, tmpdir):
@@ -113,17 +123,22 @@ def boot(line, dos, out):
         if os.path.exists(maxfile(f)):
             sh('mcopy', '-o', '-i', p, maxfile(f), '::/MAX/')
     sh('mcopy', '-o', '-i', p, os.path.join(BUILD, 'TESTS', 'MAXPROBE.EXE'), '::/MAX/')
+    if line.run:
+        sh('mcopy', '-o', '-i', p, os.path.join(BUILD, 'TESTS', line.run + '.EXE'), '::/MAX/')
     q = os.path.join(out, 'QEXIT.COM')
     open(q, 'wb').write(QEXIT)
     sh('mcopy', '-o', '-i', p, q, '::/QEXIT.COM')
-    subprocess.run(['mdel', '-i', p, '::/PROBE.TXT'], env=ENV, capture_output=True)
+    for f in ('PROBE.TXT', 'RUN.TXT'):
+        subprocess.run(['mdel', '-i', p, '::/' + f], env=ENV, capture_output=True)
     write_dos(p, 'MAX/386MAX.PRO', line.keywords or ['; none'], out)
     name = os.path.basename(base).lower()
     shell = next((v for k, v in SHELLS.items() if k in name), SHELL)
     write_dos(p, 'CONFIG.SYS', ['DEVICE=C:\\MAX\\386MAX.SYS PRO=C:\\MAX\\386MAX.PRO']
-              + line.cfg + ['DOS=UMB', 'FILES=40', 'BUFFERS=20', shell], out)
-    write_dos(p, 'AUTOEXEC.BAT', ['@ECHO OFF', 'C:\\MAX\\MAXPROBE.EXE > C:\\PROBE.TXT',
-                                  'C:\\QEXIT.COM'], out)
+              + line.cfg + (['DOS=UMB'] if line.umb else []) + ['FILES=40', 'BUFFERS=20', shell], out)
+    run = ['C:\\MAX\\%s.EXE > C:\\RUN.TXT' % line.run, 'IF ERRORLEVEL 1 GOTO X',
+           'ECHO RUNOK=1>> C:\\PROBE.TXT', ':X'] if line.run else []
+    write_dos(p, 'AUTOEXEC.BAT', ['@ECHO OFF', 'C:\\MAX\\MAXPROBE.EXE > C:\\PROBE.TXT']
+              + run + ['C:\\QEXIT.COM'], out)
     sock = os.path.join(out, 'm.sock')
     cmd = (['qemu-system-i386', '-machine', 'pc'] + ACCEL.split()
            + (['-cpu', line.cpu] if line.cpu else [])
@@ -143,6 +158,9 @@ def boot(line, dos, out):
     r = subprocess.run(['mtype', '-i', p, '::/PROBE.TXT'], env=ENV, capture_output=True)
     text = r.stdout.decode('cp437', 'replace').replace('\r', '') if r.returncode == 0 else ''
     open(os.path.join(out, 'probe.txt'), 'w').write(text)
+    if line.run:
+        r = subprocess.run(['mtype', '-i', p, '::/RUN.TXT'], env=ENV, capture_output=True)
+        open(os.path.join(out, 'run.txt'), 'w').write(r.stdout.decode('cp437', 'replace').replace('\r', ''))
     os.remove(img)
     return text
 

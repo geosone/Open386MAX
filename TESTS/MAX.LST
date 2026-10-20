@@ -5,12 +5,18 @@
 # Errorlevel 0 = PASS.  Run with linux/test/suite.py (QEMU) or RUNTESTS.BAT (DOS).
 XMS/XMSFUNC   needs=xms timeout=120
 XMS/XMS35     needs=xms
+XMS/XMSUMB    needs=xms
 EMS/EMSFUNC   needs=ems
+EMS/EMSMORE   needs=ems
 VCPI/VCPIFUNC needs=vcpi
 VDS/VDSFUNC   needs=vds
 V86/V86FUNC
 V86/INT15
+V86/A20
+MAX/MAXINFO
 DPMI/DPMI10   needs=dpmi,dpmi1
+DPMI/DPMIMISC needs=dpmi,xlat
+DPMI/MAXAPI   needs=dpmi,xlat
 DPMI/DOSXLAT  needs=dpmi,xlat
 DPMI/XLAT32   needs=dpmi32,xlat
 DPMI/PM26     needs=dpmi timeout=60
