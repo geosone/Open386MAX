@@ -12,8 +12,6 @@ EMC87 check runs only on a 386).
 
 ## 9.x
 
-* **XMS 3.5 for the rest of the package:**  386DISK on memory above 4GB
-  (/XMSSX).
 * **Large RAM:**  XMS well beyond 256MB, but the mapped RAM capped
   (896MB by default in 9.x, see 10.x) so DPMI clients keep their linear
   space; DPMI 0504h at low fixed addresses (HX programs with ImageBase

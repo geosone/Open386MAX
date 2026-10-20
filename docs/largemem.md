@@ -86,5 +86,7 @@ is checked as for 87h.  Addresses beyond the CPU's physical address
 width (or bit 40 and up) fail with CF=1, AH=86h.  `NOSXMS`
 turns XMS 3.5 memory off (the version stays 3.51, C8h reports none).
 
+386DISK puts its RAM disk there with /XMSSX (see ramdisk.md).
+
 Test:  `TESTS/XMS/XMS35` (skipped without such memory; run with
 `MEMSIZE=6144 QEMU_EXTRA="-cpu pentium3" linux/test/suite.py -t XMS35`).

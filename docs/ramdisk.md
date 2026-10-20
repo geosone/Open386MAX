@@ -62,6 +62,23 @@ Tested with linux/test/ramdisk.sh in QEMU with 386MAX on MS-DOS 6.22,
 MS-DOS 7.1, FreeDOS, EDR-DOS and SvarDOS:  R:\TEMP, a file copied to R:
 and back unchanged, RAMTEMP, the first free letter, the error cases.
 
+## /XMSSX:  memory above 4GB (9.00)
+
+    Device=C:\386MAX\386DISK.SYS 16384 512 512 /XMSSX
+
+puts the RAM disk into XMS 3.5 super-extended memory (RAM at and above
+4GB, see largemem.md):  386DISK allocates with C9h and moves with CBh
+(the bits 32-39 of the offsets stay zero, the disk is far smaller than
+4GB), so the memory below 4GB stays free for XMS and DPMI programs.
+The start-up line says "KB of SXMS memory".  Without an XMS 3.50 driver
+or without a free block of the size (no RAM above 4GB, a CPU without
+PSE-36, `NOSXMS`) it says "No XMS 3.5 memory above 4GB, using /XMS
+memory." and takes XMS memory as /XMS.  The same with 386DISK.COM.
+
+Tested with linux/test/ramdisk.sh (MS-DOS 6.22):  6GB RAM and
+`-cpu pentium3`:  SXMS memory, COMMAND.COM copied to the disk and back
+unchanged; 64MB:  the message and XMS memory.
+
 ## Per DOS
 
 | DOS | startup files | notes |

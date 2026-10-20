@@ -104,6 +104,8 @@ CODE	 segment use16 word public 'prog' ; Start CODE segment
 
 	 extrn	 RH_VEC:dword
 	 extrn	 XMSDRV_VEC:dword
+	 extrn	 XMS_MOVFN:byte
+	 extrn	 XMS_HI:word
 	 extrn	 MOVE_LEN:dword
 	 extrn	 BPSLG2:byte
 	 extrn	 BPB_PTR:word
@@ -227,6 +229,7 @@ SPCLG2	 db	 ?		; Log 2 of BPB_SPC
 LCL_FLAG db	 0		; Local flags
 @LCL_XMSHI equ	 80h		; /XMSHI specified
 @LCL_NOMAX equ	 40h		; 386MAX not present
+@LCL_XMSSX equ	 20h		; /XMSSX specified (XMS 3.5, above 4GB)
 
 	 public  COPY_MSG
 COPY_MSG db	 CR,LF
@@ -257,11 +260,12 @@ MSG_NODRV db	 BEL,'ÍÍ> Es wurde kein '
 MSG_NODRV1 db	     'XMS-Treiber installiert.',CR,LF,EOS ; Using default of XMS
 MSG_DRVERR db	 BEL,'ÍÍ> Fehler vom '
 MSG_DRVERR1 db	     'XMS-Treiber gemeldet:  ',EOS ; Using default of XMS
-MSG_INVARG db	 BEL,'ÍÍ> unzul„ssiger Schalter; verwenden Sie /EXT, /XMS, /XMSHI oder /EMS.',CR,LF,EOS
+MSG_INVARG db	 BEL,'ÍÍ> unzul„ssiger Schalter; verwenden Sie /EXT, /XMS, /XMSHI, /XMSSX oder /EMS.',CR,LF,EOS
 MSG_TOOMANY db	 BEL,'ÍÍ> zu viele Argumente in der Befehls-Zeile.',CR,LF,EOS
 MSG_TOOBIG db	 BEL,'ÍÍ> Wert zu groáá - maximal 65536.',CR,LF,EOS
 MSG_INCOMPAT db  BEL,'ÍÍ> Disk Parameter nicht kompatibel.',CR,LF,EOS
 MSG_XMS_SWITCH db 'ÍÍ> /EXT-Speicher ist belegt, ich nehme /XMS-Speicher.',CR,LF,EOS
+MSG_SX_SWITCH db 'ÍÍ> kein XMS-3.5-Speicher ber 4 GB, ich nehme /XMS-Speicher.',CR,LF,EOS
 else
 MSG_NOT386 db	 BEL,'ÍÍ> Wrong machine type:  must run on an 80386.',CR,LF,EOS
 MSG_NOTDOS3 db	 BEL,'ÍÍ> This program requires DOS 3.00 or later.',CR,LF,EOS
@@ -271,11 +275,12 @@ MSG_NODRV db	 BEL,'ÍÍ> No '
 MSG_NODRV1 db	     'XMS driver installed.',CR,LF,EOS ; Using default of XMS
 MSG_DRVERR db	 BEL,'ÍÍ> Error from '
 MSG_DRVERR1 db	     'XMS driver:  ',EOS ; Using default of XMS
-MSG_INVARG db	 BEL,'ÍÍ> Invalid switch:  use /EXT, /XMS, /XMSHI, or /EMS.',CR,LF,EOS
+MSG_INVARG db	 BEL,'ÍÍ> Invalid switch:  use /EXT, /XMS, /XMSHI, /XMSSX, or /EMS.',CR,LF,EOS
 MSG_TOOMANY db	 BEL,'ÍÍ> Too many command line arguments.',CR,LF,EOS
 MSG_TOOBIG db	 BEL,'ÍÍ> Value too large:  maximum is 65536.',CR,LF,EOS
 MSG_INCOMPAT db  BEL,'ÍÍ> Incompatible disk parameters.',CR,LF,EOS
 MSG_XMS_SWITCH db 'ÍÍ> /EXT memory in use, using /XMS memory.',CR,LF,EOS
+MSG_SX_SWITCH db 'ÍÍ> No XMS 3.5 memory above 4GB, using /XMS memory.',CR,LF,EOS
 endif				; IFDEF LANG_GR
 
 	 public  MSG_PRESS
@@ -295,14 +300,14 @@ ifdef LANG_GR
 INIT_MSG db	 'Laufwerk '
 DRIV_MSG db	 '_:     '
 SIZE_NUM db	 '_ KB im '
-TYPE_TXT db	 'XMS-Speicher,   '
+TYPE_TXT db	 'XMS-Speicher,    ' ; (room for SXMS)
 BPS_NUM  db	 '_ Byte/Sektor,   '
 DIR_NUM  db	 '_ Verzeichnis-Eintr„ge',CR,LF,EOS
 else
 INIT_MSG db	 'Drive '
 DRIV_MSG db	 '_:      '
 SIZE_NUM db	 '_ KB of '
-TYPE_TXT db	 'XMS memory,   '
+TYPE_TXT db	 'XMS memory,    ' ; (room for SXMS)
 BPS_NUM  db	 '_ bytes per sector,    '
 DIR_NUM  db	 '_ directory entries.',CR,LF,EOS
 endif				; IFDEF LANG_GR
@@ -800,6 +805,7 @@ nnn		 Sector size in bytes (power of two)
 nnn		 # directory entries in root
 /XMS		 Extended memory (XMS) disk
 /XMSHI		 Extended memory (XMS) disk from highest linear address
+/XMSSX		 XMS 3.5 super-extended memory (above 4GB) disk, else /XMS
 /EMS		 Expanded memory (EMS) disk
 /EXT		 Top down extended memory disk
 /NOMAX		 Don't require 386MAX to be in the system
@@ -920,7 +926,7 @@ CHECK_ARGS_SEP:
 	 mov	 MSG_DRVERR1.EDD,' SME'
 	 mov	 MSG_NODRV1.EDD,' SME'
 	 mov	 TYPE_TXT.EDD,' SME'
-	 je	 short CHECK_ARGS_SEP1 ; Good guess
+	 je	 near ptr CHECK_ARGS_SEP1 ; Good guess
 
 ; Check for /XMS or /XMSHI
 
@@ -961,9 +967,18 @@ CHECK_ARGS_INV:
 
 	 jmp	 CHECK_ARGS_ERR ; Not this time
 
-; Check for /XMSHI keyword
+; Check for /XMSHI or /XMSSX keyword
 
 CHECK_ARGS_SEP0:
+	 cmp	 ds:[si+3].ELO,'XS' ; Izit tail of 'XMSSX'?
+	 jne	 short @F	; Jump if not
+
+	 or	 LCL_FLAG,@LCL_XMSSX ; Mark as specified
+	 add	 si,2		; Skip over tail
+
+	 jmp	 short CHECK_ARGS_SEP1 ; Join common code
+
+@@:
 	 cmp	 ds:[si+3].ELO,'IH' ; Izit tail of 'XMSHI'?
 	 jne	 short CHECK_ARGS_SEP1 ; Jump if not
 
@@ -1474,6 +1489,11 @@ GET_MAXSIZE_XMS:
 	 mov	 XMS_GETXMBFN,@XMS_GET2XMB ; Use extended functions
 	 mov	 XMS_QRYXMBFN,@XMS_QRY2XMB ; ...
 @@:
+	 test	 LCL_FLAG,@LCL_XMSSX ; Izit /XMSSX?
+	 jz	 short GET_MAXSIZE_XSX ; Jump if not
+
+	 call	 CHECK_XMSSX	; Use XMS 3.5 memory if there's enough
+GET_MAXSIZE_XSX:
 	 xor	 eax,eax	; Zero to use as dword
 ;;;;;;;; xor	 edx,edx	; ...		       (not used)
 	 mov	 ah,XMS_QRYXMBFN ; Request size of available XMBs
@@ -1501,6 +1521,66 @@ GET_MAXSIZE_EXIT:
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing
 
 GET_MAXSIZE endp		; End GET_MAXSIZE procedure
+	 NPPROC  CHECK_XMSSX -- Use XMS 3.5 Memory For /XMSSX
+	 assume  ds:PGROUP,es:nothing,fs:nothing,gs:nothing
+COMMENT|
+
+/XMSSX:  if the XMS driver has XMS 3.5 super-extended memory (above
+4GB, version 3.50 or later, C8h) with a free block of at least the
+disk size, allocate with C9h and move with CBh (the bits 32-39 of the
+offsets stay zero:  the disk is smaller than 4GB); else use /XMS
+memory as before and say so.
+
+On entry:
+
+AX	 =	 XMS version (BCD)
+
+|
+
+	 REGSAVE <eax,ebx,edx>	; Save registers
+
+	 cmp	 ax,0350h	; Izit XMS 3.50 or later?
+	 jb	 short CHECK_XMSSX_NONE ; Jump if not
+
+	 xor	 eax,eax	; Zero to use as dword
+	 mov	 ah,0C8h	; Query free super-extended memory
+	 mov	 bl,0		; Set to non-error value
+	 call	 XMSDRV_VEC	; Request XMS service
+				; EAX = largest free block in 1KB
+	 test	 bl,80h 	; Izit in error?
+	 jnz	 short CHECK_XMSSX_NONE ; Jump if so
+
+	 cmp	 eax,DISKKILO	; Izit big enough?
+	 jb	 short CHECK_XMSSX_NONE ; Jump if not
+
+	 mov	 XMS_QRYXMBFN,0C8h ; Query, allocate and move
+	 mov	 XMS_GETXMBFN,0C9h ; ...  super-extended memory
+	 mov	 XMS_MOVFN,0CBh ; ...
+	 mov	 XMS_HI,0	; Bits 32-39 of the offsets (QDISK.ASM)
+ifdef LANG_GR
+	 mov	 TYPE_TXT.EDD,'SMXS' ; 'SXMS-Speicher,'
+	 mov	 TYPE_TXT[4].EDD,'epS-' ; ...
+	 mov	 TYPE_TXT[8].EDD,'ehci' ; ...
+	 mov	 TYPE_TXT[12].ELO,',r' ; ...
+else
+	 mov	 TYPE_TXT.EDD,'SMXS' ; 'SXMS memory,'
+	 mov	 TYPE_TXT[4].EDD,'mem ' ; ...
+	 mov	 TYPE_TXT[8].EDD,',yro' ; ...
+endif				; IFDEF LANG_GR
+
+	 jmp	 short CHECK_XMSSX_EXIT ; Join common exit code
+
+CHECK_XMSSX_NONE:
+	 and	 LCL_FLAG,not @LCL_XMSSX ; No longer
+	 DOSCALL @STROUT,MSG_SX_SWITCH ; Display memory switch message
+CHECK_XMSSX_EXIT:
+	 REGREST <edx,ebx,eax>	; Restore
+
+	 ret			; Return to caller
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing
+
+CHECK_XMSSX endp		; End CHECK_XMSSX procedure
 	 NPPROC  ROUND_SECT -- Round Up to Sector Boundary
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing
 COMMENT|

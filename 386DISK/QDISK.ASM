@@ -46,6 +46,8 @@ XMSMOVE_SHNDL dw ?		; Source handle
 XMSMOVE_SOFF  dd ?		; Source offset
 XMSMOVE_DHNDL dw ?		; Destin handle
 XMSMOVE_DOFF  dd ?		; Destin offset
+XMSMOVE_SHI   db ?		; Bits 32-39 of source offset (XMS 3.5 CBh)
+XMSMOVE_DHI   db ?		; ...	       destin ...
 
 XMSMOVE_STR ends
 
@@ -143,6 +145,9 @@ USER_DTA_VEC dd  ?		; Seg:Off of caller's buffer
 	 public  XMSDRV_VEC
 XMSDRV_VEC dd	 ?		; Seg:Off of XMS driver
 
+	 public  XMS_MOVFN
+XMS_MOVFN db	 @XMS_MOVXMB	; XMS move function (/XMSSX:  CBh)
+
 	 public  EXTBASE
 EXTBASE  dd	 ?		; Base of EXT disk
 
@@ -162,6 +167,9 @@ MOVE_LEN dd	 ?		; Move length in bytes
 	 org	 MOVE_LEN
 XMS	 XMSMOVE_STR <> 	; XMS move structure
 XMSEND	 label	 byte
+	 public  XMS_HI
+	 org	 XMS.XMSMOVE_SHI
+XMS_HI	 dw	 ?		; XMSMOVE_SHI and _DHI (/XMSSX:  zero)
 
 	 org	 MOVE_LEN
 EMS	 EMSMOVE_STR <> 	; EMS move structure
@@ -171,15 +179,16 @@ EMSEND	 label	 byte
 EXT	 MDTE_STR <>		; EXT move structure
 EXTEND	 label	 byte
 
-if (type EMSMOVE_STR) gt (type XMSMOVE_STR)
-if (type MDTE_STR) gt (type EMSMOVE_STR)
-	 org	 EXTEND
-else
-	 org	 EMSEND
-endif				; IF (TYPE MDTE_STR) GT (TYPE EMSMOVE_STR)
-else
-	 org	 XMSEND
-endif				; IF (TYPE EMSMOVE_STR) GT (TYPE XMSMOVE_STR)
+; Continue after the largest of the three
+
+@MOVE_SIZE = type XMSMOVE_STR
+if (type EMSMOVE_STR) gt @MOVE_SIZE
+@MOVE_SIZE = type EMSMOVE_STR
+endif
+if (type MDTE_STR) gt @MOVE_SIZE
+@MOVE_SIZE = type MDTE_STR
+endif
+	 org	 MOVE_LEN+@MOVE_SIZE
 
 	 public  ARG_ERRNUM
 ARG_ERRNUM db	 ?		; Error number (if applicable)
@@ -664,7 +673,7 @@ CF	 =	 0 if all went OK
 	 mov	 XMS.XMSMOVE_SHNDL,0 ; Mark as XMS destin
 	 mov	 XMS.XMSMOVE_SOFF,esi ; Save as destin Seg:Off
 
-	 mov	 ah,@XMS_MOVXMB ; Move the data
+	 mov	 ah,XMS_MOVFN ; Move the data (0Bh, /XMSSX:  CBh)
 	 lea	 si,XMS 	; DS:SI ==> XMSMOVE_STR
 	 call	 XMSDRV_VEC	; Request XMS service
 				; Return with AX = 0 for error, AX = 1 for OK
@@ -854,7 +863,7 @@ CF	 =	 0 if all went OK
 	 mov	 XMS.XMSMOVE_DHNDL,0 ; Mark as CNV destin
 	 mov	 XMS.XMSMOVE_DOFF,edi ; Save as destin Seg:Off
 
-	 mov	 ah,@XMS_MOVXMB ; Move the data
+	 mov	 ah,XMS_MOVFN ; Move the data (0Bh, /XMSSX:  CBh)
 	 lea	 si,XMS 	; DS:SI ==> XMSMOVE_STR
 	 call	 XMSDRV_VEC	; Request XMS service
 				; Return with AX = 0 for error, AX = 1 for OK

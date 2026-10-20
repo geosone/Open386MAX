@@ -6,7 +6,10 @@
 #   back (compared on the host), RAMTEMP finds R:;
 # * without /L:  the first free letter (D: on these images);
 # * errors (errorlevel 1):  a letter in use (/L:C), one beyond LASTDRIVE
-#   (/L:R with LASTDRIVE=E), no letter (/L:9), no free letter left.
+#   (/L:R with LASTDRIVE=E), no letter (/L:9), no free letter left;
+# * MS-DOS 6.22:  /XMSSX with 6GB RAM (XMS 3.5 memory above 4GB, -cpu
+#   pentium3):  SXMS memory, COMMAND.COM to R: and back unchanged; with
+#   64MB:  "No XMS 3.5 memory", XMS memory instead.
 #
 #   linux/test/ramdisk.sh [msdos622 msdos71 freedos edrdos svardos]
 #
@@ -21,7 +24,7 @@ fails=0
 # $1 dos, $2 name, $3 CONFIG, $4 AUTO:  boot, O.TXT to $OUT/$1-$2
 boot() {
     local d=$OUT/$1-$2
-    MEMSIZE=64 KEEP=1 TESTDIR=$d XFILES="$BIN/386DISK.COM $BIN/RAMTEMP.COM" \
+    MEMSIZE=${BOOTMEM:-64} KEEP=1 TESTDIR=$d XFILES="$BIN/386DISK.COM $BIN/RAMTEMP.COM" \
         CONFIG="$3" AUTO="$4" STEPS='sleep:45 text:end' \
         timeout 300 "$ROOT/linux/test/dosboot.sh" "$1" > /dev/null 2>&1
     mcopy -n -i "$d/test.img@@32256" ::/O.TXT "$d/O.TXT" 2>/dev/null
@@ -57,6 +60,18 @@ for dos in ${*:-msdos622 msdos71 freedos edrdos svardos}; do
     check "$o" "/L:R beyond LASTDRIVE:  errorlevel 1" 'EL1-R'
     check "$o" "/L:9:  errorlevel 1" 'EL1-9'
     check "$o" "no free letter left:  errorlevel 1" 'EL1-FULL'
+
+    [ "$dos" = msdos622 ] || continue
+    BOOTMEM=6144 QEMU_EXTRA="-cpu pentium3" boot "$dos" sx "$CFG" '@ECHO OFF|C:\386DISK.COM /L:R 4096 512 64 /XMSSX > C:\O.TXT|COPY C:\COMMAND.COM R:\BIG.BIN > NUL|COPY R:\BIG.BIN C:\BACK.BIN > NUL|ECHO END >> C:\O.TXT'
+    o=$OUT/$dos-sx
+    check "$o/o.txt" "/XMSSX:  SXMS memory (above 4GB)" 'KB of SXMS memory'
+    if mcopy -n -i "$o/test.img@@32256" ::/COMMAND.COM "$o/a.bin" 2>/dev/null &&
+       mcopy -n -i "$o/test.img@@32256" ::/BACK.BIN "$o/b.bin" 2>/dev/null &&
+       cmp -s "$o/a.bin" "$o/b.bin"; then echo "  OK    /XMSSX:  COMMAND.COM to R: and back unchanged"
+    else echo "  FAIL  /XMSSX:  COMMAND.COM to R: and back unchanged"; fails=$((fails+1)); fi
+    boot "$dos" sxno "$CFG" '@ECHO OFF|C:\386DISK.COM /L:R 1024 512 64 /XMSSX > C:\O.TXT|ECHO END >> C:\O.TXT'
+    check "$OUT/$dos-sxno/o.txt" "/XMSSX without memory above 4GB:  message" 'No XMS 3.5 memory above 4GB'
+    check "$OUT/$dos-sxno/o.txt" "/XMSSX without memory above 4GB:  XMS memory" 'KB of XMS memory'
 done
 [ $fails = 0 ] && echo "PASS" || echo "FAIL ($fails)"
 [ $fails = 0 ]
