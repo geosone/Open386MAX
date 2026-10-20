@@ -992,6 +992,7 @@ All registers except EBP, SS, and ESP may be destroyed.
 
 	 cmp	 [ebp].INTXX_EBX.ELO.LO,1 ; Check attribute type
 	 je	 near ptr EMM_E91 ; Non-volatile handles not supported
+	 jb	 near ptr EMM_E00 ; Volatile:  that's what it is already
 
 	 mov	 ah,90h 	; Attribute type undefined
 
