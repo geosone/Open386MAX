@@ -416,6 +416,10 @@ INT15_A20DIS:
 ; Re-map the first 64KB of memory above the 1MB limit back to first 64KB
 ; This also flushes the TLB if CF=0 on return
 
+; As for A20 gated off through the ports (CTRL_A20):  clear the virtual
+; A20 line first, else WRAP_ENABLE does nothing
+
+	 and	 GLB_FLAG,not @GLB_X1MB ; Disable the virtual A20 line
 	 FIXICALL PGROUP:FWRAP_ENABLE,DTE_CS2 ; Enable the 1MB wrap
 
 	 jmp	 short INT15_A20COM ; Join common success code
@@ -427,12 +431,13 @@ INT15_A20ENA:
 ; This also flushes the TLB if CF=0 on return
 
 	 FIXICALL PGROUP:FWRAP_DISABLE,DTE_CS2 ; Disable the 1MB wrap
+	 or	 GLB_FLAG,@GLB_X1MB ; Enable the virtual A20 line
 
 	 jmp	 short INT15_A20COM ; Join common success code
 
 
 INT15_A20QRY:
-	 test	 GLB_FLAG,@GLB_1MB ; Izit enabled?
+	 test	 GLB_FLAG,@GLB_X1MB ; Is the virtual A20 line enabled?
 	 mov	 al,01h 	; Assume so
 	 jnz	 short INT15_A20COM ; Jump if so
 
