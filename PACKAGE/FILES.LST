@@ -43,6 +43,7 @@ memlimit.exe   1 bin
 packing.lst    1 packing.lst
 pnp.txt        1 PNP.TXT
 386disk.sys    1 bin
+ramtemp.com    1 bin
 rambasic.com   1 bin
 reorder.cfg    1 reorder.cfg
 dosmax16.dll   1 bin

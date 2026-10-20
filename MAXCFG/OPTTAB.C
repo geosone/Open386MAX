@@ -73,6 +73,10 @@ OPTION Options[] = {
   T("Memory test at boot (QMT)", "Speichertest beim Start (QMT)"),
   T("Runs the Qualitas Memory Tester from AUTOEXEC.BAT.",
     "Startet den Qualitas Memory Tester aus AUTOEXEC.BAT.") },
+{ "386MAX", "RamDisk", OT_BOOL, "0", NULL,
+  T("RAM disk for TEMP (386DISK)", "RAM-Disk f\x81r TEMP (386DISK)"),
+  T("386DISK.SYS in CONFIG.SYS, RAMTEMP in AUTOEXEC.BAT sets TEMP and TMP.",
+    "386DISK.SYS in CONFIG.SYS, RAMTEMP in AUTOEXEC.BAT setzt TEMP und TMP.") },
 
 { "Windows", "GoAhead", OT_BOOL, "1", NULL,
   T("Go Ahead", "Go Ahead"),

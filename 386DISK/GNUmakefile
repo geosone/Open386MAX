@@ -1,13 +1,14 @@
-# 386DISK.SYS (GNU make, see linux/mk/dos.mk)
+# 386DISK.SYS and RAMTEMP.COM (GNU make, see linux/mk/dos.mk)
 PROJ     := 386DISK
 ROOT     := $(abspath ..)
 SRCDIRS  := . ../386MAX
 ASMINC   := . ../INC ../386MAX
 GENERATED := QDSK_OEM.INC=QDSK@RET.OEM
-PROGS    := 386DISK.SYS
+PROGS    := 386DISK.SYS RAMTEMP.COM
 
 386DISK.SYS_OBJS := QDISK.OBJ QDISK_IN.OBJ VERSRET.OBJ
 386DISK.SYS_MAP  := 386DISK.map
 386DISK.SYS_BIN  := 1
+RAMTEMP.COM_OBJS := RAMTEMP.OBJ
 
 include $(ROOT)/linux/mk/dos.mk

@@ -66,6 +66,8 @@ static KEYCODE inst_hook (DIALOGPARM *parm, char *title, char *message,
 		return (yesno (parm, "386MAX", "MDA"));
 	if (!strcmp (message, "M.QMT"))
 		return (yesno (parm, "386MAX", "MemoryTester"));
+	if (!strcmp (message, "M.RamDisk"))
+		return (inf_bool ("386MAX", "RamDisk", 0) ? RESP_YES : RESP_NO);
 	if (!strcmp (message, "M.Maximize") || !strcmp (message, "M.MaxBack") ||
 	    !strcmp (message, "M.NoMaximize"))
 		return (inf_bool ("Setup", "RunMaximize", 1) ? RESP_YES : RESP_NO);

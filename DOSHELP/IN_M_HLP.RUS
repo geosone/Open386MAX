@@ -164,4 +164,11 @@ e available regions in your monochrome display adapter area, you may not want to
 \par {\b Would you like #PROGNAME# to add QMT to your
 \par AUTOEXEC.BAT?}
 \par 
+\par \pard\plain \s16\keepn \f11\fs28\cf6 >>M.RamDisk
+\par \pard\plain \f11 Programs put temporary files into the directory that TEMP and TMP name.  A RAM disk makes that faster and spares your hard disk.
+\par 
+\par #PROGNAME# can add a #ARG1# MB RAM disk (386DISK.SYS) to your CONFIG.SYS and RAMTEMP to your AUTOEXEC.BAT.  At every start RAMTEMP finds the RAM disk's drive letter, creates its TEMP directory and sets TEMP and TMP.  The memory is no longer available for XMS.
+\par 
+\par {\b Would you like #PROGNAME# to add a RAM disk for TEMP?}
+\par 
 \par }

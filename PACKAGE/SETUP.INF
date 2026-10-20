@@ -20,6 +20,7 @@ Unattended=0            ; 1: no questions
 ;EMS=0                  ; provide EMS memory
 ;MDA=1                  ; use the MDA region B000-B800 if it is free
 ;MemoryTester=0         ; QMT memory test at boot
+;RamDisk=0              ; RAM disk (386DISK) for TEMP and TMP
 
 [Windows]
 ;GoAhead=1              ; Windows setup: Go Ahead

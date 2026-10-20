@@ -160,6 +160,8 @@ typedef struct tagFileDelta {
 #define QMT	    "QMT"               // Qualitas Memory Test
 #define QMT_EXE     QMT ".exe"          // With .EXE extension
 #define RAMEXAM     "RAMexam"           // Standalone QMT
+#define RAMTEMP     "RAMTEMP"           // TEMP and TMP on the 386DISK drive
+#define RAMDISK_SYS "386DISK.SYS"       // RAM disk
 #define QUTIL	    "QUTIL"             // Name of our batch file
 #define QUTIL_BAT   QUTIL ".BAT"
 
@@ -217,6 +219,7 @@ typedef struct tagFileDelta {
 #define BT_QCACHE	1	// Search for QCACHE or SMARTDRV
 #define BT_QMT		2	// Search for QMT
 #define BT_QUTIL	3	// Search for Call QUTIL
+#define BT_RAMTEMP	5	// Search for RAMTEMP
 #define BT_PATH 	4	// Search for PATH
 
 /* Test for a previous MAX version */

@@ -587,6 +587,7 @@ static char *MsgMMMaximize =	"L.MMMaximize";
 static char *MsgRefDsk =	"L.RefDsk";
 static char *MsgBootSwap =	"M.BootSwap";
 static char *MsgQMT =		"M.QMT";
+static char *MsgRamDisk =	"M.RamDisk";
 static char *MsgConfirm =	"L.Confirm";
 static char *MsgEnableEMS =	"L.EnableEMS";
 static char *MsgDisableEMS =	"L.DisableEMS";

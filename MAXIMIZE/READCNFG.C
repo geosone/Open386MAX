@@ -281,7 +281,7 @@ BOOL readconfig (int *drive)
 		ActiveFiles[AUTOEXEC] = StartupBat;
 
 	  /* Tell 'em what we're doing */
-	  sprintf (buff, "%c:\\config.sys", *drive);
+	  (void) dos_cfgname (*drive, buff); // CONFIG.SYS, FDCONFIG.SYS ...
 
 	} /* No MultiBoot; read CONFIG.SYS directly */
 

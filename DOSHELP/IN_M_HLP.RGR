@@ -180,4 +180,11 @@ nnen einen Systemabsturz und Datenverlust bewirken.
 \par \pard \widctlpar 
 \par \pard \widctlpar {\b Mîchten Sie, da· #PROGNAME# den QMT-Aufruf in die AUTOEXEC.BAT eintrÑgt?}
 \par \pard \widctlpar 
+\par \pard\plain \s16\widctlpar \f276\fs28\cf6 >>M.RamDisk
+\par \pard\plain \widctlpar \f276 Programme legen temporÑre Dateien in dem Verzeichnis ab, das TEMP und TMP angeben.  Eine RAM-Disk macht das schneller und schont die Festplatte.
+\par \pard \widctlpar 
+\par \pard \widctlpar #PROGNAME# kann eine RAM-Disk mit #ARG1# MB (386DISK.SYS) in die CONFIG.SYS und RAMTEMP in die AUTOEXEC.BAT eintragen.  Bei jedem Start sucht RAMTEMP den Laufwerksbuchstaben der RAM-Disk, legt dort das Verzeichnis TEMP an und setzt TEMP und TMP.  Der Speicher steht dann nicht mehr als XMS zur VerfÅgung.
+\par \pard \widctlpar 
+\par \pard \widctlpar {\b Mîchten Sie, da· #PROGNAME# eine RAM-Disk fÅr TEMP eintrÑgt?}
+\par \pard \widctlpar 
 \par }

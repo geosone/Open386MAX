@@ -14,6 +14,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <share.h>
+#include <dos.h>
 
 #include "commdef.h"
 #include "dmalloc.h"
@@ -125,10 +126,20 @@ int fnShell (CONFIGLINE _far *cfg)
 	  // Clear 4DOS/NDOS flag (used by MAXIMIZE)
 	  Parsed4DOS = 0;
 
-	  // If COMMAND.COM, check for /K option
-	  while (tok = strtok (NULL, CfgSysSeps))
+	  // If COMMAND.COM, check for /K option, and for the startup
+	  // batch file of FreeCOM (/P=file, e.g. FreeDOS' FDAUTO.BAT) and
+	  // DR DOS (/P:file, AUTODOS7.BAT); a plain /P keeps AUTOEXEC.BAT.
+	  tok1 = NULL;			// Previous token
+	  while (tok = strtok (NULL, CfgSysSeps)) {
+	    _splitpath (tok, pdrv, ppath, pfnam, pfext);
 	    if (!_stricmp (tok, "k") && (tok = strtok (NULL, CfgSysSeps)))
 		_fstrcpy (StartupBat, tok);
+	    else if (!_strnicmp (tok, "p:", 2) && tok[2])
+		_fstrcpy (StartupBat, tok+2);
+	    else if (tok1 && !_stricmp (tok1, "p") && !_stricmp (pfext, ".bat"))
+		_fstrcpy (StartupBat, tok);
+	    tok1 = tok;
+	  } // while tokens
 
 	} // It's COMMAND.COM
 	else {
@@ -630,13 +641,44 @@ READ_CONFIG_EXIT:
 } // read_config ()
 
 
+char *dos_cfgname (char drive, char *name)
+// The CONFIG.SYS the running DOS reads:  the FreeDOS kernel takes
+// FDCONFIG.SYS before CONFIG.SYS, DR DOS (3.41 to 7.0x, EDR-DOS)
+// DCONFIG.SYS.  Other names (ODCONFIG.SYS, DRCONFIG.SYS of some
+// DR-DOS 7 builds) aren't handled.
+{
+	union REGS r;
+	char *alt = NULL;
+
+	r.x.ax = 0x3000;		// Get DOS version, OEM # in BH
+	intdos (&r, &r);
+	if (r.h.bh == 0xFD) alt = "fdconfig.sys"; // FreeDOS
+	else {
+		r.x.ax = 0x4452;	// DR DOS:  get version (CF=0)
+		r.x.cflag = 1;
+		intdos (&r, &r);
+		if (!r.x.cflag) alt = "dconfig.sys";
+	} // Not FreeDOS
+
+	if (alt) {
+		sprintf (name, "%c:\\%s", drive, alt);
+		if (!access (name, 0)) return (name);
+	} // FreeDOS or DR DOS
+
+	sprintf (name, "%c:\\config.sys", drive);
+	return (name);
+
+} // dos_cfgname ()
+
+
 int menu_parse (char bootdrive, int keepmem)
 // Parse CONFIG.SYS on specified drive to get menu
 {
 	int ret = -1;
 	int ordered, added;
+	char cfgname[16];
 
-	ConfigSys[0] = bootdrive;
+	_fstrcpy (ConfigSys, dos_cfgname (bootdrive, cfgname));
 
 	if ((added = read_config ()) == -1)
 		goto MENU_PARSE_EXIT;

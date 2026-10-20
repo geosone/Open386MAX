@@ -2066,6 +2066,66 @@ void do_qmt (void)
 
 } // do_qmt ()
 
+/*************************** do_ramdisk *********************************/
+// Ask if they want a RAM disk (386DISK) for TEMP and TMP.  Its size:
+// an eighth of the extended memory, at most 16MB (the XMS and BIOS
+// functions report at most 64MB).
+// Not if Windows 9x starts from AUTOEXEC.BAT (MS-DOS 7 or later with
+// BootGUI=1, the default when MSDOS.SYS names a WinDir):  Windows takes
+// TEMP from DOS, and its setup programs need far more room there.
+static int win9x_gui (void)
+{
+ char line[128], *p;
+ FILE *fp;
+ int win = 0, gui = 1;
+
+ if (_osmajor < 7) return (0);
+ sprintf (line, "%c:\\MSDOS.SYS", boot_drive);
+ if (!(fp = fopen (line, "r"))) return (0);
+ while (fgets (line, sizeof (line), fp)) {
+	for (p = line; *p == ' ' || *p == '\t'; p++) ;
+	if (!strnicmp (p, "WinDir", 6)) win = 1;
+	else if (!strnicmp (p, "BootGUI", 7) && (p = strchr (p, '=')))
+		gui = atoi (p+1);
+ } // while lines
+ fclose (fp);
+
+ return (win && gui);
+
+} // win9x_gui ()
+
+#define RAMDISK_MINEXT	8192	// Minimum extended memory in KB
+#define RAMDISK_MAXK	16384	// Maximum size in KB
+
+void do_ramdisk (void)
+{
+ char buff[20];
+ DWORD ExtK, SizeK;
+ KEYCODE key;
+ int res;
+
+ if (autox_fnd) {
+	reset_batch (BT_RAMTEMP);
+	do_intmsg (MsgScanningFile, StartupBat);
+	res = process_stream (get_inname (get_filedelta (StartupBat)),
+			"nul", find_batline);
+	clear_batch ();
+	if (res) return;
+ } // AUTOEXEC.BAT exists; RAMTEMP is already there
+
+ if (win9x_gui ()) return;
+
+ ExtK = max (extcmos (), max (extsize (), xmsmax ()));
+ if (ExtK < RAMDISK_MINEXT) return;
+
+ SizeK = min (ExtK / 8, RAMDISK_MAXK) & ~1023L;
+ sprintf (buff, "%lu", SizeK / 1024);
+ do_textarg (1, buff);
+ key = do_yesno (MsgRamDisk, 0);
+ if (key == RESP_YES) install_ramdisk (SizeK);
+
+} // do_ramdisk ()
+
 //*************************** do_doshelp **********************************
 // DOS 5.00 only- insert text in help file
 // Search path for DOSHELP.HLP- open it and search for 386MAX.

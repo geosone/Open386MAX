@@ -127,13 +127,18 @@ GLOBAL char _far *StartupBat
 #endif	/* ifdef GLINIT */
 ;
 
-/* CONFIG.SYS name.  All we do is blast in the boot drive letter.  After */
+/* CONFIG.SYS name, set by menu_parse () with dos_cfgname ().  After */
 /* config_parse(), it can be re-used as the name of the file to read. */
 GLOBAL char _far *ConfigSys
 #ifdef GLINIT
- = "c:\\config.sys"
+ = "c:\\config.sys\0    "
 #endif	/* ifdef GLINIT */
 ;
+
+/* The CONFIG.SYS the running DOS reads on drive:  FDCONFIG.SYS (FreeDOS) */
+/* or DCONFIG.SYS (DR DOS) if it's there, else CONFIG.SYS.  Returns name, */
+/* which needs room for 16 characters. */
+char *dos_cfgname (char drive, char *name);
 
 /* Parse CONFIG.SYS into specified output file for selected section owner. */
 /* Use callback to determine if a line can stay in a common or included */

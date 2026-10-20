@@ -309,8 +309,7 @@ top:
 
 	drivebad = 1;	/* If we go back, we'll ask before shooting */
 
-	buff[0] = drvedit[0];
-	strcpy (buff+1, ":\\CONFIG.SYS");
+	(void) dos_cfgname (drvedit[0], buff); // CONFIG.SYS, FDCONFIG.SYS ...
 
 	truename (buff);
 

@@ -1638,6 +1638,13 @@ int find_batline (FILE *fp, char *line, long streampos)
 		if (isQutil) return (1);
 		break;
 
+	    case BT_RAMTEMP:	/* RAMTEMP */
+		if (!stricmp (wrkname, RAMTEMP)) {
+			if (!(wrkext[0]) || !stricmp (wrkext, ".com"))
+						return (1);
+		} // Name matches
+		break;
+
 	    case BT_PATH:	/* Find PATH */
 		if (!stricmp (command, "path")) {
 		  int ncomp = strlen (dest_subdir)-1;
@@ -1912,6 +1919,70 @@ void install_qmt (KEYCODE key)
  } // No AUTOEXEC.BAT
 
 } // install_qmt ()
+
+/************************** find_ramdisk () **************************/
+// Look for DEVICE=386DISK.SYS (also loaded high) and the last line
+// of the active section.
+static int RamDiskFound;
+
+int find_ramdisk (CFGTEXT *p)
+{
+  if (!stricmp (fname_part (p), RAMDISK_SYS)) RamDiskFound = 1;
+  if (!MultiBoot || p->Owner == ActiveOwner || !LastLine) LastLine = p;
+
+  return (0);	// Keep on truckin'
+
+} // find_ramdisk ()
+
+/************************** install_ramdisk () ***********************/
+// Put DEVICE=c:\386max\386DISK.SYS nnnn 512 512 /XMS at the end of
+// CONFIG.SYS (or the active MultiConfig section), behind 386MAX, and
+//	c:\386max\RAMTEMP c:\386max\RAMTEMP.BAT
+//	If exist c:\386max\RAMTEMP.BAT Call c:\386max\RAMTEMP.BAT
+// in AUTOEXEC.BAT, which point TEMP and TMP to the RAM disk.  The
+// drive letter of 386DISK depends on the drivers before it, so RAMTEMP
+// looks for it at every boot.  MAXIMIZE loads 386DISK high later.
+void install_ramdisk (DWORD SizeK)
+{
+  char	cfg_dest[128];	// dest_subdir modified by MaxConfig
+  char	line[128];
+  CFGTEXT *p;
+  FILEDELTA *pF;
+
+  strcpy (cfg_dest, dest_subdir);
+#ifdef STACKER
+  if (SwappedDrive > 0 && MaxConfig)	cfg_dest[0] = MaxConfig;
+#endif
+
+  RamDiskFound = 0;
+  LastLine = NULL;
+  (void) walk_cfg (CfgSys, find_ramdisk);
+  if (!RamDiskFound) {
+	p = add2cfg (LastLine, LastLine ? LastLine->next : CfgSys, ActiveOwner);
+	if (!LastLine) LastLine = p;
+	sprintf (line, "Device=%s" RAMDISK_SYS " %lu 512 512 /XMS\n",
+						cfg_dest, SizeK);
+	p->text = str_mem (line);
+  } // No 386DISK.SYS yet
+
+  pF = get_filedelta (StartupBat);
+  sprintf (probuf, "%s" RAMTEMP " %s" RAMTEMP ".BAT\n"
+		"If exist %s" RAMTEMP ".BAT Call %s" RAMTEMP ".BAT\n",
+		dest_subdir, dest_subdir, dest_subdir, dest_subdir);
+
+  if (autox_fnd) {
+	(void) process_stream (get_inname (pF), get_outname (pF), place_qcache);
+  } // AUTOEXEC.BAT exists
+  else {
+	FILE *fp;
+
+	(void) get_outname (pF); // AUTOEXEC.ADD or NULL
+	fp = cfopen (pF->pszOutput, "at", 1);
+	cfprintf (fp, probuf);
+	fclose (fp);
+  } // No AUTOEXEC.BAT
+
+} // install_ramdisk ()
 
 /************************** add2cfg () *******************************/
 // Insert a new record into the CONFIG.SYS linked list.
