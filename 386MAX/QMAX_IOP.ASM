@@ -313,18 +313,25 @@ SETIOPERM_NOQUAD:
 ;;;;;;;; call	 SETIOBIT	; Set I/O bits
 SETIOPERM_NOXT1:
 
-; Set I/O port bits specific to an MCA-compatible machine
+; Set the bit for port 92h (System Control Port A) if present (reads
+; other than FFh):  MCA machines and the "fast A20" of PC chipsets.
+; Degating A20 there with paging on would cut off our memory.
 
-	 test	 LCL_FLAG,@LCL_MCA ; Izit an MCA-compatible machine?
-	 jz	 short SETIOPERM_NOMCA ; Not this time
-
-; Set the bit for port 92h (System Control Port A)
+	 in	 al,@PS2_A	; Get the current value
+	 cmp	 al,0FFh	; Izit absent?
+	 je	 short @F	; Jump if so
 
 	 push	 offset cs:CHECK92OUT ; Pass offset of output checking routine
 	 push	 offset cs:CHECK92INP ; Pass offset of input ...
 	 push	 1		; Repeat factor
 	 push	 @PS2_A 	; Pass port address
 	 call	 SETIOBIT	; Set I/O bits
+@@:
+
+; Set I/O port bits specific to an MCA-compatible machine
+
+	 test	 LCL_FLAG,@LCL_MCA ; Izit an MCA-compatible machine?
+	 jz	 short SETIOPERM_NOMCA ; Not this time
 
 if @OEM_DMA
 	 test	 CMD_FLAG,@CMD_XDM ; Doing DMA?
@@ -349,8 +356,10 @@ SETIOPERM_DMAZ1:
 endif				; IF @OEM_DMA
 SETIOPERM_NOMCA:
 
-; Set I/O port bits specific to JET 386
+; Set I/O port bits specific to JET 386 (@SYS_JET386 is set only in
+; that OEM version, see DISP_OEM)
 
+if @OEM_SYS eq @OEMSYS_JET386
 	 test	 SYS_FLAG,@SYS_JET386 ; Izit a JET386?
 	 jz	 short SETIOPERM_NOJET ; Not this time
 
@@ -360,6 +369,7 @@ SETIOPERM_NOMCA:
 	 push	 310h		; Pass port address
 	 call	 SETIOBIT	; Set I/O bits
 SETIOPERM_NOJET:
+endif				; IF @OEM_SYS eq @OEMSYS_JET386
 
 ; Set I/O port bits specific to non-XT
 
@@ -1620,7 +1630,7 @@ CHECK18OUT_CLC:
 
 CHECK18OUT endp 		; End CHECK18OUT procedure
 endif				; IF @OEM_DMA
-	 NPPROCE CHECK92OUT -- MCA System Control Port A Output
+	 NPPROCE CHECK92OUT -- System Control Port A Output
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:PGROUP
 COMMENT|
 
@@ -1661,7 +1671,7 @@ CHECK92OUT_EXIT:
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 
 CHECK92OUT endp 		; End CHECK92OUT procedure
-	 NPPROCE CHECK92INP -- MCA System Control Port A Input
+	 NPPROCE CHECK92INP -- System Control Port A Input
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:PGROUP
 COMMENT|
 
