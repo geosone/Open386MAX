@@ -2015,6 +2015,87 @@ MFREE_EXIT:
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 
 MAC_FREE endp			; End MAC_FREE procedure
+
+	 FPPROC  MAC_UFREE -- Free an XMS UMB
+	 assume  ds:PGROUP,es:nothing,fs:nothing,gs:AGROUP,ss:nothing
+COMMENT|
+
+XMS 11h:  as MAC_FREE, but only for a UMB (see MAC_UCHK).
+
+On entry:
+
+DX:0	 ==>	 UMB
+
+On exit:
+
+CF=0		 Entry freed OK
+CF=1		 Error occurred, error code in AL
+
+|
+
+	 call	 MAC_UCHK	; Izit a UMB?
+	 jnc	 near ptr MAC_FREE ; Jump if so (it returns to our caller)
+
+	 ret			; Return to caller with AL = B2h
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+MAC_UFREE endp			; End MAC_UFREE procedure
+	 FPPROC  MAC_UREALLOC -- Reallocate an XMS UMB
+	 assume  ds:PGROUP,es:nothing,fs:nothing,gs:AGROUP,ss:nothing
+COMMENT|
+
+XMS 12h:  as MAC_REALLOC, but only for a UMB (see MAC_UCHK).
+
+|
+
+	 call	 MAC_UCHK	; Izit a UMB?
+	 jnc	 near ptr MAC_REALLOC ; Jump if so (it returns to our caller)
+
+	 ret			; Return to caller with AL = B2h
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+MAC_UREALLOC endp		; End MAC_UREALLOC procedure
+	 NPPROC  MAC_UCHK -- Check On an XMS UMB
+	 assume  ds:PGROUP,es:nothing,fs:nothing,gs:AGROUP,ss:nothing
+COMMENT|
+
+MAC_FREE and MAC_REALLOC take any MAC entry.  For XMS 11h/12h the
+segment must be one XMS 10h gave out:  in high DOS memory and owned
+by @MAC_UMB, else any DOS block (e.g. the one spanning the video
+memory at 9FFF) would be freed.
+
+On entry:
+
+DX:0	 ==>	 UMB
+
+On exit:
+
+CF=0		 It's a UMB
+CF=1		 It isn't, AL = B2h
+
+|
+
+	 cmp	 dx,0A000h	; Izit in high DOS memory?
+	 jb	 short MAC_UCHK_ERR ; Jump if not
+
+	 push	 ebx		; Save for a moment
+	 movzx	 ebx,dx 	; Copy segment
+	 dec	 ebx		; Back off to MAC entry
+	 shl	 ebx,4-0	; Convert from paras to bytes
+	 cmp	 AGROUP:[ebx].MAC_OWNR,@MAC_UMB ; Izit a UMB?
+	 pop	 ebx		; Restore
+	 je	 short MAC_UCHK_EXIT ; Jump if so (note CF=0)
+MAC_UCHK_ERR:
+	 mov	 al,0B2h	; Not a valid UMB segment
+	 stc			; Indicate it's not a UMB
+MAC_UCHK_EXIT:
+	 ret			; Return to caller
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+MAC_UCHK endp			; End MAC_UCHK procedure
 endif				; IF @OEM_HIFILL
 
 JCODE	 ends			; End JCODE segment

@@ -295,6 +295,8 @@ if @OEM_HIFILL
 	 extrn	 MAC_ALLOC:far
 	 extrn	 MAC_REALLOC:far
 	 extrn	 MAC_FREE:far
+	 extrn	 MAC_UFREE:far
+	 extrn	 MAC_UREALLOC:far
 endif				; IF @OEM_HIFILL
 
 JCODE	 ends			; End JCODE segment
@@ -2857,14 +2859,18 @@ XMS_GETUMB:
 	 mov	 di,-1		; Indicate no particular region preference
 
 	 test	 CMD_FLAG,@CMD_XHI ; High DOS memory disallowed?
-	 jnz	 near ptr XMS_EB1 ; Yes, no UMBs possible
+	 jnz	 short XMS_GETUMB_EB1 ; Yes, no UMBs possible
 
 ; We don't check for NO58.  If a program is flagged with M2 and NO58 is
 ; in effect, they have no way to allocate UMBs.  That's OK, since M2 is
 ; meant to keep programs like NSCHED from executing buggy code that
 ; doesn't work properly with XMS UMB allocation.
 	 test	 XMS_FLAG,mask $XMS_NOXMSUMB ; XMS UMB allocation disallowed?
-	 jnz	 near ptr XMS_EB1 ; Yes, make 'em use 5800 services
+	 jz	 short @F	; Jump if not
+XMS_GETUMB_EB1:
+	 mov	 [ebp].INTXX_EDX.ELO,0 ; Largest UMB:  none
+	 jmp	 XMS_EB1	; No UMBs (make 'em use 5800 services)
+@@:
 
 	 mov	 gs,SEL_4GB3	; Get AGROUP data selector at PL3
 	 assume  gs:AGROUP	; Tell the assembler about it
@@ -2917,7 +2923,7 @@ XMS_RELUMB:
 	 assume  gs:AGROUP	; Tell the assembler about it
 
 	 mov	 dx,[ebp].INTXX_EDX.ELO ; Get block to release
-	 FIXICALL JGROUP:MAC_FREE,DTE_CSJG ; Free MAC entry at DX:0
+	 FIXICALL JGROUP:MAC_UFREE,DTE_CSJG ; Free UMB at DX:0
 	 jc	 near ptr XMS_ERR ; Jump if failed (error code in AL)
 
 	 jmp	 XMS_SUCCESS	; Join common
@@ -2963,7 +2969,7 @@ XMS_MODUMB:
 	 mov	 ax,-1		; Don't reassert owner field in MAC entry
 	 mov	 bx,[ebp].INTXX_EBX.ELO ; Get new size of block
 	 mov	 dx,[ebp].INTXX_EDX.ELO ; Get block to reallocate
-	 FIXICALL JGROUP:MAC_REALLOC,DTE_CSJG ; Reallocate MAC entry at DX:0 to BX paras
+	 FIXICALL JGROUP:MAC_UREALLOC,DTE_CSJG ; Reallocate UMB at DX:0 to BX paras
 	 jc	 near ptr XMS_ERR ; Jump if failed (error code in AL)
 
 	 jmp	 XMS_SUCCESS	; Join common
