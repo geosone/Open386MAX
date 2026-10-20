@@ -120,8 +120,8 @@ $(CINCDIR)/.done: $(MAKEFILE_LIST) $(foreach o,$(ALLOBJS),$(call srcof,$(o))) $(
 	rm -rf $(CINCDIR)
 	$(PYTHON) $(LX)/tools/mkincdir.py $(CINCDIR) $(INCDIRS) $(SRCDIRS) $(OWINC) -- $(filter-out %.py,$^)
 	for d in $(SRCDIRS); do for f in $$d/*; do [ -f "$$f" ] || continue; \
-	  l=$$(basename "$$f" | tr A-Z a-z); [ -e "$(CINCDIR)/$$l" ] || ln -s "$$(realpath "$$f")" "$(CINCDIR)/$$l"; \
-	  b=$$(basename "$$f"); [ -e "$(CINCDIR)/$$b" ] || ln -s "$$(realpath "$$f")" "$(CINCDIR)/$$b"; done; done
+	  l=$$(basename "$$f" | tr A-Z a-z); [ -e "$(CINCDIR)/$$l" ] || ln -s "$$(realpath --relative-to=$(CINCDIR) "$$f")" "$(CINCDIR)/$$l"; \
+	  b=$$(basename "$$f"); [ -e "$(CINCDIR)/$$b" ] || ln -s "$$(realpath --relative-to=$(CINCDIR) "$$f")" "$(CINCDIR)/$$b"; done; done
 	touch $@
 
 define OBJRULE

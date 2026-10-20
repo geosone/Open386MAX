@@ -10,6 +10,7 @@
 #   KEEPCFG=1  leave CONFIG.SYS and AUTOEXEC.BAT of the image as they are
 #   STEPS    qemudrv.py steps (default: wait 30 s, text screen)
 #   MEMSIZE  QEMU memory in MB (default 32)
+#   KEEP=1   keep the disk copy (test.img) after the run
 #
 # 386MAX.SYS, 386LOAD.*, 386UTIL.COM from build/bin are copied to C:\MAX.
 # Output (build/test-dosboot/): screen texts and shots
@@ -44,4 +45,5 @@ RC=$?
 wait $QPID
 for f in "$OUT"/*.ppm; do [ -f "$f" ] && magick "$f" "${f%.ppm}.png" && rm -f "$f"; done
 for f in "$OUT"/*.txt; do echo "=== $(basename "$f")"; grep -v '^ *$' "$f"; done
+[ "${KEEP:-0}" = 1 ] || rm -f "$OUT/test.img"
 exit $RC

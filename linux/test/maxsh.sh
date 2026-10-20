@@ -39,4 +39,5 @@ qemu-system-i386 -machine pc ${ACCEL:--accel kvm} -m ${MEMSIZE:-64} -display non
     -drive if=floppy,format=raw,file="$OUT/boot.img" \
     -drive file=fat:rw:"$OUT/c",format=raw,if=ide -boot a -nic none >/dev/null 2>&1
 for f in "$OUT"/*.ppm; do [ -f "$f" ] && magick "$f" "${f%.ppm}.png" && rm -f "$f"; done
+[ "${KEEP:-0}" = 1 ] || rm -f "$OUT/boot.img"
 ls "$OUT"/*.png

@@ -29,7 +29,7 @@ $(OUT)/MAXHELP.RTF: MAXHELP.R$(L) | $(OUT)/hlp
 $(OUT)/SETUP.RTF: SETUP.R$(L) | $(OUT)/hlp
 	cp $< $@
 $(OUT)/BITMAPS: | $(OUT)/hlp
-	ln -sfn $(CURDIR)/BITMAPS $@
+	ln -sfnr $(CURDIR)/BITMAPS $@
 
 # sections of the language's project (GETSECT)
 sect = $(if $(filter win,$(1)),windows,$(if $(filter cfg,$(1)),config,map))

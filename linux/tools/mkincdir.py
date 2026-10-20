@@ -13,6 +13,19 @@ import sys
 INC = re.compile(rb'^\s*#\s*include\s*[<"]([^>"]+)[>"]', re.M)
 
 
+def link(target, path):
+    """relative symbolic link path -> target; a link from an older run
+    (other target, or absolute into a moved checkout) is replaced"""
+    rel = os.path.relpath(target, os.path.dirname(path))
+    if os.path.islink(path):
+        if os.readlink(path) == rel:
+            return
+        os.unlink(path)
+    elif os.path.lexists(path):
+        return
+    os.symlink(rel, path)
+
+
 def main():
     args = sys.argv[1:]
     out = args[0]
@@ -38,24 +51,22 @@ def main():
                 path = raw.replace('\\', '/')
                 target = next((os.path.join(d, path) for d in dirs
                                if os.path.isfile(os.path.join(d, path))), None)
-                link = os.path.join(out, raw)
-                if target and not os.path.lexists(link):
-                    os.symlink(os.path.abspath(target), link)
+                if target:
+                    link(target, os.path.join(out, raw))
                 continue
             base = os.path.basename(raw)
             target = index.get(base.lower())
             if target is None:
                 continue
             todo.append(target)
-            link = os.path.join(out, base)
             data = open(target, 'rb').read()
             if b'\x1a' in data:
                 for name in {base, os.path.basename(target)}:
                     p = os.path.join(out, name)
                     if not os.path.lexists(p):
                         open(p, 'wb').write(data.replace(b'\x1a', b''))
-            elif os.path.basename(target) != base and not os.path.lexists(link):
-                os.symlink(os.path.abspath(target), link)
+            elif os.path.basename(target) != base:
+                link(target, os.path.join(out, base))
 
 
 main()

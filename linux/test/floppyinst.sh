@@ -11,6 +11,7 @@
 #            + for blanks)
 #   START    seconds before KEYS (default 15)
 #   DISKS    floppy images (default release/<LANG>/open386max-<VERSION>-<lang>-disk*.img)
+#   KEEP=1   keep the disk images (boot, disks, hd.img) after the run
 #   SRC=usb  install from the USB image instead (D:\INSTALL, both extents in
 #            one directory: no disk change)
 # Output (build/test-floppyinst/): shot<n>.png, final.png, installed/ (the
@@ -65,3 +66,4 @@ for f in "$OUT"/*.ppm; do [ -f "$f" ] && magick "$f" "${f%.ppm}.png" && rm -f "$
 mkdir -p "$OUT/installed"
 mcopy -n -i "$OUT/hd.img@@32256" '::/QMAX/*' "$OUT/installed/" 2>/dev/null
 echo "installed: $(ls "$OUT/installed" | wc -l) files"
+[ "${KEEP:-0}" = 1 ] || rm -f "$OUT"/*.img

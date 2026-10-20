@@ -20,6 +20,8 @@
 #   SETUPPKG=1  copy build/package to C:\INSTALL and start its SETUP.EXE
 #               (only while C:\QMAX\386MAX.SYS does not exist: MAXIMIZE
 #               restarts Windows); the image stays in build/win98test
+#   KEEP=1      keep the disk copy (test.img) after the run (always with
+#               SETUPPKG=1)
 #
 # Output (build/win98test/): shot-<t>.png; monitor socket mon.sock while
 # running (linux/test/qemudrv.py)
@@ -91,4 +93,5 @@ T=${TIMEOUT:-$((LAST + 5))}
     -device ide-hd,drive=hd,bus=ide.0,lcyls=520,lheads=64,lsecs=63 \
     -boot c -nic none -rtc base=localtime > "$OUT/monitor.log" 2>&1
 for f in "$OUT"/*.ppm; do [ -f "$f" ] && magick "$f" "${f%.ppm}.png" && rm -f "$f"; done
+[ "${KEEP:-0}" = 1 ] || [ "${SETUPPKG:-0}" = 1 ] || rm -f "$OUT/test.img"
 ls "$OUT"/shot-*.png
