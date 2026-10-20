@@ -14,7 +14,8 @@ test.  Status:  **yes** (automatic test), **part** (some of it), **hand**
 | XMS | 10h-12h UMBs | no | planned XMS/XMSUMB |
 | XMS 3.5 | C8h, C9h, CBh, CCh, handle functions | yes | XMS/XMS35 (MEMSIZE=6144) |
 | XMS 3.5 | CBh while a DPMI client's page directory is current | no | planned DPMI/XMS35PM |
-| XMS 3.5 | E820h above 4GB reserved, INT 15h 87h F00Fh | no (not implemented) | |
+| XMS 3.5 | E820h above 4GB reserved | yes | KEYWORDS.LST SXMS/NOSXMS |
+| XMS 3.5 | INT 15h 87h F00Fh (Jemm/HimemSX) | no (not implemented) | |
 | EMS 4.0 | 40h-59h, 5Bh | yes | EMS/EMSFUNC |
 | EMS 4.0 | 4Ch, 4Dh, 52h, 5Ah (raw pages), 5Ch, 5Dh (OS/E) | no | planned EMS/EMSMORE |
 | VCPI | DE00h-DE0Ch | yes | VCPI/VCPIFUNC |
@@ -40,7 +41,7 @@ test.  Status:  **yes** (automatic test), **part** (some of it), **hand**
 | exceptions, INT 3, HLT, CLI/STI, INT >80h, INT 67h hook | yes | V86/V86FUNC |
 | INT 15h 87h, 88h | yes | V86/V86FUNC |
 | INT 15h 89h, 24xxh (A20), C0h, C1h, E801h, E820h | yes | V86/INT15 (found: 2400h/2401h had no effect, 2402h reported A20 inverted) |
-| INT 15h E801h/E820h report the memory 386MAX uses as free (88h: 0 KB) | no (finding, not fixed) | V86/INT15 prints it |
+| INT 15h E801h/E820h report only what 88h does (were:  all as free) | yes | V86/INT15, KEYWORDS.LST (EXT4096, SXMS, NOSXMS) |
 | A20 through port 92h and the 8042 | no | planned V86/A20 |
 | DMA port trapping, buffering of ISA DMA above 16MB | part | DPMI/DISKIO, SCENARIO (sound) |
 | Ctrl-Alt-Del (INT 15h 4F53h), warm boot | no | planned (script) |

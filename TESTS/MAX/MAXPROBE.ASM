@@ -315,7 +315,9 @@ novcpi:	KV	'VCPI'
 	KV	'I15E801'
 	movzx	eax,dx
 	KV	'I15E801HI'
-e801x:	xor	ebx,ebx
+e801x:	push	ds		; E820h buffer at ES:DI
+	pop	es
+	xor	ebx,ebx
 	xor	esi,esi		; entries
 	xor	edi,edi		; available entries at or above 4GB
 e820n:	mov	eax,0E820h
@@ -329,6 +331,20 @@ e820n:	mov	eax,0E820h
 	cmp	eax,534D4150h
 	jne	e820x
 	inc	esi
+	NOTE_	'E820='		; E820=base,length,type
+	mov	eax,dword ptr e820[4]
+	call	phex32
+	mov	eax,dword ptr e820
+	call	phex32
+	NOTE_	','
+	mov	eax,dword ptr e820[12]
+	call	phex32
+	mov	eax,dword ptr e820[8]
+	call	phex32
+	NOTE_	','
+	mov	eax,dword ptr e820[16]
+	call	phex32
+	call	pcrlf
 	cmp	dword ptr e820[16],1
 	jne	@F
 	cmp	dword ptr e820[4],0

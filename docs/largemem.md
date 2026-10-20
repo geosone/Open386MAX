@@ -64,10 +64,12 @@ default EXTSIZE= maximum leaves free), at most 64KB at a time with
 interrupts disabled.  With EXTSIZE= above about 2GB-16MB, moves to and
 from this memory fail with 8Fh.
 
-Not yet:  INT 15h/E820h still reports the memory above 4GB as
-available (XMS 3.5 asks for "reserved"), and the INT 15h AH=87h
-extension of Jemm for HimemSX isn't there.  `NOSXMS` turns XMS 3.5
-memory off (the version stays 3.50, C8h reports none).
+INT 15h/E820h (from V86 mode) reports this memory as reserved, as
+XMS 3.5 asks; with `NOSXMS` it stays available.  Below 4GB E820h, like
+E801h, reports only what INT 15h AH=88h does (the memory at 1MB that
+XMS hasn't taken yet), the rest of the RAM 386MAX manages as reserved.
+Not yet:  the INT 15h AH=87h extension of Jemm for HimemSX.  `NOSXMS`
+turns XMS 3.5 memory off (the version stays 3.50, C8h reports none).
 
 Test:  `TESTS/XMS/XMS35` (skipped without such memory; run with
 `MEMSIZE=6144 QEMU_EXTRA="-cpu pentium3" linux/test/suite.py -t XMS35`).

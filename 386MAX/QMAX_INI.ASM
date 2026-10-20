@@ -769,6 +769,7 @@ XCODE	 segment use16 byte public 'xcode' ; Start XCODE segment
 	 extrn	 E820_GET:near
 if @OEM_XMS
 	 extrn	 SXM_INIT:near
+	 extrn	 SXM_E820INIT:near
 endif				; IF @OEM_XMS
 
 	 public  @QMAX_INI_XCODE
@@ -4722,6 +4723,7 @@ endif				; IF @OEM_BCF
 	 jc	 near ptr UGH_INIT ; Something went wrong
 if @OEM_XMS
 	 call	 SXM_INIT	; Find XMS 3.5 memory (above 4GB)
+	 call	 SXM_E820INIT	; Save the BIOS memory map for INT 15h E820h
 endif				; IF @OEM_XMS
 
 ; We must defer display of the ABIOS initialization error message till
