@@ -46,7 +46,7 @@ XMS:
 
 | AH | function |
 |---|---|
-| 00h | version 3.50 |
+| 00h | version 3.51 (3.50 and the CBh move of 3.51) |
 | C8h | EAX = largest free block, EDX = total free (KB) |
 | C9h | allocate EDX KB, DX = handle |
 | CBh | move like 0Bh, bytes 10h/11h of the structure = bits 32-39 of the source/destination offset; any handles |
@@ -69,7 +69,7 @@ XMS 3.5 asks; with `NOSXMS` it stays available.  Below 4GB E820h, like
 E801h, reports only what INT 15h AH=88h does (the memory at 1MB that
 XMS hasn't taken yet), the rest of the RAM 386MAX manages as reserved.
 Not yet:  the INT 15h AH=87h extension of Jemm for HimemSX.  `NOSXMS`
-turns XMS 3.5 memory off (the version stays 3.50, C8h reports none).
+turns XMS 3.5 memory off (the version stays 3.51, C8h reports none).
 
 Test:  `TESTS/XMS/XMS35` (skipped without such memory; run with
 `MEMSIZE=6144 QEMU_EXTRA="-cpu pentium3" linux/test/suite.py -t XMS35`).

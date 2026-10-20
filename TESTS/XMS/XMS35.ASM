@@ -1,5 +1,5 @@
 ; XMS35.ASM - XMS 3.5 super-extended memory (RAM at and above 4GB):
-; version 3.50, C8h query, C9h allocate, CCh 64-bit lock, CBh moves
+; version 3.51 (3.50 with CBh), C8h query, C9h allocate, CCh 64-bit lock, CBh moves
 ; between conventional, XMS below 4GB and super-extended memory (verified,
 ; also across a 4MB boundary and inside a block), handle functions 0Ah,
 ; 0Dh, 0Eh, 8Eh, 8Fh on super-extended handles and the error codes.

@@ -1404,7 +1404,7 @@ XMS_VERS:
 	 or	 al,VERS_U-'0'  ; Include units digit
 	 mov	 [ebp].INTXX_EBX.ELO,ax ; Debugging version #
 
-	 mov	 ax,0350h	; Major/minor version # (XMS 3.5, see QMAX_SXM)
+	 mov	 ax,0351h	; Major/minor version # (XMS 3.51 with CBh, see QMAX_SXM)
 
 ; Because some bozo XMS clients check CF, we need to clear it on success
 

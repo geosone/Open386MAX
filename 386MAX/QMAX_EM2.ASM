@@ -70,6 +70,9 @@ CODE	 segment use16 byte public 'prog' ; Start CODE segment
 
 	 extrn	 SHADOW_DISABLE:near
 
+	 extrn	 CMD_FLAG:word
+	 include QMAX_CMD.INC
+
 	 extrn	 CM2_FLAG:word
 	 include QMAX_CM2.INC
 
@@ -3050,13 +3053,17 @@ memory:  while a client runs, the V86 side (XMS, EMS, VDS, DMA, INT 15h)
 runs on the client's page directory and expects linear = physical.
 
 Reserve LOWDPMI= KB (default a quarter of the extended memory below PRG,
-at most 16MB), rounded down to 4MB, if it's still available.
+at most 16MB), rounded down to 4MB, if it's still available.  None with
+NODPMI.
 
 |
 
 	 REGSAVE <eax,ecx,edi>	; Save registers
 
 	 mov	 LOWHOLE,0	; Assume none
+
+	 test	 CMD_FLAG,@CMD_XDPMI ; Izit NODPMI (no clients of ours)?
+	 jnz	 short INIT_LOWHOLE_EXIT ; Jump if so
 
 	 mov	 eax,PRGBASE	; Get program base
 	 and	 eax,not (@LOWHOLE_LA-1) ; Round down to 4MB
