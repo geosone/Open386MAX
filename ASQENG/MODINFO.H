@@ -150,6 +150,7 @@ typedef struct _shdinfo {
 	WORD rd;		/* 16 KB blocks read from DRAM (bit 0 = C0000) */
 	WORD wr;		/* ... written to DRAM */
 	WORD dev;		/* Host bridge device ID */
+	WORD uma;		/* 16 KB blocks in the UMA of a UEFI CSM */
 } SHDINFO;
 #define SHD_UNKNOWN	0	/* Host bridge not in the table */
 #define SHD_INTEL	1	/* Intel PAM registers */

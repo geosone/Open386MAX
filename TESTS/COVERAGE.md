@@ -107,7 +107,7 @@ build/kwtest/compare.md puts the values side by side.
 | MAXIMIZE | hand | linux/test/maxsh.sh |
 | SETUPDOS (install from floppies) | hand | linux/test/floppyinst.sh |
 | Shadow DRAM map (386MAX/SHADOWRAM.TXT:  386MAX, MAXIMIZE, ASQ) | part | by hand:  QEMU pc and q35, ASQ report and snapshot (linux/test/asq.sh); no real hardware yet |
-| ASQ CSM table ($EFI, UMA) | part | by hand:  QEMU (none found), a snapshot with a CSM line loaded (/L) |
+| CSM table ($EFI, UMA):  386MAX, MAXIMIZE, ASQ | yes | linux/test/csmuma.sh (CSMFAKE.SYS:  386MAX uses the UMA, ASQ finds the table) |
 | STRIPMGR, ASQ, QMT, ROMSRCH, XLAT, MEMLIMIT, EXTRADOS, RAMBASIC | no | |
 | Windows programs (MAXMETER, TOOLBOX, ...) | no | |
 

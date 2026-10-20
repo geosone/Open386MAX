@@ -113,6 +113,16 @@ size:  all shadow RAM write-protected.  It is a hint from the firmware
 which upper memory is free, independent of the chipset.  ASQ shows the
 table and the UMA (Equipment, PCI devices; snapshot keyword Csm).
 
+386MAX (GET_SHDMAP) and SHDMAP.ASM (MAXIMIZE without 386MAX) take the
+16KB blocks of C0000-EFFFF wholly in the UMA as free shadow DRAM
+(386MAX/CSMUMA.INC):  read/write DRAM is adapter RAM to them otherwise.
+386MAX still requires uniform contents (all 00h or FFh) before it uses
+a block; under 386MAX, MAXIMIZE gets the result through 386MAX's
+RAMSCAN (EMM2 function 11h).  Tested with linux/test/csmuma.sh:
+CSMFAKE.SYS (linux/test/csmfake.asm) switches D0000-DFFFF of QEMU's
+chipset to read/write and writes a CSM table with that UMA; 386MAX
+(NOFRAME) gets 92KB of high DOS memory with the table, 28KB without.
+
 ## Sources
 
 Intel (on intel.com; "No license ... is granted by this document"):
