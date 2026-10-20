@@ -9,6 +9,7 @@ EMS/EMSFUNC   needs=ems
 VCPI/VCPIFUNC needs=vcpi
 VDS/VDSFUNC   needs=vds
 V86/V86FUNC
+V86/INT15
 DPMI/DPMI10   needs=dpmi,dpmi1
 DPMI/DOSXLAT  needs=dpmi,xlat
 DPMI/XLAT32   needs=dpmi32,xlat

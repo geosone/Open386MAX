@@ -39,7 +39,8 @@ test.  Status:  **yes** (automatic test), **part** (some of it), **hand**
 |---|---|---|
 | exceptions, INT 3, HLT, CLI/STI, INT >80h, INT 67h hook | yes | V86/V86FUNC |
 | INT 15h 87h, 88h | yes | V86/V86FUNC |
-| INT 15h 89h, 24xxh (A20), C0h, C1h, E801h, E820h | no | planned V86/INT15 |
+| INT 15h 89h, 24xxh (A20), C0h, C1h, E801h, E820h | yes | V86/INT15 (found: 2400h/2401h had no effect, 2402h reported A20 inverted) |
+| INT 15h E801h/E820h report the memory 386MAX uses as free (88h: 0 KB) | no (finding, not fixed) | V86/INT15 prints it |
 | A20 through port 92h and the 8042 | no | planned V86/A20 |
 | DMA port trapping, buffering of ISA DMA above 16MB | part | DPMI/DISKIO, SCENARIO (sound) |
 | Ctrl-Alt-Del (INT 15h 4F53h), warm boot | no | planned (script) |

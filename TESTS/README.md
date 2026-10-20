@@ -11,6 +11,7 @@ check (OK / FAIL) and ends with errorlevel 0 when all checks passed.
 | EMS  | EMSFUNC | LIM EMS 4.0: 40h-46h, map/data checks, error codes 83h/87h/8Ah/8Bh/8Dh/8Fh/92h, 47h/48h, 4Eh, 4Fh, 50h, 51h, 53h/54h, 55h/56h (alter map and jump/call), 57h (move/exchange, page crossing, overlap), 58h, 59h, 5Bh |
 | VCPI | VCPIFUNC | VCPI 1.0: DE00h-DE0Bh (memory, CR0, debug registers, 8259 vectors), 100 round trips V86 -> protected mode -> V86 through DE0Ch with an own GDT/TSS/page tables, a DE04h page used in protected mode |
 | VDS  | VDSFUNC | Virtual DMA Services: 8102h-810Ch, lock of conventional memory and of an UMB, scatter/gather, DMA buffer with copy in/out, translation counting, error codes |
+| V86  | INT15   | INT 15h under the V86 monitor: C0h, C1h, 88h, 89h refused, E801h, E820h, 2400h-2403h A20 with the 1MB wrap (A20 off under 386MAX only) |
 | DPMI | DPMI10  | DPMI 1.0 functions (16-bit client) |
 | DPMI | DOSXLAT | DOS API translation in protected mode: LFN (71xxh), FAT32 (73xxh), country, DBCS, swappable data area |
 | DPMI | XLAT32  | the same for a 32-bit client |
