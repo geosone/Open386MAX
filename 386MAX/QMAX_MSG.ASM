@@ -608,6 +608,15 @@ MSG_EXTLOD db	 BEL,'ออ> EXTSIZE= must precede all LOAD= statements.',CR,LF,EOS
 endif				; IFDEF LANG_GR
 endif				; IF @OEM_DEBUG
 
+	 public  MSG_LOWFR
+ifdef LANG_GR
+MSG_LOWFR db	 BEL,'ออ> Kein Platz fuer 64KB EMS-Seitenrahmen ueber 640KB:  EMS',CR,LF
+	 db	 '    ohne Seitenrahmen (wie NOFRAME).',CR,LF,EOS
+else
+MSG_LOWFR db	 BEL,'ออ> No room for a 64KB EMS page frame above 640KB:  EMS',CR,LF
+	 db	 '    without a page frame (as NOFRAME).',CR,LF,EOS
+endif				; IFDEF LANG_GR
+
 
 	 public  MSG_ERRPRO,MSG_ERRPRO1
 	 public  MSG_ERRTIM,MSG_ERRTIM1

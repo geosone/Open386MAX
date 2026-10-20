@@ -121,6 +121,7 @@ YDATA	 segment use16 dword public 'ydata' ; Start YDATA segment
 	 assume  ds:YGROUP
 
 	 extrn	 MSG_NOROOM:byte
+	 extrn	 MSG_LOWFR:byte
 ife @OEM_SOFT
 	 extrn	 MSG_NOFRAME:byte
 endif				; IFE @OEM_SOFT
@@ -1177,6 +1178,12 @@ EMMSCAN_XENTRY:
 if @OEM_SYS eq @OEMSYS_HPRS
 	 test	 CM3_FLAG,@CM3_LOWFR ; LOWFRAME allowed?
 	 jz	 short EMMSCAN_PHYS ; Not this time
+else
+; A frame in low DOS memory hangs MS-DOS:  its SYSINIT sits at the top
+; of conventional memory and keeps the size it found at boot.  So
+; (without LOWFRAME) install without a page frame, as NOFRAME.
+
+	 jmp	 near ptr EMMSCAN_LOWX ; Join code to drop the frame
 endif				; IF @OEM_SYS eq @OEMSYS_HPRS
 
 ; Ensure the FRAME doesn't overlap OLDDOS to LOWOFF if non-zero
@@ -1251,6 +1258,17 @@ EMMSCAN_PHYS:
 	 dec	 NPHYS16F	; Try with one less 16KB page in the frame
 
 	 jmp	 EMMSCAN_SHORT	; Go around again
+
+if @OEM_SYS ne @OEMSYS_HPRS
+EMMSCAN_LOWX:
+	 push	 offset YGROUP:MSG_LOWFR ; Tell 'em there's no frame
+	 call	 YMSGOUT2	; Display YGROUP message
+
+	 or	 CM3_FLAG,@CM3_NOFR ; Mark as NOFRAME
+	 mov	 NPHYS16F,0	; No pages in the frame
+
+	 jmp	 EMMSCAN_SHORT	; Go around again
+endif				; IF @OEM_SYS ne @OEMSYS_HPRS
 
 ; We found a hole for the EMS page frame
 ; CX still has the # 512-byte physical pages in the frame
