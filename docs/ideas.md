@@ -13,8 +13,7 @@ EMC87 check runs only on a 386).
 ## 9.x
 
 * **XMS 3.5 for the rest of the package:**  386DISK on memory above 4GB
-  (/XMSSX), a test of XMS function CBh while a DPMI client's page
-  directory is current (DPMI/XMS35PM).
+  (/XMSSX).
 * **Large RAM:**  XMS well beyond 256MB, but the mapped RAM capped
   (about 1-2GB, configurable) so DPMI clients keep 1-2GB of linear
   space; DPMI 0504h at low fixed addresses (HX programs with ImageBase
@@ -27,6 +26,11 @@ EMC87 check runs only on a 386).
   ASPICD (with MSCDEX or SHSUCDX) and a mouse driver, maximized, leaves
   at least 612KB (ideally 625KB) of conventional memory and 8-32MB of
   XMS/DPMI for games.
+* **386DISK drive letter:**  DOS gives a block device driver the next
+  free letter; an option of RAMTEMP.COM (e.g. `/L:R`) could move the RAM
+  disk to a chosen free letter afterwards through the CDS (as XMSDSK and
+  drive swapping tools do), tested on MS-DOS 6/7, DR-DOS, FreeDOS and
+  SvarDOS.
 * **QPI:**  the functions of the QEMM manual that have no test yet
   (QPI/QPIALL).
 * **Tests:**  the 386MAX.PRO keywords and programs without a test (see

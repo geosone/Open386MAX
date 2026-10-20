@@ -34,6 +34,7 @@ DPMI/PM26     needs=dpmi timeout=60
 DPMI/DISKIO   needs=dpmi,xlat timeout=60
 DPMI/STKFLT   needs=dpmi term
 DPMI/XMSMAP   needs=dpmi,xms
+DPMI/XMS35PM  needs=dpmi,xms
 DPMI/LOWLIN   needs=dpmi,dpmi1,xlat
 DPMI/BIGMEM   needs=dpmi
 DPMI/HDPAPI   needs=dpmi32

@@ -36,6 +36,7 @@ check (OK / FAIL) and ends with errorlevel 0 when all checks passed.
 | DPMI | DISKIO  | INT 13h/25h/26h and 7305h from protected mode, buffers above 4 KB, DOS 7 volume lock |
 | DPMI | STKFLT  | a 32-bit client with an invalid stack calls INT 21h (must not reset the machine) |
 | DPMI | XMSMAP  | XMS block allocated first thing by a DPMI client, locked, mapped with 0800h (sound driver DMA buffers: VSBHDA, SBEMU) |
+| DPMI | XMS35PM | XMS 3.5 CBh moves through 0301h while a DPMI client with 16 MB runs; its memory unchanged (MEMSIZE=6144, skipped otherwise) |
 | DPMI | LOWLIN  | 0504h at the fixed linear address 400000h (HX DPMILD32 PE images), overlap refused, reusable after 0502h; XMS blocks keep clear of 400000h (386MAX LOWDPMI=) |
 | DPMI | BIGMEM  | large RAM (see docs/largemem.md): XMS 88h highest address below 2GB, the largest XMS block's last 8KB, at least 1.5GB free DPMI linear space (0500h) |
 | DPMI | HDPAPI  | HDPMI vendor API ("HDPMI" through 168Ah): 5 (HDPMI=32 flag), 8 (simulate I/O: IN/OUT, port in DX or BH, REP INS/OUTS) |

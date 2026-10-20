@@ -16,7 +16,7 @@ The results for every memory manager on every DOS:  docs/testmatrix.md.
 | XMS | 10h-12h UMBs | yes | XMS/XMSUMB, KEYWORDS.LST XMSUMB/NOHIGHUMB (found:  11h freed any DOS block, e.g. at A000; 10h B1h left DX) |
 | XMS | 0Ch lock of odd-sized blocks | yes | XMS/XMSLOCK |
 | XMS 3.5 | C8h, C9h, CBh, CCh, handle functions | yes | XMS/XMS35 (MEMSIZE=6144) |
-| XMS 3.5 | CBh while a DPMI client's page directory is current | no | planned DPMI/XMS35PM |
+| XMS 3.5 | CBh while a DPMI client's page directory is current | yes | DPMI/XMS35PM (MEMSIZE=6144):  CBh through 0301h, 16 MB of client memory unchanged |
 | XMS 3.5 | E820h above 4GB reserved | yes | KEYWORDS.LST SXMS/NOSXMS |
 | XMS 3.5 | INT 15h 87h F00Fh (Jemm/HimemSX) | yes | XMS/XMS35 (MEMSIZE=6144):  both directions checked with CBh, bit 47 fails |
 | EMS 4.0 | 40h-59h, 5Bh | yes | EMS/EMSFUNC |
