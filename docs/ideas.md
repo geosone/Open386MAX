@@ -15,7 +15,7 @@ EMC87 check runs only on a 386).
 * **XMS 3.5 for the rest of the package:**  386DISK on memory above 4GB
   (/XMSSX).
 * **Large RAM:**  XMS well beyond 256MB, but the mapped RAM capped
-  (about 1-2GB, configurable) so DPMI clients keep 1-2GB of linear
+  (896MB by default in 9.x, see 10.x) so DPMI clients keep their linear
   space; DPMI 0504h at low fixed addresses (HX programs with ImageBase
   400000h) together with that work (see largemem.md).
 * **MAXIMIZE with multi-configuration CONFIG.SYS:**  the MS-DOS 6/7
@@ -47,6 +47,18 @@ monitor.  The author was asked for its source; with it, 386MAX could
 learn more chipset-specific detection (shadow RAM and its write enable)
 for the motherboards it covers.  Nothing is taken over before there is
 an answer.
+
+## 10.x:  more than about 1GB with VCPI
+
+A VCPI client gets all of 386MAX in its first page table (VCPI DE01h),
+so 386MAX with its tables has to fit below 4MB.  The XMS allocation map
+(1 byte per KB) and the page tables (4 bytes per 4KB) grow with the RAM,
+so 9.x maps at most 896MB by default (EXTSIZE=) and DE01h fails above
+about 960MB.  To use all of the RAM below 4GB with VCPI clients too,
+these tables move out of the part of 386MAX the client sees (e.g. into
+their own linear range reached only on 386MAX's page directory, with
+the VCPI calls of a client in protected mode, DE03h-DE05h, switching to
+it).
 
 ## 10.x:  common user interface
 

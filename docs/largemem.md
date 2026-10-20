@@ -8,14 +8,24 @@ up to 4GB less the system area.  Two 386MAX.PRO keywords decide how the
 ## EXTSIZE=nnnn
 
 Extended memory (KB) 386MAX uses.  Default since 9.00:  all of it, but at
-most 2031616 KB (2GB-64MB).  With more RAM, XMS gets up to about 2GB and a
-DPMI client still has about 2GB of free linear space; RAM above that is
-not used (memory above 4GB never is).
+most 917504 KB (896MB).  RAM above that is not used by XMS, EMS or VCPI
+(RAM at and above 4GB is offered as XMS 3.5 memory, see below).
 
-A larger value gives XMS more and DPMI less linear space.  Above about
-2GB-8MB it reaches the DPMI page directories for physical mappings
-(INIT_DPMITAB) and SWAT's page directory at 2GB-4MB; don't.
-386MAX warns when it loads with EXTSIZE= above 2GB-64MB.
+The limit comes from VCPI:  a VCPI client (HDPMI, CWSDPMI, Phar Lap,
+DOS/4G without a DPMI host) gets all of 386MAX in its first page table
+(VCPI DE01h), so 386MAX has to fit below 4MB.  Its tables grow with the
+memory it manages, about 2.25 bytes per KB (the XMS allocation map and
+the page tables); with QEMU and MS-DOS 6.22 it still fits at 960MB.
+With more, DE01h fails with AH=84h (earlier builds wrote past the
+client's 4KB page table, and HDPMI ended with "insufficient memory" and
+a broken DOS memory chain).  10.x is to lift this (docs/ideas.md).
+
+A larger value gives XMS more and VCPI clients nothing, and DPMI clients
+less linear space; up to 2GB-64MB they still have about 2GB of it.
+Above about 2GB-8MB it reaches the DPMI page directories for physical
+mappings (INIT_DPMITAB) and SWAT's page directory at 2GB-4MB; don't.
+386MAX warns when it loads with EXTSIZE= above 896MB (VCPI) and above
+2GB-64MB (DPMI).
 
 ## LOWDPMI=nnnn
 

@@ -1,5 +1,5 @@
 ; VCPIFUNC.ASM - VCPI 1.0 functions of the active V86 monitor: presence,
-; protected mode interface (DE01h), memory (DE02h-DE06h), CR0 and debug
+; protected mode interface (DE01h, at most one page table), memory (DE02h-DE06h), CR0 and debug
 ; registers (DE07h-DE09h), 8259 vectors (DE0Ah/DE0Bh) and round trips
 ; V86 -> protected mode -> V86 (DE0Ch) with an own GDT, TSS and page
 ; tables; in protected mode a page allocated with DE04h is mapped, written
@@ -221,6 +221,16 @@ dl3:	add	si,4
 	jb	dl1
 	cmp	bx,0
 	CHECK	'pages distinct', e
+	NOTE_	'pages '
+	mov	eax,pages
+	call	phex32
+	NOTE_	' '
+	mov	eax,pages+4
+	call	phex32
+	NOTE_	' .. '
+	mov	eax,pages+(NALLOC-1)*4
+	call	phex32
+	call	pcrlf
 	mov	eax,pages
 	mov	pgphys,eax	; keep page 0 for the PM test
 	mov	si,4
@@ -228,7 +238,15 @@ dl3:	add	si,4
 @@:	mov	edx,pages[si]
 	vcpi	0DE05h
 	je	fr1
-	inc	bx
+	or	bx,bx
+	jnz	fr0
+	NOTE_	'DE05h status '
+	call	phex16
+	NOTE_	' page '
+	mov	eax,pages[si]
+	call	phex32
+	call	pcrlf
+fr0:	inc	bx
 fr1:	add	si,4
 	cmp	si,NALLOC*4
 	jb	@B
@@ -310,7 +328,10 @@ fr1:	add	si,4
 	vcpi	0DE01h
 	push	ds
 	pop	es
+	pushf
 	CHECK	'protected mode interface (DE01h)', e
+	popf
+	jne	swdone
 	mov	vcpient,ebx
 	sub	di,1000h
 	NOTE_	'entry '
@@ -323,6 +344,8 @@ fr1:	add	si,4
 	call	pcrlf
 	cmp	di,100h*4
 	CHECK	'first megabyte in the table', ae
+	cmp	di,400h*4
+	CHECK	'no more than one page table (1024 entries)', be
 	; physical addresses of directory and table
 	mov	ecx,ptlin
 	shr	ecx,12

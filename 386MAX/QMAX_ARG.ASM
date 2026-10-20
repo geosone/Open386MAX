@@ -779,9 +779,9 @@ NUMBERS_LO db	 '0123456789abcdef' ; Conversion table for BASE2BIN
 	 public  DEF_STACKS
 DEF_STACKS db	 '=6',CR        ; Default DOS stacks setting [,128]
 
-@DEF_EXTSIZE equ (2048-64)*1024 ; Default maximum extended memory in 1KB
+@DEF_EXTSIZE equ 896*1024	; Default maximum extended memory in 1KB
 	 public  DEF_EXTSIZE
-DEF_EXTSIZE db	 '=2031616',CR  ; Default EXTSIZE= setting (@DEF_EXTSIZE)
+DEF_EXTSIZE db	 '=917504',CR   ; Default EXTSIZE= setting (@DEF_EXTSIZE)
 
 XDATA	 ends			; End XDATA segment
 
@@ -2746,10 +2746,12 @@ else
 	 call	 FCN_ON 	; Mark initial state as ON
 endif				; IF @OEM_STATE
 
-; Open 386MAX:  map at most 2GB-64MB of extended memory unless EXTSIZE=
-; says otherwise, so that DPMI clients keep about 2GB of linear space
-; above it and the DPMI page directories at 2GB-8MB (see INIT_DPMITAB)
-; stay clear of RAM.
+; Open 386MAX:  map at most 896MB of extended memory unless EXTSIZE=
+; says otherwise:  our tables grow with it (about 2.25 bytes per KB) and
+; must fit with our program in a VCPI client's first page table (VCPI
+; DE01h, up to about 960MB); 10.x is to lift this.  Up to 2GB-64MB DPMI
+; clients keep about 2GB of linear space above it and the DPMI page
+; directories at 2GB-8MB (see INIT_DPMITAB) stay clear of RAM.
 
 	 cmp	 TOTSIZE,@DEF_EXTSIZE ; Izit more than the default maximum?
 	 jbe	 short @F	; Jump if not

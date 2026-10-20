@@ -231,9 +231,9 @@ XMS_FNS  dw	 PGROUP:XMS_VERS	; 00 = Version #
 	 dw	 PGROUP:XMS_GETINF	; 0E = Get handle information
 	 dw	 PGROUP:XMS_MODXMB	; 0F = Reallocate extended memory block
 if @OEM_HIFILL
-	 dw	 PGROUP:XMS_GETUMB	; 10 = Allocate upper memory block
-	 dw	 PGROUP:XMS_RELUMB	; 11 = Release upper memory block
-	 dw	 PGROUP:XMS_MODUMB	; 12 = Reallocate upper memory block
+	 dw	 PGROUP:XMS_UMB 	; 10 = Allocate upper memory block
+	 dw	 PGROUP:XMS_UMB 	; 11 = Release upper memory block
+	 dw	 PGROUP:XMS_UMB 	; 12 = Reallocate upper memory block
 else
 	 dw	 PGROUP:XMS_EB1 	; 10 = Allocate upper memory block
 	 dw	 PGROUP:XMS_EB1 	; 11 = Release upper memory block
@@ -305,6 +305,157 @@ if @OEM_DPMI
 endif				; IF @OEM_DPMI
 	 extrn	 XMS_HMASET:far
 	 extrn	 XMS_HMACLR:far
+
+if @OEM_HIFILL
+	 NPPROC  XMS_UMBJ -- XMS Functions 10h-12h (Upper Memory Blocks)
+	 assume  ds:PGROUP,es:nothing,fs:nothing,gs:nothing,ss:nothing
+COMMENT|
+
+Jumped to (FIXIJMP) from XMS_UMB, as INT2F's functions; returns through
+XMS_SUCCESS, XMS_ERR and XMS_EB1 there.
+
+On entry:
+
+SS:EBP	 ==>	 INTXX_STR (caller's registers)
+DS	 =	 PGROUP
+
+|
+
+COMMENT|
+
+Function 10h -- Allocate upper memory block
+
+On entry:
+
+DX	 =	  size of block to allocate in paras
+
+On exit:
+
+If successful,
+
+AX	 =	 1
+BX	 =	 segment of allocated block
+DX	 =	 actual size of block in paras (to which it can grow)
+
+If not successful,
+
+AX	 =	 0
+DX	 =	 size of largest available block in paras
+
+Errors:
+
+BL	 =	 8F if MAC error encountered
+	 =	 B0 if a smaller UMB is available
+	 =	 B1 if no UMBs are available
+
+|
+
+	 mov	 ax,[ebp].INTXX_EAX.ELO ; AH = caller's function
+
+	 test	 CMD_FLAG,@CMD_XHI ; High DOS memory disallowed?
+	 jnz	 short XMS_UMB_EB1 ; Yes, no UMBs possible
+
+	 mov	 gs,SEL_4GB3	; Get AGROUP data selector at PL3
+	 assume  gs:AGROUP	; Tell the assembler about it
+
+	 cmp	 ah,11h 	; Izit release?
+	 je	 short XMS_RELUMB ; Jump if so
+	 ja	 short XMS_MODUMB ; Jump if reallocate
+
+; We don't check for NO58.  If a program is flagged with M2 and NO58 is
+; in effect, they have no way to allocate UMBs.  That's OK, since M2 is
+; meant to keep programs like NSCHED from executing buggy code that
+; doesn't work properly with XMS UMB allocation.
+	 test	 XMS_FLAG,mask $XMS_NOXMSUMB ; XMS UMB allocation disallowed?
+	 jnz	 short XMS_UMB_EB1 ; Jump if so
+
+	 mov	 di,-1		; Indicate no particular region preference
+	 mov	 ax,@MAC_UMB	; Call it a UMB
+	 mov	 bx,@STRA_UMB	; High DOS only, first fit
+	 mov	 dx,[ebp].INTXX_EDX.ELO ; Get size of block to allocate
+	 FIXICALL JGROUP:MAC_ALLOC,DTE_CSJG ; Return error code in AL
+	 mov	 [ebp].INTXX_EDX.ELO,dx ; Save as size of largest block
+	 jc	 short XMS_UMB_ERR ; Jump if failed
+
+	 mov	 [ebp].INTXX_EBX.ELO,ax ; Save segment of allocated block
+
+	 jmp	 short XMS_UMB_OK ; Join common success code
+
+COMMENT|
+
+Function 11h -- Release upper memory block
+
+On entry:
+
+DX	 =	 segment of block to release
+
+On exit:
+
+AX	 =	 1 if successful
+	 =	 0 if not
+
+Errors:
+
+BL	 =	 8F if MAC error encountered
+	 =	 B1 if no UMBs are available
+	 =	 B2 if UMB segment is invalid
+
+|
+
+XMS_RELUMB:
+	 mov	 dx,[ebp].INTXX_EDX.ELO ; Get block to release
+	 FIXICALL JGROUP:MAC_UFREE,DTE_CSJG ; Free UMB at DX:0
+
+	 jmp	 short XMS_UMB_RET ; Join common code (error code in AL)
+
+COMMENT|
+
+Function 12h -- Re-allocate upper memory block
+
+On entry:
+
+BX	 =	 new size for UMB in paras
+DX	 =	 segment of block to re-allocate
+
+On exit:
+
+AX	 =	 1 if successful
+	 =	 0 if not
+
+Errors:
+
+BL	 =	 8F if MAC error encountered
+	 =	 B0 if no UMB is large enough to satisfy the request
+		    In which case DX contains size of largest UMB.
+	 =	 B2 if UMB segment is invalid
+
+|
+
+XMS_MODUMB:
+	 mov	 ax,-1		; Don't reassert owner field in MAC entry
+	 mov	 bx,[ebp].INTXX_EBX.ELO ; Get new size of block
+	 mov	 dx,[ebp].INTXX_EDX.ELO ; Get block to reallocate
+	 FIXICALL JGROUP:MAC_UREALLOC,DTE_CSJG ; Reallocate UMB at DX:0 to BX paras
+XMS_UMB_RET:
+	 jc	 short XMS_UMB_ERR ; Jump if failed (error code in AL)
+XMS_UMB_OK:
+	 FIXIJMP PGROUP:XMS_SUCCESS,DTE_CS2 ; Join common success code
+
+XMS_UMB_ERR:
+	 FIXIJMP PGROUP:XMS_ERR,DTE_CS2 ; Return error AL
+
+XMS_UMB_EB1:
+	 cmp	 ah,10h 	; Izit allocate?
+	 jne	 short @F	; Jump if not
+
+	 mov	 [ebp].INTXX_EDX.ELO,0 ; Largest UMB:  none
+@@:
+	 FIXIJMP PGROUP:XMS_EB1,DTE_CS2 ; No UMBs (make 'em use 5800 services)
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+XMS_UMBJ endp			; End XMS_UMBJ procedure
+endif				; IF @OEM_HIFILL
 
 JCODE	 ends			; End JCODE segment
 
@@ -2847,156 +2998,12 @@ XMS_MODXMB_EXIT:
 
 
 if @OEM_HIFILL
-; 様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様
+; Open 386MAX:  functions 10h-12h continue in JGROUP (XMS_UMBJ), there's
+; no room in PGROUP
 
-COMMENT|
-
-Function 10h -- Allocate upper memory block
-
-On entry:
-
-DX	 =	  size of block to allocate in paras
-
-On exit:
-
-If successful,
-
-AX	 =	 1
-BX	 =	 segment of allocated block
-DX	 =	 actual size of block in paras (to which it can grow)
-
-If not successful,
-
-AX	 =	 0
-DX	 =	 size of largest available block in paras
-
-Errors:
-
-BL	 =	 8F if MAC error encountered
-	 =	 B0 if a smaller UMB is available
-	 =	 B1 if no UMBs are available
-
-|
-
-	 public  XMS_GETUMB
-XMS_GETUMB:
-	 mov	 di,-1		; Indicate no particular region preference
-
-	 test	 CMD_FLAG,@CMD_XHI ; High DOS memory disallowed?
-	 jnz	 short XMS_GETUMB_EB1 ; Yes, no UMBs possible
-
-; We don't check for NO58.  If a program is flagged with M2 and NO58 is
-; in effect, they have no way to allocate UMBs.  That's OK, since M2 is
-; meant to keep programs like NSCHED from executing buggy code that
-; doesn't work properly with XMS UMB allocation.
-	 test	 XMS_FLAG,mask $XMS_NOXMSUMB ; XMS UMB allocation disallowed?
-	 jz	 short @F	; Jump if not
-XMS_GETUMB_EB1:
-	 mov	 [ebp].INTXX_EDX.ELO,0 ; Largest UMB:  none
-	 jmp	 XMS_EB1	; No UMBs (make 'em use 5800 services)
-@@:
-
-	 mov	 gs,SEL_4GB3	; Get AGROUP data selector at PL3
-	 assume  gs:AGROUP	; Tell the assembler about it
-
-	 mov	 ax,@MAC_UMB	; Call it a UMB
-	 mov	 bx,@STRA_UMB	; High DOS only, first fit
-	 mov	 dx,[ebp].INTXX_EDX.ELO ; Get size of block to allocate
-	 FIXICALL JGROUP:MAC_ALLOC,DTE_CSJG ; Return error code in AL
-	 mov	 [ebp].INTXX_EDX.ELO,dx ; Save as size of largest block
-	 jc	 near ptr XMS_ERR ; Jump if failed
-
-	 mov	 [ebp].INTXX_EBX.ELO,ax ; Save segment of allocated block
-
-	 jmp	 XMS_SUCCESS	; Join common success code
-
-	 assume  es:nothing,fs:nothing,gs:nothing ; Tell the assembler about it
-endif				; IF @OEM_HIFILL
-
-
-if @OEM_HIFILL
-; 様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様
-
-COMMENT|
-
-Function 11h -- Release upper memory block
-
-On entry:
-
-DX	 =	 segment of block to release
-
-On exit:
-
-AX	 =	 1 if successful
-	 =	 0 if not
-
-Errors:
-
-BL	 =	 8F if MAC error encountered
-	 =	 B1 if no UMBs are available
-	 =	 B2 if UMB segment is invalid
-
-|
-
-	 public  XMS_RELUMB
-XMS_RELUMB:
-	 test	 CMD_FLAG,@CMD_XHI ; High DOS memory disallowed?
-	 jnz	 near ptr XMS_EB1 ; Yes, no UMBs possible
-
-	 mov	 gs,SEL_4GB3	; Get AGROUP data selector at PL3
-	 assume  gs:AGROUP	; Tell the assembler about it
-
-	 mov	 dx,[ebp].INTXX_EDX.ELO ; Get block to release
-	 FIXICALL JGROUP:MAC_UFREE,DTE_CSJG ; Free UMB at DX:0
-	 jc	 near ptr XMS_ERR ; Jump if failed (error code in AL)
-
-	 jmp	 XMS_SUCCESS	; Join common
-
-	 assume  es:nothing,fs:nothing,gs:nothing ; Tell the assembler about it
-endif				; IF @OEM_HIFILL
-
-
-if @OEM_HIFILL
-; 様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様様
-
-COMMENT|
-
-Function 12h -- Re-allocate upper memory block
-
-On entry:
-
-BX	 =	 new size for UMB in paras
-DX	 =	 segment of block to re-allocate
-
-On exit:
-
-AX	 =	 1 if successful
-	 =	 0 if not
-
-Errors:
-
-BL	 =	 8F if MAC error encountered
-	 =	 B0 if no UMB is large enough to satisfy the request
-		    In which case DX contains size of largest UMB.
-	 =	 B2 if UMB segment is invalid
-
-|
-
-	 public  XMS_MODUMB
-XMS_MODUMB:
-	 test	 CMD_FLAG,@CMD_XHI ; High DOS memory disallowed?
-	 jnz	 near ptr XMS_EB1 ; Yes, no UMBs possible
-
-	 mov	 gs,SEL_4GB3	; Get AGROUP data selector at PL3
-	 assume  gs:AGROUP	; Tell the assembler about it
-
-	 mov	 ax,-1		; Don't reassert owner field in MAC entry
-	 mov	 bx,[ebp].INTXX_EBX.ELO ; Get new size of block
-	 mov	 dx,[ebp].INTXX_EDX.ELO ; Get block to reallocate
-	 FIXICALL JGROUP:MAC_UREALLOC,DTE_CSJG ; Reallocate UMB at DX:0 to BX paras
-	 jc	 near ptr XMS_ERR ; Jump if failed (error code in AL)
-
-	 jmp	 XMS_SUCCESS	; Join common
+	 public  XMS_UMB
+XMS_UMB:
+	 FIXIJMP JGROUP:XMS_UMBJ,DTE_CSJG ; Continue there
 endif				; IF @OEM_HIFILL
 
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing

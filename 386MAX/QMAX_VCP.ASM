@@ -507,6 +507,7 @@ ECODE	 segment use16 dword public 'ecode' ; Start ECODE segment
 
 	 extrn	 ALLOCMEM:near
 	 extrn	 DEALLOCMEM:near
+	 extrn	 FIND_XMSPAGE:near
 	 extrn	 QRY_PGCNT:near
 
 	 extrn	 ENABLE_P5:far
@@ -752,8 +753,18 @@ COMMENT|
 
 Subroutine to OLDVCPI00 and VCPI01.
 
+Open 386MAX:  if our PTEs don't fit in the caller's 4KB page table (our
+tables grow with the RAM, about 2.25 bytes per KB, see EXTSIZE in
+docs/largemem.md), fail with AH=84h instead of writing past it.
+
 |
 
+	 cmp	 VCPITOP,4*1024*1024-@PnP_NPTES*4*1024 ; Do our PTEs fit?
+	 jbe	 short @F	; Jump if so
+
+	 pop	 ax		; Drop our return address
+	 jmp	 EMM_E84	; Tell 'em we can't
+@@:
 	 mov	 es,SEL_4GB	; Get our all memory selector
 	 assume  es:AGROUP	; Tell the assembler about it
 
@@ -2232,7 +2243,7 @@ VCPI_DEALLOC_NEXT1:
 	 mov	 ebx,PGROUP:[ebx].PL_NEXT ; Get pointer to next entry
 
 	 cmp	 ebx,HP_LAST	; Check for end-of-the-chain
-	 je	 near ptr VCPI_DEALLOC_ERR ; Jump if it is
+	 je	 near ptr VCPI_DEALLOC_SCAN ; Jump if it is (not in the EMS pool?)
 
 ; Check the four 4KB pages for EDX
 
@@ -2283,7 +2294,7 @@ VCPI_DEALLOC_FND:
 	 add	 esi,PPDT1MB	; Plus start of 1MB wrap region in PDT
 @@:
 	 shl	 esi,(12-2)-0	; Convert from 4KB in dwords to bytes
-
+VCPI_DEALLOC_FREE:
 	 push	 CON4KB 	; Pass byte length
 	 push	 esi		; Pass starting linear address
 	 call	 DEALLOCMEM	; Deallocate it
@@ -2294,6 +2305,11 @@ VCPI_DEALLOC_CLC:
 
 	 jmp	 short VCPI_DEALLOC_EXIT ; Join common exit code
 
+; Open 386MAX:  memory outside the EMS pool isn't in the VMS chain
+
+VCPI_DEALLOC_SCAN:
+	 call	 FIND_XMSPAGE	; ESI = its linear address
+	 jnc	 short VCPI_DEALLOC_FREE ; Jump if found
 VCPI_DEALLOC_ERR:
 	 popf			; Restore flags
 

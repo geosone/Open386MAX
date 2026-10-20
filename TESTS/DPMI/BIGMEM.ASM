@@ -1,5 +1,5 @@
 ; BIGMEM.ASM - large RAM:  the memory manager maps at most 2GB-64MB of
-; extended memory by default (386MAX EXTSIZE=), so XMS ends below 2GB
+; extended memory by default (386MAX:  896MB, EXTSIZE=), so XMS ends below 2GB
 ; (XMS 3.0 88h highest address) and a DPMI client has at least 1.5GB of
 ; free linear space (0500h).  The last 64KB of the largest XMS block are
 ; written and read back (RAM near the top of what is mapped).

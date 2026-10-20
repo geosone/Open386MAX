@@ -617,6 +617,17 @@ MSG_LOWFR db	 BEL,'様> No room for a 64KB EMS page frame above 640KB:  EMS',CR,L
 	 db	 '    without a page frame (as NOFRAME).',CR,LF,EOS
 endif				; IFDEF LANG_GR
 
+	 public  MSG_EXTVCPI
+ifdef LANG_GR
+MSG_EXTVCPI db	 BEL,'様> Achtung, mit EXTSIZE= ueber 896MB passt 386MAX nicht',CR,LF
+	 db	 '    sicher in die Seitentabelle von VCPI-Programmen:  VCPI DE01h',CR,LF
+	 db	 '    kann scheitern (HDPMI, CWSDPMI, Phar Lap).',CR,LF,EOS
+else
+MSG_EXTVCPI db	 BEL,'様> Warning, with EXTSIZE= above 896MB 386MAX may not fit',CR,LF
+	 db	 '    in the page table of VCPI clients:  VCPI DE01h may fail',CR,LF
+	 db	 '    (HDPMI, CWSDPMI, Phar Lap).',CR,LF,EOS
+endif				; IFDEF LANG_GR
+
 	 public  MSG_EXTBIG
 ifdef LANG_GR
 MSG_EXTBIG db	 BEL,'様> Achtung, EXTSIZE= ueber 2GB-64MB laesst DPMI-Programmen',CR,LF
