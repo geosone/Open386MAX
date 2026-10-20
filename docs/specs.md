@@ -23,7 +23,8 @@ terms (see docs/specs/README.md), not under the GPL of Open 386MAX.
 ## Where the texts are
 
 docs/specs/ has XMS 2.0, 3.0 and 3.5/3.51, LIM EMS 3.2 and 4.0 and VCPI
-1.0 (`make specs` builds them as HTML, EPUB and PDF); docs/specs/README.md
+1.0, each as the original text and as a Markdown edition (`make specs`
+builds them as HTML, EPUB and PDF); docs/specs/README.md
 lists their terms and where to find DPMI 0.9/1.0, the MS-DOS API
 extensions for DPMI hosts and VDS, whose terms don't allow keeping them
 here.  Ralf Brown's Interrupt List describes all of them function by
