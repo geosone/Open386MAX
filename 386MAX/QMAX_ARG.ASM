@@ -421,6 +421,9 @@ if @OEM_SYS eq @OEMSYS_RET
 if @OEM_DPMI and @OEM_XMS
 	 CMDARG_MAC 'LOWDPMI',          FCN_LOWDPMI
 endif				; IF @OEM_DPMI and @OEM_XMS
+if @OEM_XMS
+	 CMDARG_MAC 'NOSXMS',           FCN_NOSXMS
+endif				; IF @OEM_XMS
 	 CMDARG_MAC 'NOSCAN',           FCN_NOSCAN
 endif				; IF @OEM_SYS eq @OEMSYS_RET
 

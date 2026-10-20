@@ -248,7 +248,6 @@ XMS2_FNS dw	 PGROUP:XMS_QRY2XMB	; 88 = Query free extended memory block
 	 dw	 PGROUP:XMS_E80 	; 8D = (reserved)
 	 dw	 PGROUP:XMS_GET2INF	; 8E = Get handle information
 	 dw	 PGROUP:XMS_MOD2XMB	; 8F = Reallocate extended memory block
-	 dw	 PGROUP:XMS_E80 	; 90 = (reserved)
 XMS2_CNT equ	 ($-XMS2_FNS)/2 ; # secondary XMS function supported
 
 if @OEM_WIN3
@@ -291,6 +290,7 @@ JCODE	 segment use16 dword public 'jcode' ; Start LCODE segment
 	 assume  cs:JGROUP
 
 	 extrn	 ACTIVATE_HOOK13:far
+	 extrn	 SXM_XMS:near
 if @OEM_HIFILL
 	 extrn	 MAC_ALLOC:far
 	 extrn	 MAC_REALLOC:far
@@ -1099,7 +1099,7 @@ INT2F_XMS:
 	 jc	 near ptr XMS_E80 ; Jump if out of range
 
 	 cmp	 ah,XMS2_CNT	; Check for valid subfunction range
-	 jnb	 near ptr XMS_E80 ; Jump if it's too big
+	 jnb	 near ptr XMS_EA2 ; Jump if it's too big (XMS 3.5 in QMAX_SXM)
 
 	 add	 ah,XMS_CNT	; Convert to appendage to XMS_FNS
 @@:
@@ -1254,10 +1254,11 @@ XMS_EA1:
 
 	 jmp	 short XMS_ERR	; Join common error code
 
-XMS_EA2:
-	 mov	 al,0A2h	; Invalid handle
+; Invalid handle (A2h):  QMAX_SXM checks for XMS 3.5 functions and
+; super-extended handles first
 
-	 jmp	 short XMS_ERR	; Join common error code
+XMS_EA2:
+	 FIXIJMP JGROUP:SXM_XMS,DTE_CSJG ; Continue there
 
 XMS_EA3@:
 	 add	 esp,size MOVXMB_STR ; Strip from the stack
@@ -1401,7 +1402,7 @@ XMS_VERS:
 	 or	 al,VERS_U-'0'  ; Include units digit
 	 mov	 [ebp].INTXX_EBX.ELO,ax ; Debugging version #
 
-	 mov	 ax,0300h	; Major/minor version #
+	 mov	 ax,0350h	; Major/minor version # (XMS 3.5, see QMAX_SXM)
 
 ; Because some bozo XMS clients check CF, we need to clear it on success
 

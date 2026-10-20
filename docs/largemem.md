@@ -35,3 +35,39 @@ so the reservation costs that much XMS.
 Tests:  `TESTS/DPMI/LOWLIN` (0504h at 400000h, XMS keeps clear of it),
 `TESTS/DPMI/BIGMEM` (XMS below 2GB, at least 1.5GB DPMI linear space,
 the top of the largest XMS block).
+
+## RAM above 4GB:  XMS 3.5 (9.00)
+
+386MAX offers RAM at and above 4GB (INT 15h/E820h "available" entries)
+as XMS 3.5 super-extended memory, if the CPU has 4MB pages with 36-bit
+or wider physical addresses (PSE-36, Pentium II and later, also QEMU
+`-cpu pentium3`).  It doesn't map this memory; programs use it through
+XMS:
+
+| AH | function |
+|---|---|
+| 00h | version 3.50 |
+| C8h | EAX = largest free block, EDX = total free (KB) |
+| C9h | allocate EDX KB, DX = handle |
+| CBh | move like 0Bh, bytes 10h/11h of the structure = bits 32-39 of the source/destination offset; any handles |
+| CCh | lock, EDX:EBX = 64-bit physical address; any handles |
+
+Handles of these blocks (FE00h and up) also work with 0Ah, 0Dh, 0Eh,
+8Eh and 0Fh/8Fh (resize; moves the contents if the block can't grow in
+place).  0Ch fails with ADh for them (the address doesn't fit in 32
+bits) and 0Bh doesn't take them.  Up to 32 blocks, up to 8 memory map
+ranges, below the CPU's physical address limit (at most 1TB).
+
+CBh copies through two 4MB page directory entries just below the DPMI
+page directories (2GB-(DPMIPDIR_CNT+3)*4MB, inside the 64MB that the
+default EXTSIZE= maximum leaves free), at most 64KB at a time with
+interrupts disabled.  With EXTSIZE= above about 2GB-16MB, moves to and
+from this memory fail with 8Fh.
+
+Not yet:  INT 15h/E820h still reports the memory above 4GB as
+available (XMS 3.5 asks for "reserved"), and the INT 15h AH=87h
+extension of Jemm for HimemSX isn't there.  `NOSXMS` turns XMS 3.5
+memory off (the version stays 3.50, C8h reports none).
+
+Test:  `TESTS/XMS/XMS35` (skipped without such memory; run with
+`MEMSIZE=6144 QEMU_EXTRA="-cpu pentium3" linux/test/suite.py -t XMS35`).

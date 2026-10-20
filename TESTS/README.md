@@ -7,6 +7,7 @@ check (OK / FAIL) and ends with errorlevel 0 when all checks passed.
 | Directory | Test | What it checks |
 |---|---|---|
 | XMS  | XMSFUNC | XMS 2.0/3.0: version, A20 (03h-07h), free memory (08h/88h), allocate/free, moves conventional/extended in all directions with data checks, lock counts, handle information (0Eh/8Eh), resize (0Fh/8Fh) keeping the contents, error codes A2h-A7h/AAh/ABh, handle exhaustion, a pattern over the whole largest block |
+| XMS | XMS35 | XMS 3.5 memory above 4GB (C8h/C9h/CBh/CCh, handle functions, errors, resize); skipped without it, needs MEMSIZE=6144 and a PSE-36 CPU (see docs/largemem.md) |
 | EMS  | EMSFUNC | LIM EMS 4.0: 40h-46h, map/data checks, error codes 83h/87h/8Ah/8Bh/8Dh/8Fh/92h, 47h/48h, 4Eh, 4Fh, 50h, 51h, 53h/54h, 55h/56h (alter map and jump/call), 57h (move/exchange, page crossing, overlap), 58h, 59h, 5Bh |
 | VCPI | VCPIFUNC | VCPI 1.0: DE00h-DE0Bh (memory, CR0, debug registers, 8259 vectors), 100 round trips V86 -> protected mode -> V86 through DE0Ch with an own GDT/TSS/page tables, a DE04h page used in protected mode |
 | VDS  | VDSFUNC | Virtual DMA Services: 8102h-810Ch, lock of conventional memory and of an UMB, scatter/gather, DMA buffer with copy in/out, translation counting, error codes |
