@@ -5,6 +5,8 @@ test yet.  Goal:  every function and every 386MAX.PRO keyword has a
 test.  Status:  **yes** (automatic test), **part** (some of it), **hand**
 (a script boots it, a person looks at the result), **no**.
 
+The results for every memory manager on every DOS:  docs/testmatrix.md.
+
 ## Client interfaces
 
 | Interface | Function | Status | Test |
@@ -100,7 +102,7 @@ build/kwtest/compare.md puts the values side by side.
 | 386LOAD (loading high, SIZE=, PROG=) | part | MAXIMIZE runs |
 | 386DISK (/XMS, /EMS, sizes) | part | by hand (RAMTEMP test) |
 | RAMTEMP | hand | docs/ramdisk.md (five DOSes) |
-| 386UTIL (all switches) | no | planned MAX/UTIL |
+| 386UTIL (all switches) | yes | MAX/UTIL (found:  WEITEK=ON hung:  the EMC87 check took any 486+ FPU for an EMC87 and forced Weitek present; the HMA in-use flag never reached the resident INFO copies) |
 | MAXIMIZE | hand | linux/test/maxsh.sh |
 | SETUPDOS (install from floppies) | hand | linux/test/floppyinst.sh |
 | STRIPMGR, ASQ, QMT, ROMSRCH, XLAT, MEMLIMIT, EXTRADOS, RAMBASIC | no | |

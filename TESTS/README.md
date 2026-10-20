@@ -19,6 +19,7 @@ check (OK / FAIL) and ends with errorlevel 0 when all checks passed.
 | MAX  | MAXINFO | 386MAX$$ device:  IOCTL 4402h INFO (signature, version, sizes against EMS) |
 | MAX  | UMBDOS  | UMBs through DOS:  5803h link, 5801h strategies 80h/40h/00h, 4KB blocks high first |
 | MAX  | HMADOS  | DOS=HIGH:  INT 2Fh 4A01h/4A02h, the HMA block keeps its contents across XMS and INT 15h calls |
+| MAX  | UTIL    | 386UTIL with every switch (LIST, MAPDEV, MAPEMS, MAPMEM, RAMSCAN, ROMSCAN, STACKS, SUMMARY, PTE, TIMEMEM, POS, HELP, STACKS=, WEITEK=), output checked |
 | DPMI | DPMI10  | DPMI 1.0 functions (16-bit client) |
 | DPMI | DPMIMISC | 0900h-0902h, 0604h, 0600h-0603h, 0702h/0703h, 0B00h-0B03h with a triggered watchpoint, 0E00h/0E01h |
 | DPMI | MAXAPI  | vendor API 0A00h/INT 2Fh 168Ah:  "MS-DOS" (version, LDT selector), "386MAX", unknown names |

@@ -108,6 +108,18 @@ start:
 	cmp	ax,9FFFh
 	CHECK	'in high DOS memory', ae
 @@:
+	NOTE_	'GLB_FLAG '		; 0100h = HMA in use (XMS 01h)
+	mov	ax,word ptr INFO_GLB
+	call	phex16
+	call	pcrlf
+	mov	ax,3306h		; DOS in the HMA (DOS=HIGH)?
+	xor	dx,dx
+	int	21h
+	test	dh,10h
+	jz	@F
+	test	word ptr INFO_GLB,0100h
+	CHECK	'DOS in the HMA:  GLB_FLAG HMA in use', nz
+@@:
 	mov	dx,offset emmname	; EMS pages * 16 <= EMMSIZE + 640 (the
 	mov	ax,3D00h		; mappable conventional memory)
 	int	21h

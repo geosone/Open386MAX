@@ -303,6 +303,8 @@ if @OEM_DPMI
 	 extrn	 LOWHOLE_E2XFREE:far
 	 extrn	 LOWHOLE_E2XTAKE:far
 endif				; IF @OEM_DPMI
+	 extrn	 XMS_HMASET:far
+	 extrn	 XMS_HMACLR:far
 
 JCODE	 ends			; End JCODE segment
 
@@ -1452,7 +1454,7 @@ XMS_REQHMA:
 	 cmp	 dx,HMAMIN	; Check against minimum required
 	 jb	 near ptr XMS_E92 ; Jump if it's too small
 
-	 or	 GLB_FLAG,@GLB_HMA ; Mark as in use
+	 FIXICALL JGROUP:XMS_HMASET,DTE_CSJG ; Mark as in use (also resident)
 
 	 jmp	 XMS_SUCCESS	; Join common XMS success code
 
@@ -1490,7 +1492,7 @@ XMS_RELHMA:
 	 test	 GLB_FLAG,@GLB_HMA ; Izit already in use?
 	 jz	 near ptr XMS_E93 ; No, so that's an error
 
-	 and	 GLB_FLAG,not @GLB_HMA ; Mark as not in use
+	 FIXICALL JGROUP:XMS_HMACLR,DTE_CSJG ; Mark as not in use (...)
 
 	 call	 CHECK_HOOK	; See if we should unhook INT 15h
 

@@ -17,6 +17,7 @@ V86/A20
 MAX/MAXINFO
 MAX/UMBDOS
 MAX/HMADOS
+MAX/UTIL      timeout=120
 DPMI/DPMI10   needs=dpmi,dpmi1
 DPMI/DPMIMISC needs=dpmi,xlat
 DPMI/MAXAPI   needs=dpmi,xlat

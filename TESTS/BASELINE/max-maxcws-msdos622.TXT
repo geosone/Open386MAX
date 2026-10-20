@@ -36,6 +36,7 @@ max/QPIVID               SKIP
 max/RMCBNEST             SKIP
 max/STKFLT               SKIP
 max/UMBDOS               PASS
+max/UTIL                 PASS
 max/V86FUNC              PASS
 max/VCPIFUNC             PASS
 max/VDSFUNC              PASS
