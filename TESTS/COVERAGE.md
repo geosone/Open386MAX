@@ -12,6 +12,7 @@ test.  Status:  **yes** (automatic test), **part** (some of it), **hand**
 | XMS 2.0/3.0 | 00h-0Fh, 88h, 89h, 8Eh, 8Fh | yes | XMS/XMSFUNC |
 | XMS | 03h/04h global A20 | part | XMS/XMSFUNC (05h-07h only) |
 | XMS | 10h-12h UMBs | yes | XMS/XMSUMB, KEYWORDS.LST XMSUMB/NOHIGHUMB (found:  11h freed any DOS block, e.g. at A000; 10h B1h left DX) |
+| XMS | 0Ch lock of odd-sized blocks | yes | XMS/XMSLOCK |
 | XMS 3.5 | C8h, C9h, CBh, CCh, handle functions | yes | XMS/XMS35 (MEMSIZE=6144) |
 | XMS 3.5 | CBh while a DPMI client's page directory is current | no | planned DPMI/XMS35PM |
 | XMS 3.5 | E820h above 4GB reserved | yes | KEYWORDS.LST SXMS/NOSXMS |
@@ -26,6 +27,9 @@ test.  Status:  **yes** (automatic test), **part** (some of it), **hand**
 | DPMI | 0B00h-0B03h debug watchpoints (triggered) | yes | DPMI/DPMIMISC |
 | DPMI | 0E00h/0E01h coprocessor | yes | DPMI/DPMIMISC |
 | DPMI | 0A00h vendor API "MS-DOS", "386MAX" | yes | DPMI/MAXAPI |
+| DPMI | 0303h nested real-mode callbacks | yes | DPMI/RMCBNEST (found:  no PL0 stack check, ~70 levels corrupted the memory tables; now 8012h at 36 levels) |
+| DPMI | stack faults, nested exceptions, null selectors, call gates | yes | DPMI/PMSTACK, NULLSEG, CALLGATE |
+| DPMI | memory:  exact-fit and refused 0501h, descriptor exhaustion, cleanup at client end | yes | DPMI/LINOOM, MANYSEL, DPMILEAK |
 | DPMI | DOS/BIOS translation | yes | DPMI/DOSXLAT, XLAT32, PM26, DISKIO |
 | DPMI | 0504h fixed address, LOWDPMI= | yes | DPMI/LOWLIN |
 | DPMI | large RAM | yes | DPMI/BIGMEM |
@@ -51,9 +55,14 @@ test.  Status:  **yes** (automatic test), **part** (some of it), **hand**
 | Function | Status | Test |
 |---|---|---|
 | 386MAX$$ device, IOCTL info (386UTIL, MAXIMIZE) | yes | MAX/MAXINFO |
+| UMBs and HMA through DOS (5801h/5803h, INT 2Fh 4A01h/4A02h) | yes | MAX/UMBDOS, MAX/HMADOS |
 | INT 2Fh 1605h/1606h Windows start/end | hand | linux/test/win311.sh |
 | 386MAX.VXD (Windows 3.1 enhanced mode) | hand | linux/test/win311.sh |
 | GOREAL (Windows 9x, other V86 monitors) | hand | linux/test/win98.sh |
+
+Ideas for DPMI/PMSTACK, CALLGATE, NULLSEG, LINOOM, DPMILEAK, XMSLOCK,
+UMBDOS and HMADOS come from what dosemu2's test suite checks (its tests
+are GPLv2 only; these are written anew from the DPMI/XMS/DOS behaviour).
 
 ## 386MAX.PRO keywords
 
@@ -69,6 +78,12 @@ these also check their effect:  FRAME=, NOFRAME, EMS=0, NODPMI, XMSHNDL=,
 USE=, RAM=, EXCLUDE=, NOHIGH, NOLOW, EXTSIZE= (and its warning), EXT=,
 HMAMIN=, FORCEA20, TERSE, NO4B, NOSXMS / XMS 3.5 (6GB), VGASWAP (no
 effect with QEMU's 38.5KB VGA ROM), unknown keywords.
+
+`kwtest.py -m MANAGER` runs the same MAXPROBE for other memory managers
+(TESTS/KWMGR.LST:  HIMEM, EMM386, HimemX, HimemSX, JEMM386 on HimemX or
+HimemSX, JemmEx, QEMM) with options of the same meaning (6GB, 16MB XMS,
+more handles, frame D000, no frame, no EMS, no 64KB above 640KB);
+build/kwtest/compare.md puts the values side by side.
 
 | Status | Keywords |
 |---|---|

@@ -6,6 +6,7 @@
 XMS/XMSFUNC   needs=xms timeout=120
 XMS/XMS35     needs=xms
 XMS/XMSUMB    needs=xms
+XMS/XMSLOCK   needs=xms
 EMS/EMSFUNC   needs=ems
 EMS/EMSMORE   needs=ems
 VCPI/VCPIFUNC needs=vcpi
@@ -14,9 +15,18 @@ V86/V86FUNC
 V86/INT15
 V86/A20
 MAX/MAXINFO
+MAX/UMBDOS
+MAX/HMADOS
 DPMI/DPMI10   needs=dpmi,dpmi1
 DPMI/DPMIMISC needs=dpmi,xlat
 DPMI/MAXAPI   needs=dpmi,xlat
+DPMI/RMCBNEST needs=dpmi timeout=90
+DPMI/PMSTACK  needs=dpmi,xlat timeout=60
+DPMI/CALLGATE needs=dpmi,xlat
+DPMI/NULLSEG  needs=dpmi,xlat
+DPMI/LINOOM   needs=dpmi,xlat
+DPMI/MANYSEL  needs=dpmi,xlat timeout=60
+DPMI/DPMILEAK needs=dpmi timeout=90
 DPMI/DOSXLAT  needs=dpmi,xlat
 DPMI/XLAT32   needs=dpmi32,xlat
 DPMI/PM26     needs=dpmi timeout=60

@@ -9,6 +9,7 @@ check (OK / FAIL) and ends with errorlevel 0 when all checks passed.
 | XMS  | XMSFUNC | XMS 2.0/3.0: version, A20 (03h-07h), free memory (08h/88h), allocate/free, moves conventional/extended in all directions with data checks, lock counts, handle information (0Eh/8Eh), resize (0Fh/8Fh) keeping the contents, error codes A2h-A7h/AAh/ABh, handle exhaustion, a pattern over the whole largest block |
 | XMS | XMS35 | XMS 3.5 memory above 4GB (C8h/C9h/CBh/CCh, handle functions, errors, resize); skipped without it, needs MEMSIZE=6144 and a PSE-36 CPU (see docs/largemem.md) |
 | XMS | XMSUMB  | UMBs 10h-12h:  largest, request, write, resize, release, errors (B0h/B1h/B2h); with DOS=UMB only the error part (KEYWORDS.LST XMSUMB runs it without) |
+| XMS | XMSLOCK | blocks of sizes that aren't a multiple of 4KB always lock (0Ch), at or above 1MB, no overlap |
 | EMS  | EMSFUNC | LIM EMS 4.0: 40h-46h, map/data checks, error codes 83h/87h/8Ah/8Bh/8Dh/8Fh/92h, 47h/48h, 4Eh, 4Fh, 50h, 51h, 53h/54h, 55h/56h (alter map and jump/call), 57h (move/exchange, page crossing, overlap), 58h, 59h, 5Bh |
 | EMS  | EMSMORE | LIM EMS 4.0 4Bh-4Dh handle counts/pages, 52h attributes, 5Ah standard/raw pages (also 0), 5Ch, 5Dh OS/E access key |
 | VCPI | VCPIFUNC | VCPI 1.0: DE00h-DE0Bh (memory, CR0, debug registers, 8259 vectors), 100 round trips V86 -> protected mode -> V86 through DE0Ch with an own GDT/TSS/page tables, a DE04h page used in protected mode |
@@ -16,9 +17,18 @@ check (OK / FAIL) and ends with errorlevel 0 when all checks passed.
 | V86  | INT15   | INT 15h under the V86 monitor: C0h, C1h, 88h, 89h refused, E801h, E820h, 2400h-2403h A20 with the 1MB wrap (A20 off under 386MAX only) |
 | V86  | A20     | A20 through port 92h and the 8042 output port, checked through the 1MB wrap and read back, XMS 07h (under 386MAX only) |
 | MAX  | MAXINFO | 386MAX$$ device:  IOCTL 4402h INFO (signature, version, sizes against EMS) |
+| MAX  | UMBDOS  | UMBs through DOS:  5803h link, 5801h strategies 80h/40h/00h, 4KB blocks high first |
+| MAX  | HMADOS  | DOS=HIGH:  INT 2Fh 4A01h/4A02h, the HMA block keeps its contents across XMS and INT 15h calls |
 | DPMI | DPMI10  | DPMI 1.0 functions (16-bit client) |
 | DPMI | DPMIMISC | 0900h-0902h, 0604h, 0600h-0603h, 0702h/0703h, 0B00h-0B03h with a triggered watchpoint, 0E00h/0E01h |
 | DPMI | MAXAPI  | vendor API 0A00h/INT 2Fh 168Ah:  "MS-DOS" (version, LDT selector), "386MAX", unknown names |
+| DPMI | RMCBNEST | nested real-mode callbacks (0303h + 0301h) up to 250 levels; a refused level (8012h) must unwind cleanly |
+| DPMI | PMSTACK | client stack past its limit:  INT (reported only), IRET, a nested exception in a child (nothing written below SS:SP) |
+| DPMI | CALLGATE | 386 call gate written through the "MS-DOS" LDT selector, called |
+| DPMI | NULLSEG | read/write through a null selector faults (skipped under QEMU TCG) |
+| DPMI | LINOOM  | 0501h of exactly the largest free block (twice), 1MB more refused |
+| DPMI | MANYSEL | descriptors until refused, all freed, as many again |
+| DPMI | DPMILEAK | 20 children allocate 0501h/0100h memory (10 free it, 10 don't):  always the same addresses |
 | DPMI | DOSXLAT | DOS API translation in protected mode: LFN (71xxh), FAT32 (73xxh), country, DBCS, swappable data area |
 | DPMI | XLAT32  | the same for a 32-bit client |
 | DPMI | PM26    | INT 25h/26h through 0301h with DOS buffers (host's V86 side, mode switches) |
