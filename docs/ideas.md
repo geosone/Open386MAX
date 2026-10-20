@@ -12,14 +12,10 @@ EMC87 check runs only on a 386).
 
 ## 9.x
 
-* **Large RAM:**  XMS well beyond 256MB, but the mapped RAM capped
-  (896MB by default in 9.x, see 10.x) so DPMI clients keep their linear
-  space; DPMI 0504h at low fixed addresses (HX programs with ImageBase
-  400000h) together with that work (see largemem.md).
 * **MAXIMIZE with multi-configuration CONFIG.SYS:**  the MS-DOS 6/7
-  [MENU] syntax is in the code but untested in this build; the menu
-  syntax of FreeDOS (MENU, 12?DEVICE=) and DR-DOS (SWITCH, ?"") is not
-  supported yet.
+  [MENU] syntax works (linux/test/maxmenu.sh); the menu syntax of
+  FreeDOS (MENU, 12?DEVICE=) and DR-DOS (SWITCH, ?"") is not supported
+  yet.
 * **One-stop setup:**  one CONFIG.SYS with 386MAX, VSBHDA, AHCIASPI,
   ASPICD (with MSCDEX or SHSUCDX) and a mouse driver, maximized, leaves
   at least 612KB (ideally 625KB) of conventional memory and 8-32MB of

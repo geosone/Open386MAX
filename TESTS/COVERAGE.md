@@ -107,6 +107,7 @@ build/kwtest/compare.md puts the values side by side.
 | 386UTIL (all switches) | yes | MAX/UTIL (found:  WEITEK=ON hung:  the EMC87 check took any 486+ FPU for an EMC87 and forced Weitek present; the HMA in-use flag never reached the resident INFO copies) |
 | MAXIMIZE | hand | linux/test/maxsh.sh |
 | SETUPDOS (install from floppies) | hand | linux/test/floppyinst.sh |
+| SETUPDOS + MAXIMIZE + STRIPMGR, MS-DOS 6 multi-configuration CONFIG.SYS | yes | linux/test/maxmenu.sh (found:  STRIPMGR saw no [section], so HIMEM.SYS stayed after 386MAX:  OpenWatcom small model kept ES across _fstricmp) |
 | Shadow DRAM map (386MAX/SHADOWRAM.TXT:  386MAX, MAXIMIZE, ASQ) | part | by hand:  QEMU pc and q35, ASQ report and snapshot (linux/test/asq.sh); no real hardware yet |
 | CSM option ROM space ($EFI):  386MAX, MAXIMIZE, ASQ | yes | linux/test/csmuma.sh (CSMFAKE.SYS:  free option ROM space used, never the UMA, also with a wrong checksum; ASQ finds the table; CSMWRAP=:  through OVMF and CSMWrap) |
 | STRIPMGR, ASQ, QMT, ROMSRCH, XLAT, MEMLIMIT, EXTRADOS, RAMBASIC | no | |
