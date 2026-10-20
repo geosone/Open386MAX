@@ -10,7 +10,7 @@ DPMIMEM          PASS
 EGA              PASS
 EMS0             PASS
 EMS30            PASS
-EXCLD000         NOPROBE
+EXCLD000         PASS
 EXT16M           PASS
 EXT4096          PASS
 EXTBIG           PASS
@@ -23,7 +23,7 @@ IOWRAP           PASS
 ISTACKS          PASS
 LOWDPMI0         PASS
 LOWDPMI8M        PASS
-LOWFR9000        NOPROBE
+LOWFR9000        PASS
 MCE              PASS
 MONO             PASS
 NO4B             PASS

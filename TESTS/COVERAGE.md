@@ -63,7 +63,7 @@ screen, EMS (version, frame, pages, handles), XMS (version, free, HMA,
 handles, UMB), XMS 3.5, VCPI, DPMI, VDS, QPI, UMBs, option ROMs, INT 15h.
 `--check` compares with `BASELINE/kw-<dos>.TXT`.
 
-82 lines, 80 PASS.  Each keyword at least has "accepted and boots" (%OK:
+82 lines, all PASS.  Each keyword at least has "accepted and boots" (%OK:
 no Unknown keyword/Invalid/error message, MAXPROBE runs, XMS 3.50);
 these also check their effect:  FRAME=, NOFRAME, EMS=0, NODPMI, XMSHNDL=,
 USE=, RAM=, EXCLUDE=, NOHIGH, NOLOW, EXTSIZE= (and its warning), EXT=,
@@ -72,7 +72,7 @@ effect with QEMU's 38.5KB VGA ROM), unknown keywords.
 
 | Status | Keywords |
 |---|---|
-| FAIL (bug) | EXCLUDE=D000-E000 and FRAME=9000:  EMS frame in conventional memory, MS-DOS 6.22 hangs after 386MAX (FreeDOS boots) |
+| fixed | EXCLUDE=D000-E000, FRAME=9000:  without 64KB above 640KB EMS now runs without a page frame (a frame in conventional memory hung MS-DOS) |
 | not in this version | NOHMA, NUMHANDLES=, LOWFRAME, HIGHDOS, EEMS, SLOWKEYB, INBOARD, JET386 |
 | no test yet | HPDAREG=, STACKREG=, XBDAREG=, LMLTOP=, CACHESIZE=, PSMEM=, SWAP=, LOAD=, FLEXROM=, POSFILE=, BCF=, AUTOBCF, FORCEBCF, SYS=, OFF, TRACE, WEITEK=ON/FORCE, W=ON/OFF, FASTRAM, PRO= variants |
 | DEBUG=... | debugging only, not tested |
