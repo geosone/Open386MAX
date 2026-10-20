@@ -1,0 +1,8 @@
+DEFAULT          PASS
+EMS0             PASS
+EXCLD000         PASS
+EXT16M           PASS
+FRAMED000        PASS
+NOFRAME          PASS
+SXMS             PASS
+XMSHNDL100       PASS

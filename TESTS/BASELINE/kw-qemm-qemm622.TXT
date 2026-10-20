@@ -1,0 +1,5 @@
+DEFAULT          PASS
+EXCLD000         NOPROBE
+FRAMED000        PASS
+NOFRAME          PASS
+SXMS             PASS

@@ -1,0 +1,46 @@
+# Other memory managers for comparison (linux/test/kwtest.py -m MANAGER):
+# MANAGER NAME [@mem=MB] [@cpu=MODEL] [@cfg=LINE] [@noumb] OPTIONS | EXPECTATIONS
+# The names match KEYWORDS.LST lines with the same meaning, so
+# build/kwtest/compare.md shows the values side by side:  DEFAULT, SXMS
+# (6GB of RAM), EXT16M (16MB of XMS), XMSHNDL100 (more handles), FRAMED000,
+# NOFRAME, EMS0 (no EMS), EXCLD000 (no 64KB above 640KB).
+# Found so far:  QEMM FR=NONE has no EMS at all (EMS=0), QEMM X=D000-DFFF
+# does not boot to the prompt, HimemSX reports XMS 3.51, QEMM's E801h and
+# E820h report all extended memory free while 88h reports 0.
+himem    DEFAULT - | %OK HMA=1 EMS=0
+himem    SXMS @mem=6144 @cpu=pentium3 - | %OK XMS=300
+himem    XMSHNDL100 /NUMHANDLES=100 | %OK
+emm386   DEFAULT RAM | %OK EMS=40 VCPI>0 VDS=1 UMBFREEKB>0
+emm386   SXMS @mem=6144 @cpu=pentium3 RAM | %OK EMS=40
+emm386   FRAMED000 RAM FRAME=D000 | %OK EMSFRAME=D000
+emm386   NOFRAME RAM FRAME=NONE | %OK EMSFRAME=FFFF0000
+emm386   EMS0 NOEMS | %OK EMS=0
+emm386   EXCLD000 RAM X=D000-DFFF | %OK
+himemx   DEFAULT - | %OK HMA=1 EMS=0
+himemx   SXMS @mem=6144 @cpu=pentium3 - | %OK
+himemx   EXT16M /MAX=16384 | %OK XMSTOTAL<=4000
+himemx   XMSHNDL100 /NUMHANDLES=100 | %OK XMSHANDLES>=60
+himemsx  DEFAULT - | %OK HMA=1 XMS>=350
+himemsx  SXMS @mem=6144 @cpu=pentium3 - | %OK XMS>=350 SXFREE>0
+himemsx  EXT16M /MAX=16384 | %OK XMSTOTAL<=4000
+himemsx  XMSHNDL100 /NUMHANDLES=100 | %OK XMSHANDLES>=60
+jemm386  DEFAULT - | %OK EMS=40 VCPI>0 VDS=1
+jemm386  FRAMED000 FRAME=D000 | %OK EMSFRAME=D000
+jemm386  NOFRAME FRAME=NONE | %OK EMSFRAME=FFFF0000
+jemm386  EMS0 NOEMS | %OK EMS=0
+jemm386  EXCLD000 X=D000-DFFF | %OK
+jemmsx   DEFAULT - | %OK EMS=40 VCPI>0 XMS>=350
+jemmsx   SXMS @mem=6144 @cpu=pentium3 - | %OK EMS=40 XMS>=350 SXFREE>0
+jemmex   DEFAULT - | %OK EMS=40 VCPI>0 VDS=1 HMA=1
+jemmex   SXMS @mem=6144 @cpu=pentium3 - | %OK EMS=40
+jemmex   EXT16M MAXEXT=16384 | %OK XMSTOTAL<=4000
+jemmex   XMSHNDL100 XMSHANDLES=100 | %OK XMSHANDLES>=60
+jemmex   FRAMED000 FRAME=D000 | %OK EMSFRAME=D000
+jemmex   NOFRAME FRAME=NONE | %OK EMSFRAME=FFFF0000
+jemmex   EMS0 NOEMS | %OK EMS=0
+jemmex   EXCLD000 X=D000-DFFF | %OK
+qemm     DEFAULT RAM | %OK EMS=40 VCPI>0 QPI=1
+qemm     SXMS @mem=6144 @cpu=pentium3 RAM | %OK EMS=40
+qemm     FRAMED000 RAM FR=D000 | %OK EMSFRAME=D000
+qemm     NOFRAME RAM FR=NONE | %OK EMS=0
+qemm     EXCLD000 RAM X=D000-DFFF | %OK

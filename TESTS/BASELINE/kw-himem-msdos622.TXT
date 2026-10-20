@@ -1,0 +1,3 @@
+DEFAULT          PASS
+SXMS             PASS
+XMSHNDL100       PASS

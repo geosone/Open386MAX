@@ -29,7 +29,7 @@ mmd -i "$P" ::/MAX 2>/dev/null
 for f in 386MAX.SYS 386MAX.VXD 386LOAD.SYS 386LOAD.COM 386UTIL.COM EXTRADOS.MAX ASQ.EXE asq.hlp; do
     [ -f "$ROOT/build/bin/$f" ] && mcopy -o -i "$P" "$ROOT/build/bin/$f" ::/MAX/
 done
-for f in $XFILES; do mcopy -o -i "$P" "$f" ::/; done
+for f in ${XFILES:-}; do mcopy -o -i "$P" "$f" ::/; done
 [ "${KEEPCFG:-0}" = 1 ] || {
 echo "${CONFIG:-DOS=HIGH,UMB|DEVICE=C:\\MAX\\386MAX.SYS|FILES=40|BUFFERS=20|SHELL=C:\\COMMAND.COM C:\\ /E:1024 /P}" | crlf > "$OUT/CONFIG.SYS"
 echo "${AUTO:-@ECHO OFF|PATH C:\\;C:\\MAX}" | crlf > "$OUT/AUTOEXEC.BAT"

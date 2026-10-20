@@ -199,6 +199,8 @@ def make_image(dos, profile, suites, tests, out):
             sh('mcopy', '-o', '-i', p, path, '::/SUITE/%s/%s' % (s, name))
     name = os.path.basename(base).lower()
     shell = next((v for k, v in SHELLS.items() if k in name), SHELL)
+    if 'msdos71' in name:       # MS-DOS 7.1 keeps HIMEM/EMM386 in C:\WINDOWS
+        cfg = [l.replace('C:\\DOS\\', 'C:\\WINDOWS\\') for l in cfg]
     lines = cfg + ['DOS=HIGH,UMB', 'FILES=40', 'BUFFERS=20', shell]
     write_dos(p, 'CONFIG.SYS', lines)
     for name, content in PROFILE_FILES.get(profile, {}).items():
@@ -398,27 +400,37 @@ DOSORDER = ['msdos622', 'msdos71', 'edrdos', 'svardos', 'freedos', 'qemm622']
 
 
 def matrix():
-    """build/suite/matrix.md from TESTS/BASELINE: one table per suite, MS
-    reference first"""
+    """build/suite/matrix.md from TESTS/BASELINE: per suite one table per
+    DOS (columns = profiles, MS reference first), then 386MAX on all DOSes"""
     runs = {}
     bdir = os.path.join(TESTS, 'BASELINE')
     for f in os.listdir(bdir):
         w = os.path.splitext(f)[0].split('-')
-        if len(w) == 3 and w[1] in PROFILES:
+        if len(w) == 3 and w[0] != 'kw' and w[1] in PROFILES:
             runs.setdefault(w[0], []).append((w[1], w[2], os.path.join(bdir, f)))
+    key = lambda c: (ORDER.index(c[0]) if c[0] in ORDER else 99,
+                     DOSORDER.index(c[1]) if c[1] in DOSORDER else 99)
     out = []
-    for suite in sorted(runs):
-        cols = sorted(runs[suite], key=lambda c: (ORDER.index(c[0]) if c[0] in ORDER else 99,
-                                                  DOSORDER.index(c[1]) if c[1] in DOSORDER else 99))
+
+    def table(title, cols, head):
         res = {c[2]: read_result(c[2]) for c in cols}
-        ids = sorted({i for r in res.values() for i in r})
-        out += ['### suite %s' % suite, '',
-                '| test | ' + ' | '.join('%s<br>%s' % (c[0], c[1]) for c in cols) + ' |',
-                '|---' * (len(cols) + 1) + '|']
+        ids = sorted({i for r in res.values() for i in r if '/' in i})
+        out.extend(['### ' + title, '',
+                    '| test | ' + ' | '.join(head(c) for c in cols) + ' |',
+                    '|---' * (len(cols) + 1) + '|'])
         for i in ids:
             out.append('| %s | %s |' % (i.split('/', 1)[1],
                                         ' | '.join(res[c[2]].get(i, '') for c in cols)))
         out.append('')
+    for suite in sorted(runs):
+        doses = sorted({c[1] for c in runs[suite]},
+                       key=lambda d: DOSORDER.index(d) if d in DOSORDER else 99)
+        for d in doses:
+            table('suite %s on %s' % (suite, d),
+                  sorted([c for c in runs[suite] if c[1] == d], key=key), lambda c: c[0])
+        mx = sorted([c for c in runs[suite] if c[0] == 'max'], key=key)
+        if len(mx) > 1:
+            table('suite %s:  386MAX on all DOSes' % suite, mx, lambda c: c[1])
     path = os.path.join(BUILD, 'matrix.md')
     open(path, 'w').write('\n'.join(out))
     print('\n'.join(out))

@@ -1,0 +1,4 @@
+DEFAULT          PASS
+EXT16M           PASS
+SXMS             PASS
+XMSHNDL100       PASS

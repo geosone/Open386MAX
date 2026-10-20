@@ -1,0 +1,5 @@
+DEFAULT          PASS
+EMS0             PASS
+EXCLD000         PASS
+FRAMED000        PASS
+NOFRAME          PASS
