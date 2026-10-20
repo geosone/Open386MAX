@@ -33,6 +33,35 @@ to the batch file.  It doesn't touch other drives (no "Not ready" from
 empty floppy or CD-ROM drives).  Without a 386DISK drive the batch file is
 empty (errorlevel 1), TEMP and TMP stay as they are.
 
+## 386DISK.COM:  a drive letter of its own choosing
+
+386DISK.COM is the same RAM disk as 386DISK.SYS (it contains it
+unchanged), loaded from AUTOEXEC.BAT or the command line, also with
+LOADHIGH:
+
+    C:\386MAX\386DISK.COM /L:R 16384 512 512 /XMS
+
+/L:x gives the drive letter; without it the RAM disk gets the first free
+one from C:.  The letter has to be free and below LASTDRIVE, so
+CONFIG.SYS needs `LASTDRIVE=Z` (or at least the letter) for /L:R.  The
+other arguments are those of 386DISK.SYS.  Errorlevel 1 (with a message)
+when the letter is in use, beyond LASTDRIVE or not A-Z, or when the
+driver could not set up the disk.
+
+It does what DOS does for a block device driver from CONFIG.SYS:  it
+calls the driver's INIT, builds a drive parameter block from the BPB
+(INT 21h 53h) and appends it to the DPB chain, makes the drive's entry
+in the current directory structure (CDS) a physical drive with this
+DPB, raises the number of block devices in the list of lists if needed
+(else DOS treats the drive as not there and drops the writes in its
+buffers), links the driver after NUL and stays resident (1.1KB, the
+size of 386DISK.SYS).  It can't be unloaded.  RAMTEMP finds this drive
+as well.
+
+Tested with linux/test/ramdisk.sh in QEMU with 386MAX on MS-DOS 6.22,
+MS-DOS 7.1, FreeDOS, EDR-DOS and SvarDOS:  R:\TEMP, a file copied to R:
+and back unchanged, RAMTEMP, the first free letter, the error cases.
+
 ## Per DOS
 
 | DOS | startup files | notes |

@@ -57,6 +57,9 @@ during the installation program.
 @xxxx.BCF               where xxxx is a combination of characters and integers.
                         This is a bios compression file that is only used on
                         IBM Microchannel machines.
+386DISK.COM             386DISK.SYS as a program, for AUTOEXEC.BAT or the
+                        command line, with a drive letter of your choice
+                        (/L:x).
 386DISK.SYS             This program simulates a disk drive on your system.  You
                         may choose to place the data of the simulated disk in
                         extended, EMS, or XMS memory.  This virtual disk
