@@ -14,6 +14,32 @@ generations after that.  The documents are not kept in this repository
 (their terms grant no license to pass them on); they are linked at the
 end.
 
+## In Open 386MAX
+
+386MAX (GET_SHDMAP in QMAX_MEM.ASM), MAXIMIZE (CHKRAM.C) and ASQ
+(Equipment, PCI devices) read which 16KB blocks of C0000-FFFFF the
+chipset maps to DRAM, and which of them are write-protected; they don't
+change the registers.  386MAX keeps shadow DRAM the BIOS doesn't use
+apart from adapter RAM, MAXIMIZE doesn't protect it with RAM= when the
+chipset ignores the write protection (QEMU/KVM), ASQ shows the host
+bridge, the registers, LOCK and the map.
+
+The host bridges are listed once, in 386MAX/SHADOWRAM.TXT:  vendor ID,
+range of device IDs, method (`pam`:  Intel PAM registers at a given
+PAM0 register, `amdmtrr`:  AMD fixed range MTRRs), flags (`lock`:
+PAM0 bit 0 is LOCK, checked in the datasheet).  linux/tools/shdtab.py
+makes SHDTAB.INC (for 386MAX and 386MAX/SHDMAP.ASM, which MAXIMIZE and
+ASQ build) and SHDTAB.H (the names for ASQ) of it.  A new chipset with
+one of these methods is one more line; another register layout (e.g.
+the chipsets of UMBPCI) needs a new method in GET_SHDMAP and SHDMAP.ASM.
+
+The AMD line covers every family from 0Fh (K8) on, Zen included, which
+is not checked yet against the Zen PPRs.  On AMD the MTRRs can only be
+read in real mode:  MAXIMIZE and ASQ under a memory manager (V86 mode)
+don't get them, 386MAX reads them before it switches.
+
+Tested in QEMU:  pc (440FX, PAM at 59h) and q35 (Q35, PAM at 90h).
+
 ## Intel, 8th Core generation to Core Ultra
 
 The memory controller is in the processor, and so are the PAM

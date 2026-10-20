@@ -136,6 +136,7 @@ typedef enum _rwkey {
 	K_PCIBIOS,
 	K_PCIDEV,
 	K_OPTROM,
+	K_SHADOW,
 	K_ACPI,
 	K_ACPITAB,
 	K_SMBIOS,
@@ -349,6 +350,7 @@ GLOBAL struct _rwkeyword {
 	"PciBios",      K_PCIBIOS,	/* PCI BIOS version, last bus */
 	"PciDev",       K_PCIDEV,	/* PCI function */
 	"OptRom",       K_OPTROM,	/* option ROM */
+	"Shadow",       K_SHADOW,	/* shadow DRAM C0000-FFFFF */
 	"Acpi",         K_ACPI,	/* RSDP */
 	"AcpiTab",      K_ACPITAB,	/* ACPI table */
 	"SmBios",       K_SMBIOS,	/* SMBIOS entry point */

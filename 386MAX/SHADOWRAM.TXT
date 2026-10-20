@@ -1,0 +1,61 @@
+; SHADOWRAM.TXT -- host bridges whose shadow DRAM in C0000-FFFFF 386MAX,
+; MAXIMIZE and ASQ read (see docs/shadowram.md).  linux/tools/shdtab.py
+; makes SHDTAB.INC of it (build/<program>/SHDTAB.INC) for GET_SHDMAP
+; (386MAX\QMAX_MEM.ASM) and SHDMAP.ASM (MAXIMIZE, ASQ).
+;
+; One line per vendor ID and range of device IDs of the host bridge (PCI
+; bus 0, device 0, function 0); the first matching line counts.
+;
+;   vendor  device[-device]  method  register  flags  comment
+;
+; method:
+;   pam      Intel PAM registers:  PAM0 at <register> (F0000-FFFFF in the
+;	     high nibble), PAM1-PAM6 (C0000-EFFFF) the six bytes after it,
+;	     one nibble per 16KB, bit 0 = reads from DRAM, bit 1 = writes
+;   amdmtrr  AMD family 0Fh (K8) and later:  RdDram/WrDram of the fixed
+;	     range MTRRs 268h-26Fh (register -)
+; flags:
+;   lock     PAM0 bit 0 is LOCK (checked in the datasheet)
+;   -        none
+;
+; Datasheets checked (Intel, 8th to 14th generation, volume 2, and the
+; device ID table of 13th/14th generation volume 1):  PAM0-PAM6 at
+; 80h-86h with the layout above, LOCK in PAM0 bit 0.  The device IDs of
+; the families without "lock" come from the older 386MAX table.
+
+8086  122D       pam     59  -     430FX
+8086  1250       pam     59  -     430HX
+8086  7030       pam     59  -     430VX
+8086  7100       pam     59  -     430TX
+8086  1237       pam     59  -     440FX
+8086  7180       pam     59  -     440LX
+8086  7190       pam     59  -     440BX/ZX
+8086  7192       pam     59  -     440BX/ZX (AGP disabled)
+8086  71A0       pam     59  -     440GX
+8086  71A2       pam     59  -     440GX (AGP disabled)
+8086  84C4       pam     59  -     450KX/GX
+8086  84CA       pam     59  -     450NX
+8086  7120       pam     59  -     810
+8086  7122       pam     59  -     810-DC100
+8086  7124       pam     59  -     810E
+8086  7194       pam     59  -     440MX
+8086  1A30       pam     90  -     845
+8086  2550-2EFF  pam     90  -     845E to 4 Series (G45, Q35)
+8086  0100-01FF  pam     80  -     2nd/3rd generation Core (Sandy/Ivy Bridge)
+8086  0A00-0AFF  pam     80  -     4th generation Core (Haswell)
+8086  0C00-0DFF  pam     80  -     4th generation Core (Haswell)
+8086  1500-16FF  pam     80  -     5th generation Core (Broadwell) and others
+8086  1900-19FF  pam     80  -     6th generation Core (Skylake)
+8086  1F00-1FFF  pam     80  -     Atom C2000
+8086  5900-59FF  pam     80  -     7th generation Core (Kaby Lake)
+8086  3E00-3EFF  pam     80  lock  8th/9th generation Core (Coffee Lake)
+8086  9B00-9BFF  pam     80  lock  10th generation Core (Comet Lake)
+8086  8A00-8AFF  pam     80  -     10th generation Core (Ice Lake)
+8086  9A00-9AFF  pam     80  lock  11th generation Core (Tiger Lake)
+8086  4C00-4CFF  pam     80  lock  11th generation Core (Rocket Lake)
+8086  4600-46FF  pam     80  lock  12th generation Core (Alder Lake), 13th/14th
+8086  A700-A7FF  pam     80  lock  13th/14th generation Core (Raptor Lake)
+8086  7D00-7DFF  pam     80  -     Core Ultra (Meteor Lake, Arrow Lake)
+; any AMD host bridge (all device IDs) with a family 0Fh or later CPU;
+; lines for older AMD chipsets (e.g. of UMBPCI) go before it
+1022  0000-FFFF  amdmtrr -   -     AMD K8 and later

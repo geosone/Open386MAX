@@ -8,7 +8,9 @@
  * (RSDP, RSDT/XSDT) and SMBIOS (BIOS, system, board, processor, memory
  * devices).  Tables above 1 MB are read with INT 15h AH=87h.  Everything
  * goes into SysInfo->Modern (modinfo.h).  Only reads: no PCI configuration
- * register is written.
+ * register is written (on AMD, SYSCFG bit 19 is set for a moment to read
+ * the fixed range MTRRs of the shadow DRAM, then restored).  Also the shadow
+ * DRAM in C0000-FFFFF (SHDMAP.ASM).
  */
 
 #include <stdio.h>
@@ -169,6 +171,22 @@ static void get_pci(void)
 		MOD.nPci = n;
 		sysbuf_store(&MOD.hPci, list, n * sizeof(PCIDEV));
 	}
+}
+
+/* Shadow DRAM in C0000-FFFFF (chipset registers, SHDMAP.ASM) */
+static void get_shadow(void)
+{
+	SHDINFO s;
+
+	if (!(MOD.flags & MOD_PCI)) return;
+	shd_get(&s);
+	MOD.flags |= MOD_SHADOW;
+	MOD.bShdKind = s.kind;
+	MOD.bShdReg = s.reg;
+	MOD.bShdLock = s.lock;
+	MOD.wShdRd = s.rd;
+	MOD.wShdWr = s.wr;
+	MOD.wShdDev = s.dev;
 }
 
 static void get_optroms(void)
@@ -441,6 +459,7 @@ void modinfo_get(void)
 	get_memmap();
 	get_cpuid();
 	get_pci();
+	get_shadow();
 	get_optroms();
 
 	phys_buf = my_malloc(PHYSBUF);

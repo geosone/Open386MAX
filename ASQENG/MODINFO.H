@@ -82,6 +82,7 @@ typedef struct _moderninfo {
 #define MOD_ACPI	0x0010	/* ACPI RSDP found */
 #define MOD_SMBIOS	0x0020	/* SMBIOS entry point found */
 #define MOD_XMOVE	0x0040	/* INT 15h AH=87h failed: tables not read */
+#define MOD_SHADOW	0x0080	/* Shadow DRAM map read (bShdKind) */
 	WORD nE820;		/* E820 entries */
 	SYSBUFH hE820;		/* E820ENT [nE820] */
 	WORD wE801[2];		/* KB 1-16 MB, 64 KB blocks above 16 MB */
@@ -99,6 +100,13 @@ typedef struct _moderninfo {
 	SYSBUFH hPci;		/* PCIDEV [nPci] */
 	WORD nOptRom;		/* Option ROMs */
 	SYSBUFH hOptRom;	/* OPTROM [nOptRom] */
+
+	BYTE bShdKind;		/* Shadow DRAM:  SHD_xxx */
+	BYTE bShdReg;		/* Intel:  PCI register of PAM0 */
+	BYTE bShdLock;		/* Intel:  PAM0 LOCK set */
+	WORD wShdRd;		/* 16 KB blocks of C0000-FFFFF read from DRAM */
+	WORD wShdWr;		/* ... written to DRAM */
+	WORD wShdDev;		/* Host bridge device ID */
 
 	BYTE bAcpiRev;		/* RSDP revision */
 	char szAcpiOem[7];	/* RSDP OEM ID */
@@ -125,6 +133,22 @@ const char *smb_string(int item);	/* Collected SMBIOS string or NULL */
 void Memory_BIOS_Map(HANDLE info);
 void Hardware_PCI(HANDLE info);
 void Hardware_Firmware(HANDLE info);
+
+/* SHDMAP.ASM (386MAX\, the table of 386MAX\SHADOWRAM.TXT):  shadow DRAM */
+typedef struct _shdinfo {
+	BYTE kind;		/* SHD_xxx */
+	BYTE reg;		/* Intel:  PCI register of PAM0 */
+	BYTE lock;		/* Intel:  1 = PAM0 LOCK set */
+	BYTE res;
+	WORD rd;		/* 16 KB blocks read from DRAM (bit 0 = C0000) */
+	WORD wr;		/* ... written to DRAM */
+	WORD dev;		/* Host bridge device ID */
+} SHDINFO;
+#define SHD_UNKNOWN	0	/* Host bridge not in the table */
+#define SHD_INTEL	1	/* Intel PAM registers */
+#define SHD_AMD 	2	/* AMD fixed range MTRRs */
+#define SHD_AMDV86	3	/* AMD, not readable in V86 mode */
+int far shd_get(SHDINFO far *info);
 
 /* MODHW.ASM */
 int pascal far MODHW_E820(DWORD far *cont, void far *buf);

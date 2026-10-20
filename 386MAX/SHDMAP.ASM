@@ -1,4 +1,4 @@
-	 title	 SHDMAP.ASM -- Write-Protected Shadow DRAM in C0000-EFFFF
+	 title	 SHDMAP.ASM -- Shadow DRAM in C0000-FFFFF
 	 page	 58,122
 	 name	 SHDMAP
 
@@ -6,22 +6,43 @@ COMMENT|		Module Specifications
 
 Copyright:  (C) Copyright 2026 Open 386MAX.  GNU General Public License version 3.
 
-Open 386MAX addition for MAXIMIZE (CHKRAM.C):  without 386MAX, MAXIMIZE
-finds RAM in high DOS memory by writing to it, and protects what it finds
-with RAM= in the profile.  The shadow DRAM a BIOS doesn't use is read from
-DRAM but write-protected; where the chipset ignores the write protection
-(QEMU/KVM) the write test finds it writable, and MAXIMIZE would protect
-C0000-EFFFF.  The chipset registers tell the truth, as 386MAX itself reads
-them (GET_SHDMAP in 386MAX\QMAX_MEM.ASM):
+Open 386MAX addition for MAXIMIZE (CHKRAM.C) and ASQ (MODINFO.C), built
+from 386MAX\ by both, the host bridge tables in SHDTAB.INC:  which
+16KB blocks of C0000-FFFFF the chipset maps to (shadow) DRAM, read from
+the chipset registers as 386MAX itself reads them (GET_SHDMAP in
+386MAX\QMAX_MEM.ASM, see docs/shadowram.md).  Without 386MAX, MAXIMIZE
+finds RAM in high DOS memory by writing to it, and protects what it
+finds with RAM= in the profile.  The shadow DRAM a BIOS doesn't use is
+read from DRAM but write-protected; where the chipset ignores the write
+protection (QEMU/KVM) the write test finds it writable, and MAXIMIZE
+would protect C0000-EFFFF.
 
 Intel host bridges:  PAM registers (one nibble per 16KB, bit 0 = read,
-bit 1 = write enable, the low nibble of PAM1 is C0000-C3FFF)
+bit 1 = write enable, the low nibble of PAM1 is C0000-C3FFF, the high
+nibble of PAM0 F0000-FFFFF)
   at 59h:  430FX/HX/VX/TX, 440FX/LX/BX/GX/ZX, 810
   at 90h:  845 to 4 Series (G45, Q35)
-  at 80h:  2nd generation Core (Sandy Bridge) and later
-AMD K8 and later:  fixed range MTRRs 268h-26Bh (one byte per 4KB,
-  bit 4 = RdMem, bit 3 = WrMem, visible if SYSCFG.MtrrFixDramModEn),
-  only in real mode (RDMSR faults in V86 mode).
+  at 80h:  2nd generation Core (Sandy Bridge) and later, up to the
+	   13th/14th generation and Core Ultra; PAM0 bit 0 = LOCK
+AMD K8 and later:  fixed range MTRRs 268h-26Fh (one byte per 4KB,
+  bit 4 = RdDram, bit 3 = WrDram, visible if SYSCFG.MtrrFixDramModEn,
+  used if SYSCFG.MtrrFixDramEn), only in real mode (RDMSR faults in
+  V86 mode).
+
+typedef struct {
+	unsigned char kind;	// 0 = unknown, 1 = Intel PAM, 2 = AMD, 3 = AMD in V86
+	unsigned char reg;	// Intel:  PCI register of PAM0
+	unsigned char lock;	// Intel:  1 = PAM0 LOCK set (lock in SHADOWRAM.TXT)
+	unsigned char res;
+	unsigned rd;		// 16KB blocks read from DRAM (bit 0 = C0000)
+	unsigned wr;		// ...	       written to DRAM
+	unsigned dev;		// Host bridge device ID
+} SHDINFO;
+
+int shd_get (SHDINFO far *info);
+
+Fills *info, returns its kind:  0 = unknown chipset (maps zero), 1 =
+Intel PAM, 2 = AMD fixed MTRRs, 3 = AMD, but in V86 mode (not readable).
 
 unsigned shd_protmap (void);
 
@@ -32,19 +53,22 @@ from DRAM but write-protected; 0 if unknown.
 
 .model large,c
 
+	 include SHDTAB.INC	; Host bridges (made of SHADOWRAM.TXT)
+
+SHD_STR  struc
+SHD_KIND db	 ?		; 0 = unknown, 1 = Intel, 2 = AMD, 3 = AMD in V86
+SHD_REG  db	 ?		; Intel:  PCI register of PAM0
+SHD_LOCK db	 ?		; Intel:  PAM0 LOCK set
+SHD_RES  db	 ?		; (reserved)
+SHD_RD	 dw	 ?		; 16KB blocks read from DRAM
+SHD_WR	 dw	 ?		; ...	      written to DRAM
+SHD_DEV  dw	 ?		; Host bridge device ID
+SHD_STR  ends
+
 .code
 .386p
 
-PAM59_TAB dw	 122Dh,1250h,7030h,7100h ; 430FX/HX/VX/TX
-	 dw	 1237h,7180h,7190h,7192h ; 440FX/LX/BX/BX (AGP disabled)
-	 dw	 71A0h,71A2h,84C4h,84CAh ; 440GX/GX, 450KX/GX
-	 dw	 7120h,7122h,7124h,7194h ; 810/810-DC100/810E, 440MX
-PAM59_CNT equ	 ($-PAM59_TAB)/2 ; # entries
-
-PAM80_TAB db	 01h,0Ah,0Ch,0Dh,15h,16h,19h,1Fh ; SNB to SKL
-	 db	 3Eh,59h,8Ah,9Ah,9Bh,4Ch,46h,0A7h ; KBL to RPL
-	 db	 7Dh		; MTL/ARL
-PAM80_CNT equ	 $-PAM80_TAB	; # entries
+	 SHDTAB_DATA		; Host bridges (SHDTAB.INC)
 
 ; Read a dword from the configuration space of the host bridge
 ; (bus 0, device 0, function 0) via configuration mechanism #1.
@@ -62,117 +86,172 @@ PCI_RDCFG proc	 near
 	 ret			; Return to caller
 PCI_RDCFG endp
 
-	 public  shd_protmap
-shd_protmap proc far
-	 push	 bp		; Save registers
-	 push	 si		; ...
-	 push	 di		; ...
-	 xor	 di,di		; Initialize read  enable map
-	 xor	 bp,bp		; ...	     write ...
-
-; Configuration mechanism #1 via the PCI BIOS (Int 1Ah, AX=B101h)
-	 mov	 ax,0B101h	; PCI BIOS present?
-	 xor	 edi,edi	; (some BIOSes expect EDI=0)
-	 int	 1Ah		; Return with EDX = 'PCI ', AL bit 0 = mech #1
-	 jc	 near ptr SHD_EXIT ; Jump if not
-	 cmp	 edx,20494350h	; 'PCI '?
-	 jne	 near ptr SHD_EXIT ; Jump if not
-	 test	 al,1		; Mechanism #1?
-	 jz	 near ptr SHD_EXIT ; Jump if not
-
-	 pushf			; Save interrupt flag
-	 cli			; No interrupts during config cycles
-	 mov	 al,00h 	; Vendor and device ID
-	 call	 PCI_RDCFG	; Return with EAX = register
-	 cmp	 ax,8086h	; Izit Intel?
-	 je	 short SHD_INTEL ; Jump if so
-	 cmp	 ax,1022h	; Izit AMD?
-	 je	 near ptr SHD_AMD ; Jump if so
-	 jmp	 SHD_DONE	; Unknown host bridge
-
-SHD_INTEL:
-	 shr	 eax,16 	; AX = device ID
-	 lea	 si,PAM59_TAB	; CS:SI ==> device IDs with PAM at 59h
-	 mov	 cx,PAM59_CNT	; # entries
-@@:
-	 cmp	 ax,cs:[si]	; Izit this one?
-	 je	 short SHD_59	; Jump if so
-	 add	 si,2		; Skip to next entry
-	 loop	 @B		; Jump if more entries to check
-
-	 cmp	 ax,1A30h	; 845?
-	 je	 short SHD_90	; Jump if so
-	 cmp	 ax,2550h	; 845E to 4 Series (Q35, G45)?
-	 jb	 short @F	; Jump if not
-	 cmp	 ax,2EFFh	; ...
-	 jbe	 short SHD_90	; Jump if so
-@@:
-	 mov	 bx,ax		; Copy device ID
-	 lea	 si,PAM80_TAB	; CS:SI ==> high bytes of device IDs (PAM at 80h)
-	 mov	 cx,PAM80_CNT	; # entries
-@@:
-	 cmp	 bh,cs:[si]	; Izit this family?
-	 je	 short SHD_80	; Jump if so
-	 inc	 si		; Skip to next entry
-	 loop	 @B		; Jump if more entries to check
-	 jmp	 SHD_DONE	; Unknown Intel host bridge
-
-SHD_59:
-	 mov	 bl,59h 	; PAM0 register
-	 jmp	 short SHD_PAM	; Join common code
-SHD_90:
-	 mov	 bl,90h 	; PAM0 register
-	 jmp	 short SHD_PAM	; Join common code
-SHD_80:
-	 mov	 bl,80h 	; PAM0 register
-
-; BL = PCI register of PAM0; PAM1 (C0000-C7FFF) to PAM6 (E8000-EFFFF)
-; follow as six consecutive bytes.
-SHD_PAM:
-	 xor	 bh,bh		; Zero to use as word
-	 inc	 bx		; Skip PAM0 (F0000-FFFFF)
-	 xor	 dx,dx		; Bit # in maps (16KB blocks from C0000)
-	 mov	 cx,6		; PAM1 to PAM6
-SHD_PAMNEXT:
+; Read the PAM byte of register BL into AL
+PAM_READ proc	 near
+	 push	 cx		; Save register
 	 mov	 al,bl		; Copy register #
 	 call	 PCI_RDCFG	; Return with EAX = dword
-	 push	 cx		; Save for a moment
 	 mov	 cl,bl		; Copy register #
 	 and	 cl,3		; Byte # within dword
 	 shl	 cl,3		; Times 8 to get bit shift
 	 shr	 eax,cl 	; AL = PAM byte
 	 pop	 cx		; Restore
+	 ret			; Return to caller
+PAM_READ endp
+
+; EAX = four bytes of a fixed range MTRR (four 4KB pages), BX = bit # of
+; their 16KB block:  set it in DI (all RdDram) and SI (any WrDram), BX + 1
+MTRR_BLK proc	 near
+	 push	 eax		; Save for a moment
+	 and	 eax,10101010h	; Isolate RdDram of the four 4KB pages
+	 cmp	 eax,10101010h	; All set?
+	 pop	 eax		; Restore
+	 jne	 short @F	; Jump if not
+
+	 bts	 di,bx		; Mark as read from DRAM
+@@:
+	 test	 eax,08080808h	; Any WrDram?
+	 jz	 short @F	; Jump if not
+
+	 bts	 si,bx		; Mark as written to DRAM
+@@:
+	 inc	 bx		; Next 16KB block
+
+	 ret			; Return to caller
+MTRR_BLK endp
+
+	 public  shd_get
+shd_get  proc	 far uses si di,info:dword
+	 les	 bx,info	; ES:BX ==> SHDINFO
+	 xor	 eax,eax	; Zero all of it
+	 mov	 es:[bx+0],eax	; ...
+	 mov	 es:[bx+4],eax	; ...
+	 mov	 es:[bx+8],ax	; ...
+
+	 xor	 di,di		; Initialize read  enable map
+	 xor	 si,si		; ...	     write ...
+
+; Configuration mechanism #1 via the PCI BIOS (Int 1Ah, AX=B101h)
+
+	 mov	 ax,0B101h	; PCI BIOS present?
+	 xor	 edi,edi	; (some BIOSes expect EDI=0)
+	 int	 1Ah		; Return with EDX = 'PCI ', AL bit 0 = mech #1
+	 mov	 di,0		; Restore read enable map (flags kept)
+	 jc	 near ptr SHD_EXIT ; Jump if not
+
+	 cmp	 edx,20494350h	; 'PCI '?
+	 jne	 near ptr SHD_EXIT ; Jump if not
+
+	 test	 al,1		; Mechanism #1?
+	 jz	 near ptr SHD_EXIT ; Jump if not
+
+	 pushf			; Save interrupt flag
+	 cli			; No interrupts during config cycles
+
+	 mov	 al,00h 	; Vendor and device ID
+	 call	 PCI_RDCFG	; Return with EAX = register
+
+	 les	 bx,info	; ES:BX ==> SHDINFO
+	 mov	 edx,eax	; Copy vendor and device ID
+	 shr	 edx,16 	; DX = device ID
+	 mov	 es:[bx].SHD_DEV,dx ; Save it
+
+; Look up the host bridge in SHDTAB (SHADOWRAM.TXT)
+
+	 lea	 bx,SHDTAB	; CS:BX ==> host bridge table
+SHD_TAB:
+	 cmp	 cs:[bx].SHDT_VEN,0 ; Izit the end of the table?
+	 je	 near ptr SHD_DONE ; Jump if so (unknown host bridge)
+
+	 cmp	 ax,cs:[bx].SHDT_VEN ; Izit this vendor?
+	 jne	 short SHD_TABNXT ; Jump if not
+
+	 cmp	 dx,cs:[bx].SHDT_LO ; Izit in the range of device IDs?
+	 jb	 short SHD_TABNXT ; Jump if not
+	 cmp	 dx,cs:[bx].SHDT_HI ; ...
+	 jbe	 short SHD_TABHIT ; Jump if so
+SHD_TABNXT:
+	 add	 bx,size SHDT_STR ; Skip to next entry
+
+	 jmp	 SHD_TAB	; Go around again
+
+SHD_TABHIT:
+	 cmp	 cs:[bx].SHDT_METH,@SHDT_AMD ; Izit AMD's fixed range MTRRs?
+	 je	 near ptr SHD_AMD ; Jump if so
+
+	 mov	 dl,cs:[bx].SHDT_REG ; Get PAM0 register
+	 mov	 dh,cs:[bx].SHDT_FLAG ; Get flags
+
+; DL = PCI register of PAM0 (F0000-FFFFF in the high nibble), DH = flags;
+; PAM1 (C0000-C7FFF) to PAM6 (E8000-EFFFF) follow as six consecutive bytes.
+
+SHD_PAM:
+	 les	 bx,info	; ES:BX ==> SHDINFO
+	 mov	 es:[bx].SHD_KIND,1 ; Intel PAM
+	 mov	 es:[bx].SHD_REG,dl ; Save PAM0 register
+
+	 mov	 cx,bx		; Save offset of SHDINFO
+	 movzx	 bx,dl		; Copy PAM0 register #
+	 call	 PAM_READ	; AL = PAM0
+
+	 test	 dh,@SHDT_LOCK	; Izit PAM0 bit 0 LOCK?
+	 jz	 short @F	; Jump if not
+
+	 test	 al,1		; LOCK set?
+	 jz	 short @F	; Jump if not
+
+	 xchg	 bx,cx		; ES:BX ==> SHDINFO
+	 mov	 es:[bx].SHD_LOCK,1 ; Mark as locked
+	 xchg	 bx,cx		; Restore
+@@:
+	 test	 al,10h 	; F0000-FFFFF read enable?
+	 jz	 short @F	; Jump if not
+
+	 or	 di,0F000h	; Mark F0000-FFFFF
+@@:
+	 test	 al,20h 	; F0000-FFFFF write enable?
+	 jz	 short @F	; Jump if not
+
+	 or	 si,0F000h	; Mark F0000-FFFFF
+@@:
+	 inc	 bx		; Skip to PAM1
+	 xor	 dx,dx		; Bit # in maps (16KB blocks from C0000)
+	 mov	 cx,6		; PAM1 to PAM6
+SHD_PAMNEXT:
+	 call	 PAM_READ	; AL = PAM byte
 
 	 mov	 ah,al		; Copy for high nibble
 	 test	 al,1		; Low nibble's read enable?
 	 jz	 short @F	; Jump if not
+
 	 bts	 di,dx		; Mark as read from DRAM
 @@:
 	 test	 al,2		; Low nibble's write enable?
 	 jz	 short @F	; Jump if not
-	 bts	 bp,dx		; Mark as written to DRAM
+
+	 bts	 si,dx		; Mark as written to DRAM
 @@:
 	 inc	 dx		; Next 16KB block
 	 test	 ah,10h 	; High nibble's read enable?
 	 jz	 short @F	; Jump if not
+
 	 bts	 di,dx		; Mark as read from DRAM
 @@:
 	 test	 ah,20h 	; High nibble's write enable?
 	 jz	 short @F	; Jump if not
-	 bts	 bp,dx		; Mark as written to DRAM
+
+	 bts	 si,dx		; Mark as written to DRAM
 @@:
 	 inc	 dx		; Next 16KB block
 	 inc	 bx		; Next PAM register
 	 loop	 SHD_PAMNEXT	; Jump if more PAM registers
+
 	 jmp	 SHD_DONE	; Join common code
 
 ; AMD:	the fixed range MTRRs are valid only on family 0Fh and later; they
 ; can only be read in real mode (in V86 mode RDMSR faults)
-SHD_AMD:
-	 smsw	 ax		; Get machine status word
-	 test	 ax,1		; Protected (V86) mode?
-	 jnz	 near ptr SHD_DONE ; Jump if so
 
+SHD_AMD:
 	 xor	 eax,eax	; Function 0:  vendor
 	 db	 0Fh,0A2h	; CPUID:  EBX:EDX:ECX = vendor
 	 cmp	 ebx,68747541h	; "AuthenticAMD"?
@@ -187,57 +266,67 @@ SHD_AMD:
 	 cmp	 al,0Fh 	; K8 or later?
 	 jne	 near ptr SHD_DONE ; Jump if not
 
+	 les	 bx,info	; ES:BX ==> SHDINFO
+	 mov	 es:[bx].SHD_KIND,3 ; AMD, not readable
+
+	 smsw	 ax		; Get machine status word
+	 test	 ax,1		; Protected (V86) mode?
+	 jnz	 near ptr SHD_DONE ; Jump if so
+
+	 mov	 es:[bx].SHD_KIND,2 ; AMD fixed MTRRs
+
 	 mov	 ecx,0C0010010h ; SYSCFG
 	 db	 0Fh,32h	; RDMSR:  EDX:EAX
 	 bt	 eax,18 	; MtrrFixDramEn?
-	 jnc	 near ptr SHD_DONE ; Jump if not (RdMem/WrMem unused)
+	 jnc	 near ptr SHD_DONE ; Jump if not (RdDram/WrDram unused)
 
 	 push	 edx		; Save SYSCFG
 	 push	 eax		; ...
-	 bts	 eax,19 	; Make RdMem/WrMem visible (MtrrFixDramModEn)
+	 bts	 eax,19 	; Make RdDram/WrDram visible (MtrrFixDramModEn)
 	 db	 0Fh,30h	; WRMSR
 
 	 xor	 bx,bx		; Bit # in maps (16KB blocks from C0000)
 	 mov	 ecx,268h	; C0000-C7FFF
 SHD_MTRR:
 	 db	 0Fh,32h	; RDMSR:  EDX:EAX = 8 bytes for 8 * 4KB
-	 mov	 si,2		; Two 16KB blocks
-SHD_MTRR0:
-	 push	 eax		; Save for a moment
-	 and	 eax,10101010h	; Isolate RdMem of the four 4KB pages
-	 cmp	 eax,10101010h	; All set?
-	 pop	 eax		; Restore
-	 jne	 short @F	; Jump if not
-	 bts	 di,bx		; Mark as read from DRAM
-@@:
-	 test	 eax,08080808h	; Any WrMem?
-	 jz	 short @F	; Jump if not
-	 bts	 bp,bx		; Mark as written to DRAM
-@@:
-	 inc	 bx		; Next 16KB block
-	 mov	 eax,edx	; Next four 4KB pages
-	 dec	 si		; One fewer block
-	 jnz	 short SHD_MTRR0 ; Jump if more
+	 call	 MTRR_BLK	; The low four 4KB pages
+	 mov	 eax,edx	; The high four
+	 call	 MTRR_BLK	; ...
 
 	 inc	 ecx		; Next MTRR
-	 cmp	 ecx,26Bh	; Through E8000-EFFFF?
+	 cmp	 ecx,26Fh	; Through F8000-FFFFF?
 	 jbe	 short SHD_MTRR ; Jump if more
 
 	 mov	 ecx,0C0010010h ; SYSCFG
 	 pop	 eax		; Restore original value
 	 pop	 edx		; ...
 	 db	 0Fh,30h	; WRMSR
-
 SHD_DONE:
 	 popf			; Restore interrupt flag
 SHD_EXIT:
-	 not	 bp		; Not write enabled
-	 and	 di,bp		; Read from DRAM, write-protected
-	 and	 di,0FFFh	; Only C0000-EFFFF
-	 mov	 ax,di		; Return value
-	 pop	 di		; Restore
-	 pop	 si		; ...
-	 pop	 bp		; ...
+	 les	 bx,info	; ES:BX ==> SHDINFO
+	 mov	 es:[bx].SHD_RD,di ; Save read  enable map
+	 mov	 es:[bx].SHD_WR,si ; ...  write ...
+	 movzx	 ax,es:[bx].SHD_KIND ; Return the kind
+
+	 ret			; Return to caller
+shd_get  endp
+
+	 public  shd_protmap
+shd_protmap proc far
+	 local	 shd:SHD_STR
+
+	 lea	 ax,shd 	; SS:AX ==> SHDINFO
+	 push	 ss		; Pass its address
+	 push	 ax		; ...
+	 call	 shd_get	; Fill it
+	 add	 sp,4		; Strip the argument
+
+	 mov	 ax,shd.SHD_WR	; Get write enable map
+	 not	 ax		; Not write enabled
+	 and	 ax,shd.SHD_RD	; Read from DRAM, write-protected
+	 and	 ax,0FFFh	; Only C0000-EFFFF
+
 	 ret			; Return to caller
 shd_protmap endp
 

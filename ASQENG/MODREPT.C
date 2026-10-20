@@ -18,6 +18,8 @@
 #include <engine.h>		/* DWIDTH2 */
 #include "info.h"               /* Info text functions */
 #include "sysinfo.h"            /* System info structures */
+#define SHDTAB_DATA
+#include "SHDTAB.H"              /* Host bridges (made of 386MAX\SHADOWRAM.TXT) */
 
 #ifdef LANG_GR
 #define L(us,gr) gr
@@ -328,6 +330,74 @@ static char *pci_owner(WORD ven, WORD dev, char *out)
 	return out;
 }
 
+/* Shadow DRAM in C0000-FFFFF (SHDMAP.ASM, the table of SHADOWRAM.TXT) */
+static void shadow_report(HANDLE info)
+{
+	static const char *state[4] = {
+		L("ROM or PCI (no DRAM)", "ROM oder PCI (kein DRAM)"),
+		L("DRAM, write-protected", "DRAM, schreibgesch\x81tzt"),
+		L("writes to DRAM, reads ROM/PCI", "Schreiben ins DRAM, Lesen ROM/PCI"),
+		L("DRAM, read/write", "DRAM, lesen/schreiben")
+	};
+	PCIDEV *d = sysbuf_ptr(MOD.hPci);
+	WORD ven = 0, kk;
+	char label[24], line[80];
+	int i, j;
+
+	if (!(MOD.flags & MOD_SHADOW)) return;
+	blank(info);
+	heading(info, L("Shadow DRAM C0000-FFFFF", "Schatten-DRAM C0000-FFFFF"));
+	blank(info);
+	for (kk = 0; kk < MOD.nPci; kk++, d++)
+		if (!d->bus && !d->devfn) {
+			ven = d->ven;
+			break;
+		}
+	if (MOD.bShdKind == SHD_INTEL) ven = 0x8086;
+	if (MOD.bShdKind == SHD_AMD || MOD.bShdKind == SHD_AMDV86) ven = 0x1022;
+	sprintf(line, "%04X:%04X", ven, MOD.wShdDev);
+	for (i = 0; i < SHDT_COUNT; i++)
+		if (ShdTab[i].ven == ven && ShdTab[i].lo <= MOD.wShdDev &&
+		    MOD.wShdDev <= ShdTab[i].hi) {
+			sprintf(line + strlen(line), " %s", ShdTab[i].name);
+			break;
+		}
+	item(info, L("Host bridge", "Host-Bridge"), line);
+	switch (MOD.bShdKind) {
+	case SHD_INTEL:
+		sprintf(line, L("PAM0-PAM6 at %02Xh-%02Xh%s", "PAM0-PAM6 bei %02Xh-%02Xh%s"),
+			MOD.bShdReg, MOD.bShdReg + 6,
+			MOD.bShdLock ? L(", locked (PAM0 LOCK)", ", gesperrt (PAM0 LOCK)") : "");
+		item(info, L("Registers", "Register"), line);
+		break;
+	case SHD_AMD:
+		item(info, L("Registers", "Register"),
+			L("fixed range MTRRs 268h-26Fh", "Fixed-Range-MTRRs 268h-26Fh"));
+		break;
+	case SHD_AMDV86:
+		iprintf(info, L("The fixed range MTRRs can't be read in V86 mode (start ASQ\n"
+				 "without a memory manager).",
+				 "Die Fixed-Range-MTRRs sind im V86-Modus nicht lesbar (ASQ\n"
+				 "ohne Speichermanager starten)."));
+		return;
+	default:
+		iprintf(info, L("This host bridge is not in the table (386MAX\\SHADOWRAM.TXT).",
+				 "Diese Host-Bridge steht nicht in der Tabelle (386MAX\\SHADOWRAM.TXT)."));
+		return;
+	}
+	/* ranges of 16 KB blocks with the same state */
+	for (i = 0; i < 16; i = j) {
+		int s = ((MOD.wShdRd >> i) & 1) | (((MOD.wShdWr >> i) & 1) << 1);
+
+		for (j = i + 1; j < 16; j++)
+			if ((((MOD.wShdRd >> j) & 1) | (((MOD.wShdWr >> j) & 1) << 1)) != s)
+				break;
+		sprintf(label, "%05lX-%05lX", 0xC0000UL + i * 0x4000UL,
+			0xC0000UL + j * 0x4000UL - 1);
+		item(info, label, state[s]);
+	}
+}
+
 void Hardware_PCI(HANDLE info)
 {
 	PCIDEV *d = sysbuf_ptr(MOD.hPci);
@@ -437,6 +507,7 @@ void Hardware_PCI(HANDLE info)
 			line_w(info, 11, l);
 		}
 	}
+	shadow_report(info);
 }
 
 /*------------------------------------------------------------------------*/

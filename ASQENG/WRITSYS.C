@@ -1011,6 +1011,9 @@ static void near prt_MODERN(void)
 				d->irq, d->bar[0], d->bar[1], d->bar[2], d->bar[3], d->bar[4],
 				d->bar[5], d->rom);
 	}
+	if (m->flags & MOD_SHADOW)
+		lprintf("%-10s %X %X %X %X %X %X\n", RwKeyword[K_SHADOW].name,
+			m->bShdKind, m->bShdReg, m->bShdLock, m->wShdRd, m->wShdWr, m->wShdDev);
 	if (m->nOptRom) {
 		OPTROM *o = sysbuf_ptr(m->hOptRom);
 

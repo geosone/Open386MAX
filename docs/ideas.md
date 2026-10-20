@@ -26,11 +26,6 @@ EMC87 check runs only on a 386).
   ASPICD (with MSCDEX or SHSUCDX) and a mouse driver, maximized, leaves
   at least 612KB (ideally 625KB) of conventional memory and 8-32MB of
   XMS/DPMI for games.
-* **386DISK drive letter:**  DOS gives a block device driver the next
-  free letter; an option of RAMTEMP.COM (e.g. `/L:R`) could move the RAM
-  disk to a chosen free letter afterwards through the CDS (as XMSDSK and
-  drive swapping tools do), tested on MS-DOS 6/7, DR-DOS, FreeDOS and
-  SvarDOS.
 * **QPI:**  the functions of the QEMM manual that have no test yet
   (QPI/QPIALL).
 * **Tests:**  the 386MAX.PRO keywords and programs without a test (see
@@ -49,8 +44,10 @@ for the motherboards it covers.  Nothing is taken over before there is
 an answer.  For the generations after UMBPCI (Intel from the 8th Core
 generation, AMD from Family 10h) the public datasheets describe the
 mechanism (PAM registers with a LOCK bit, AMD fixed MTRRs with
-RdDram/WrDram), see shadowram.md; a 386MAX option could use them
-(checking LOCK first).
+RdDram/WrDram), see shadowram.md.  386MAX, MAXIMIZE and ASQ read them
+from the table in 386MAX/SHADOWRAM.TXT; UMBPCI's chipsets come later as
+new methods there.  Open:  an option that switches unused shadow DRAM
+to read/write (checking LOCK first), and the Zen PPRs.
 
 ## 10.x:  more than about 1GB with VCPI
 

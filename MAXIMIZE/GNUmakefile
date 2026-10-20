@@ -34,3 +34,5 @@ PROS := BROWSE.PRO CHKRAM.PRO COPYFILE.PRO \
 
 
 include $(ROOT)/linux/mk/dos.mk
+SHDTAB_USERS := SHDMAP.OBJ
+include $(ROOT)/linux/mk/shdtab.mk

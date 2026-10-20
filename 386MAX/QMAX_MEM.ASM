@@ -30,6 +30,7 @@ Modifications by:  None.
 .386
 .xlist
 	 include MASM.INC
+	 include SHDTAB.INC	; Host bridges (made of SHADOWRAM.TXT)
 	 include DOSCALL.INC
 	 include ASCII.INC
 	 include 386.INC
@@ -2421,55 +2422,32 @@ GET_SHDMAP_XMISTER:
 	 mov	 al,00h 	; Vendor and device ID
 	 call	 PCI_RDCFG	; Return with EAX = register
 
-	 cmp	 ax,8086h	; Izit Intel?
-	 je	 short GET_SHDMAP_INTEL ; Jump if so
+; Look up the host bridge in SHDTAB (SHADOWRAM.TXT)
 
-	 cmp	 ax,1022h	; Izit AMD?
+	 lea	 si,SHDTAB	; CS:SI ==> host bridge table
+	 mov	 edx,eax	; Copy vendor and device ID
+	 shr	 edx,16 	; DX = device ID
+GET_SHDMAP_TAB:
+	 cmp	 cs:[si].SHDT_VEN,0 ; Izit the end of the table?
+	 je	 near ptr GET_SHDMAP_DONE ; Jump if so (unknown host bridge)
+
+	 cmp	 ax,cs:[si].SHDT_VEN ; Izit this vendor?
+	 jne	 short GET_SHDMAP_TABNXT ; Jump if not
+
+	 cmp	 dx,cs:[si].SHDT_LO ; Izit in the range of device IDs?
+	 jb	 short GET_SHDMAP_TABNXT ; Jump if not
+	 cmp	 dx,cs:[si].SHDT_HI ; ...
+	 jbe	 short GET_SHDMAP_TABHIT ; Jump if so
+GET_SHDMAP_TABNXT:
+	 add	 si,size SHDT_STR ; Skip to next entry
+
+	 jmp	 GET_SHDMAP_TAB ; Go around again
+
+GET_SHDMAP_TABHIT:
+	 cmp	 cs:[si].SHDT_METH,@SHDT_AMD ; Izit AMD's fixed range MTRRs?
 	 je	 near ptr GET_SHDMAP_AMD ; Jump if so
 
-	 jmp	 GET_SHDMAP_DONE ; Unknown host bridge
-
-GET_SHDMAP_INTEL:
-	 shr	 eax,16 	; AX = device ID
-	 lea	 si,PAM59_TAB	; CS:SI ==> device IDs with PAM at 59h
-	 mov	 cx,PAM59_CNT	; # entries
-@@:
-	 cmp	 ax,cs:[si]	; Izit this one?
-	 je	 short GET_SHDMAP_59 ; Jump if so
-
-	 add	 si,2		; Skip to next entry
-	 loop	 @B		; Jump if more entries to check
-
-	 cmp	 ax,1A30h	; 845?
-	 je	 short GET_SHDMAP_90 ; Jump if so
-
-	 cmp	 ax,2550h	; 845E to 4 Series (Q35, G45)?
-	 jb	 short @F	; Jump if not
-	 cmp	 ax,2EFFh	; ...
-	 jbe	 short GET_SHDMAP_90 ; Jump if so
-@@:
-	 mov	 bx,ax		; Copy device ID
-	 lea	 si,PAM80_TAB	; CS:SI ==> high bytes of device IDs (PAM at 80h)
-	 mov	 cx,PAM80_CNT	; # entries
-@@:
-	 cmp	 bh,cs:[si]	; Izit this family?
-	 je	 short GET_SHDMAP_80 ; Jump if so
-
-	 inc	 si		; Skip to next entry
-	 loop	 @B		; Jump if more entries to check
-
-	 jmp	 GET_SHDMAP_DONE ; Unknown Intel host bridge
-
-GET_SHDMAP_59:
-	 mov	 bl,59h 	; PAM0 register
-	 jmp	 short GET_SHDMAP_PAM ; Join common code
-
-GET_SHDMAP_90:
-	 mov	 bl,90h 	; PAM0 register
-	 jmp	 short GET_SHDMAP_PAM ; Join common code
-
-GET_SHDMAP_80:
-	 mov	 bl,80h 	; PAM0 register
+	 mov	 bl,cs:[si].SHDT_REG ; Get PAM0 register
 
 ; BL = PCI register of PAM0; PAM1 (C0000-C7FFF) to PAM6 (E8000-EFFFF)
 ; follow as six consecutive bytes.
@@ -2628,16 +2606,7 @@ GET_SHDMAP_EXIT:
 
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 
-PAM59_TAB dw	 122Dh,1250h,7030h,7100h ; 430FX/HX/VX/TX
-	 dw	 1237h,7180h,7190h,7192h ; 440FX/LX/BX/BX (AGP disabled)
-	 dw	 71A0h,71A2h,84C4h,84CAh ; 440GX/GX, 450KX/GX
-	 dw	 7120h,7122h,7124h,7194h ; 810/810-DC100/810E, 440MX
-PAM59_CNT equ	 ($-PAM59_TAB)/2 ; # entries
-
-PAM80_TAB db	 01h,0Ah,0Ch,0Dh,15h,16h,19h,1Fh ; SNB to SKL
-	 db	 3Eh,59h,8Ah,9Ah,9Bh,4Ch,46h,0A7h ; KBL to RPL
-	 db	 7Dh		; MTL/ARL
-PAM80_CNT equ	 $-PAM80_TAB	; # entries
+	 SHDTAB_DATA		; Host bridges (SHDTAB.INC)
 
 GET_SHDMAP endp 		; End GET_SHDMAP procedure
 	 NPPROC  FILL_SHDFREE -- Fill In SHDFREE_MAP

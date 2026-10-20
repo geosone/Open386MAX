@@ -497,6 +497,7 @@ int sysinfo_read(char *buf,WORD nbuf)
 		case K_PCIBIOS:
 		case K_PCIDEV:
 		case K_OPTROM:
+		case K_SHADOW:
 		case K_ACPI:
 		case K_ACPITAB:
 		case K_SMBIOS:
@@ -1715,6 +1716,12 @@ static int near scn_MODERN(RWKEY key)
 		m->nOptRom++;
 		break;
 	}
+	case K_SHADOW:
+		if (scn_HEXDWORDS(v, 6)) return -1;
+		m->bShdKind = (BYTE)v[0]; m->bShdReg = (BYTE)v[1];
+		m->bShdLock = (BYTE)v[2]; m->wShdRd = (WORD)v[3];
+		m->wShdWr = (WORD)v[4]; m->wShdDev = (WORD)v[5];
+		break;
 	case K_ACPI:
 		if (scn_HEXDWORDS(v, 5)) return -1;
 		m->bAcpiRev = (BYTE)v[0]; m->dwRsdp = v[1]; m->dwRsdt = v[2];

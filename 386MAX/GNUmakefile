@@ -33,3 +33,5 @@ PROGS    := 386MAX.SYS 386UTIL.COM
 VERSION.OBJ_SRC  := VERSRET.ASM
 
 include $(ROOT)/linux/mk/dos.mk
+SHDTAB_USERS := QMAX_MEM.OBJ
+include $(ROOT)/linux/mk/shdtab.mk
