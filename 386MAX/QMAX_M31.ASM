@@ -162,6 +162,8 @@ ICODE	 segment use16 dword public 'icode' ; Start ICODE segment
 	 public  @QMAX_M31_ICODE
 @QMAX_M31_ICODE:		; Mark module start in .MAP file
 
+	 extrn	 DPMIFN_FREECLI:near
+
 	 extrn	VMM_LOCK:near
 
 	 NPPROC  DPMIFN_ZEROSEL -- Zero Matching Selectors
@@ -584,7 +586,7 @@ S32  rep movs	 <AGROUP:[edi].LO,AGROUP:[esi].LO> ; Copy it
 
 	 push	 [ebp].old_size ; pass number of bytes to free
 	 push	 [ebp].old_LA	; pass address to free
-	 FIXICALL PGROUP:FDEALLOCMEM,DTE_CS2 ; Free old LDT
+	 call	 DPMIFN_FREECLI ; Free old LDT
 @@:
 	 FIXICALL JGROUP:HDP_SYNCLDT,DTE_CSJG ; Tell the clients sharing it
 	 clc			; Indicate we succeeded

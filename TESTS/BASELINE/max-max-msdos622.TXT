@@ -6,6 +6,7 @@ max/EXEC32               PASS
 max/HDPAPI               PASS
 max/HDPSHR               PASS
 max/HDPTRAP              PASS
+max/LOWLIN               PASS
 max/MOUSE12              SKIP
 max/MOUSE18              SKIP
 max/PM26                 PASS

@@ -894,6 +894,8 @@ ICODE	 segment use16 dword public 'icode' ; Start ICODE segment
 	 public  @QMAX_I31_ICODE
 @QMAX_I31_ICODE:		; Mark module start in .MAP file
 
+	 extrn	 DPMIFN_FREECLI:near
+
 	 extrn	 GETSET_LDTVAR:near
 	 extrn	 GETSET_LDTFIX:near
 	 extrn	 CLR_LDT:near
@@ -2375,7 +2377,7 @@ INT31_VM2PM_ERR_NOSEL:
 
 	 push	 DPMIDYN_SIZ	; Pass byte length
 	 push	 PGROUP:[edx].DPTSS_DYN ; Pass starting linear address
-	 FIXICALL PGROUP:FDEALLOCMEM,DTE_CS2 ; Deallocate the memory
+	 call	 DPMIFN_FREECLI ; Deallocate the memory
 	 jnc	 short @F	; Jump if no error
 
 	 int	 03h		; Call our debugger
@@ -2386,7 +2388,7 @@ INT31_VM2PM_ERR_NOMEM2:
 
 	 push	 DPMIHNDL_SIZ	; Pass byte length
 	 push	 PGROUP:[edx].DPTSS_LaDPMIHNDL ; Pass starting linear address
-	 FIXICALL PGROUP:FDEALLOCMEM,DTE_CS2 ; Deallocate the memory
+	 call	 DPMIFN_FREECLI ; Deallocate the memory
 	 jnc	 short @F	; Jump if no error
 
 	 int	 03h		; Call our debugger
@@ -2414,7 +2416,7 @@ INT31_VM2PM_ERR_NOMEM5:
 
 	 push	 LPMSTK_SIZ	; Pass byte length
 	 push	 PGROUP:[edx].DPTSS_LPMBASE ; Pass starting linear address
-	 FIXICALL PGROUP:FDEALLOCMEM,DTE_CS2 ; Deallocate the memory
+	 call	 DPMIFN_FREECLI ; Deallocate the memory
 	 jnc	 short @F	; Jump if no error
 
 	 int	 03h		; Call our debugger
@@ -2445,7 +2447,7 @@ INT31_VM2PM_ERR_NOMEM7:
 
 	 push	 DPMIOLDPM_SIZ	; Pass byte length
 	 push	 PGROUP:[edx].DPTSS_OLDPM ; Pass linear address of old PM data area
-	 FIXICALL PGROUP:FDEALLOCMEM,DTE_CS2 ; Deallocate the memory
+	 call	 DPMIFN_FREECLI ; Deallocate the memory
 	 jnc	 short @F	; Jump if no error
 
 	 int	 03h		; Call our debugger
@@ -2941,7 +2943,7 @@ ES	 =	 PGROUP
 
 	 push	 DPMIOLDPM_SIZ	; Pass byte length
 	 push	 PGROUP:[edx].DPTSS_OLDPM ; Pass linear address of old PM data area
-	 FIXICALL PGROUP:FDEALLOCMEM,DTE_CS2 ; Deallocate the memory
+	 call	 DPMIFN_FREECLI ; Deallocate the memory
 	 jnc	 short @F	; Jump if no error
 
 	 int	 03h		; Call our debugger
@@ -2961,7 +2963,7 @@ ES	 =	 PGROUP
 
 	 push	 LPMSTK_SIZ	; Pass byte length
 	 push	 PGROUP:[edx].DPTSS_LPMBASE ; Pass starting linear address
-	 FIXICALL PGROUP:FDEALLOCMEM,DTE_CS2 ; Deallocate the memory
+	 call	 DPMIFN_FREECLI ; Deallocate the memory
 	 jnc	 short @F	; Jump if no error
 
 	 int	 03h		; Call our debugger

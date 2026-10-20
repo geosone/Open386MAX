@@ -124,6 +124,8 @@ IDATA	 segment use16 dword public 'idata' ; Start IDATA segment
 	 extrn	 LinearBottom:DWORD
 	 extrn	 LinearClientTop:DWORD
 	 extrn	 LinearSystemBreak:DWORD
+	 extrn	 LinearHoleLo:DWORD
+	 extrn	 LinearHoleHi:DWORD
 	 extrn	 DefaultPDE:DWORD
 	 extrn	 PhysicalSwappable:DWORD
 	 extrn	 PPRBaseAddress:dword
@@ -188,6 +190,8 @@ ICODE	 segment use16 dword public 'icode' ; Start ICODE segment
 	 extrn	 LSM_GET_CLIENT_LIST:near
 	 extrn	 LSM_QUERY:near
 	 extrn	 LSM_RELEASE_NODE_ARRAY:near
+	 extrn	 LSM_ISVMM:near
+	 extrn	 LSM_ISSHARED:near
 	 extrn	 DPMIFN_SWITCHADDR:near
 	 extrn	 DPMIFN_FREELDT:near
 
@@ -537,14 +541,15 @@ EAX	=	if success, address of allocated block
 	test	ecx, mask $shared		; is shared addr requested?
 	jz	short VMM_ALLOC_VERIFY_CLIENT	; jump if not
 
-	cmp	eax, LinearClientBottom 	; fail if shared request in
-	jae	VMM_ALLOC_BAD_REQUEST		;	client region
+	call	LSM_ISSHARED			; fail if shared request
+	jc	VMM_ALLOC_BAD_REQUEST		;	outside shared region
 	jmp	short VMM_ALLOC_LINEAR		; go do alloc
 
 VMM_ALLOC_VERIFY_CLIENT:
-	cmp	eax, LinearClientBottom 	; fail if client request in
-	jb	VMM_ALLOC_BAD_REQUEST		;	shared region
-
+	call	LSM_ISSHARED			; fail if client request in
+	jnc	VMM_ALLOC_BAD_REQUEST		;	shared region
+	call	LSM_ISVMM			; ...or outside client area
+	jc	VMM_ALLOC_BAD_REQUEST		; ...
 VMM_ALLOC_LINEAR:
 	mov	edx, ecx			; on call to LSM_ALLOC, pass
 	and	edx, mask $shared or mask $commit;shared & commit flgs in edx
@@ -1008,11 +1013,10 @@ CF	=	1 ==> failed, AX is error code
 	test	VMM_FLAG,@VMM_BSPRES		; swapping?
 	jz	VMM_LOCK_DONE			; done if not
 
-; Ignore any pages below LinearBottom
+; Ignore any pages not managed by the VMM
 
-	cmp	eax, LinearBottom		; below LinearBottom?
-	jb	VMM_LOCK_DONE			; jump if so
-
+	call	LSM_ISVMM			; managed?
+	jc	VMM_LOCK_DONE			; jump if not
 ; First, we have to scan all the pages, and count up how many
 ; pages will be newly locked. Also, in this scan, we look for
 ; any pages which are not lockable. If any of these are found,
@@ -1295,11 +1299,10 @@ CF	=	0 ==> success
 	test	VMM_FLAG,@VMM_BSPRES	; swapping?
 	jz	VMM_UNLOCK_DONE 	; done if not
 
-; Ignore any pages below LinearBottom
+; Ignore any pages not managed by the VMM
 
-	cmp	eax, LinearBottom	; below LinearBottom?
-	jb	VMM_UNLOCK_DONE 	; jump if so
-
+	call	LSM_ISVMM		; managed?
+	jc	VMM_UNLOCK_DONE 	; jump if not
 	; In the first loop, verify that all pages in the virtual range
 	; specified are indeed locked. If not, return with error.
 
@@ -1823,9 +1826,8 @@ CF	=	0 ==> success
 
 	 mov	 edi,edx			 ; copy phys/conv switch
 
-	 cmp	 eax, LinearBottom		 ; is it below managed region?
-	 jb	 VMM_MAPPHYS_FAIL		 ; jump if so
-
+	 call	 LSM_ISVMM			 ; is it in managed region?
+	 jc	 VMM_MAPPHYS_FAIL		 ; jump if not
 	 mov	 edx, ecx			 ; copy page count
 	 shl	 edx, @BytePage 		 ; convert to bytes
 	 add	 edx, eax			 ; add to start address
@@ -1899,9 +1901,8 @@ VMM_MAPPHYS_FREE:			; if was unallocated
 	 mov	 ebx, 1
 	 xor	 edx, edx		 ; edx <- client space
 
-	 cmp	 eax, LinearClientBottom ; if in client region
-	 jae	 short @F		 ; jump over
-
+	 call	 LSM_ISSHARED		 ; if not in shared region
+	 jc	 short @F		 ; jump over
 	 mov	 edx, mask $shared	 ; edx <- shared space
 @@:
 	 call	 LSM_ALLOC		 ; allocate linear space
@@ -2039,11 +2040,8 @@ EAX	=	1	fault is visible - call user handler if installed
 	mov	esi, [ebp].PFcr2	; pick up CR2
 	mov	eax, esi		; eax <- CR2
 
-	cmp	esi, LinearBottom	; below LinearBottom?
-	jb	VMM_PFAULT_FATAL	; jump if so
-	cmp	esi, LinearClientTop	; above LinearTop
-	jae	VMM_PFAULT_FATAL	; jump if so
-
+	call	LSM_ISVMM		; managed by the VMM?
+	jc	VMM_PFAULT_FATAL	; jump if not
 	MakePDEaddress esi		; esi <- PDE address
 	mov	edx, AGROUP:[esi]	; edx <- PDE
 	or	edx, edx		; if no directory entry, fatal
@@ -2686,8 +2684,7 @@ Terminate the current DPMI client
 
 	 call	 LSM_GET_CLIENT_LIST	; fs:edi <- first list structure ptr
 	 mov	 esi, fs:[edi].FreeHead ; esi <- ptr to first free block
-	 mov	 eax, LinearClientBottom; eax <- base of block to free
-
+	 mov	 eax, LinearHoleLo	; eax <- base of block to free
 	 mov	 es, ISEL_4GB3		; AGROUP
 	 assume  es:AGROUP		; tell assembler
 VMM_TERM_FREE_LOOP:
@@ -2695,6 +2692,7 @@ VMM_TERM_FREE_LOOP:
 	 jz	 short VMM_TERM_FREE_LAST ; jump if at end
 
 	 mov	 ebx, AGROUP:[esi].LFNaddr ; ebx <- base of free block
+	 call	 VMM_TERM_HOLE		; Finish the hole if we leave it
 	 sub	 ebx, eax		; ebx <- size of free block in bytes
 	 shr	 ebx, @BytePage 	; ebx <- size of free block in pages
 
@@ -2713,6 +2711,7 @@ VMM_TERM_FREE_LOOP:
 
 VMM_TERM_FREE_LAST:			; here at end of free list
 	 mov	 ebx, LinearClientTop	; free the end block (if any)
+	 call	 VMM_TERM_HOLE		; Finish the hole if we leave it
 	 sub	 ebx, eax		; ebx <- size in bytes
 	 shr	 ebx, @BytePage 	; ebx <- size in pags
 
@@ -2726,11 +2725,15 @@ VMM_TERM_FREE_LAST:			; here at end of free list
 
 ; Now walk the page directory and free any lingering page tables
 
-	 mov	 esi, LinearClientBottom; get base of client region
+	 mov	 esi, LinearHoleLo	; get base of client region
 VMM_TERM_FREE_PDES:
+	 cmp	 esi, LinearHoleHi	; end of hole?
+	 jne	 short @F		; jump if not
+
+	 mov	 esi, LinearClientBottom ; skip PRG and shared area
+@@:
 	 cmp	 esi, LinearSystemBreak ; are we done yet ?
 	 je	 short VMM_TERM_SWITCH_CR3 ; jump if so
-
 	 mov	 edx, esi		; edx <- linear address
 	 MakePDEaddress edx		; edx <- PDE address
 	 mov	 ebx, AGROUP:[edx]	; ebx <- PDE
@@ -2793,6 +2796,48 @@ VMM_TERMINATE_EXIT:
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 
 VMM_TERMINATE_CLIENT endp	; End VMM_TERMINATE_CLIENT procedure
+	 NPPROC  VMM_TERM_HOLE -- Free The Rest Of The Hole
+	 assume  ds:IGROUP,es:AGROUP,fs:nothing,gs:nothing,ss:PGROUP
+COMMENT|
+
+Helper of VMM_TERMINATE_CLIENT:  the client area is the hole
+[LinearHoleLo, LinearHoleHi) plus [LinearClientBottom, LinearClientTop).
+When the walk over the free list leaves the hole, free its allocated
+end and continue at LinearClientBottom.
+
+On entry:
+
+EAX	 =	 start of the allocated range
+EBX	 =	 its end (next free block or LinearClientTop)
+
+On exit:
+
+EAX	 =	 LinearClientBottom if the hole was left, else unchanged
+
+|
+
+	 cmp	 eax,LinearClientBottom ; Izit in the hole?
+	 jae	 short VMM_TERM_HOLE_EXIT ; Jump if not
+
+	 cmp	 ebx,LinearClientBottom ; Do we leave it?
+	 jb	 short VMM_TERM_HOLE_EXIT ; Jump if not
+
+	 push	 ebx		; Save for a moment
+	 mov	 ebx,LinearHoleHi ; Get end of hole
+	 sub	 ebx,eax	; Less start to get size in bytes
+	 shr	 ebx,@BytePage	; Convert to pages
+	 jz	 short @F	; Jump if none
+
+	 call	 VMM_FREE	; Free them
+@@:
+	 pop	 ebx		; Restore
+	 mov	 eax,LinearClientBottom ; Continue there
+VMM_TERM_HOLE_EXIT:
+	 ret			; Return to caller
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+VMM_TERM_HOLE endp		; End VMM_TERM_HOLE procedure
 	 NPPROC  VMM_SHUTDOWN - shut down the Virtual Memory Manager
 	 assume  ds:IGROUP,es:PGROUP,fs:nothing,gs:nothing,ss:PGROUP
 COMMENT|
@@ -2937,9 +2982,8 @@ AX	 =	 error code
 	mov	es, ISEL_4GB3		; AGROUP
 	assume	es:AGROUP		; tell assembler
 
-	cmp	eax, LinearBottom	; ignore anything below LinearBottom
-	jb	VMM_MARKCAN_EXIT	; jump if below LinearBottom
-
+	call	LSM_ISVMM		; ignore anything not managed
+	jc	VMM_MARKCAN_EXIT	; jump if so
 	MakePTEaddress eax		; eax <- address of PTE
 
 
@@ -3022,9 +3066,8 @@ AX	 =	 error code
 	 mov	 es, ISEL_4GB3		 ; AGROUP
 	 assume  es:AGROUP		 ; tell assembler
 
-	 cmp	 eax, LinearBottom	 ; ignore anything below LinearBottom
-	 jb	 VMM_DISCARD_EXIT	 ; jump if below LinearBottom
-
+	 call	 LSM_ISVMM		 ; ignore anything not managed
+	 jc	 VMM_DISCARD_EXIT	 ; jump if so
 	 MakePTEaddress eax		 ; eax <- address of PTE
 VMM_DISCARD_NEXT:
 	 or	 ebx,ebx		 ; any pages left?

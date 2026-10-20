@@ -85,7 +85,8 @@ IDATA	 segment use16 dword public 'idata' ; Start IDATA segment
 	 extrn	 LinearClientTop:dword
 	 extrn	 LinearBottom:dword
 	 extrn	 LinearClientBottom:dword
-
+	 extrn	 LinearHoleLo:dword
+	 extrn	 LinearHoleHi:dword
 IDATA	 ends			; End IDATA segment
 
 
@@ -510,6 +511,21 @@ AX	 =	 appropriate DPMI error code
 
 @@:
 
+; If base is in the client hole below PRG, the entire range must be, too
+
+	 cmp	 eax,LinearHoleLo ; Izit below the hole?
+	 jb	 short @F	; Jump if so
+
+	 cmp	 eax,LinearHoleHi ; Izit in the hole?
+	 jae	 short @F	; Jump if not
+
+	 cmp	 ecx,LinearHoleHi ; Is the range in the hole?
+	 jbe	 short DPMIFN_VALIDATE_RSP_OK ; Jump if so
+
+	 jmp	 short DPMIFN_VALIDATE_RSP_BADADDR ; Else fail it
+
+@@:
+
 ; If base above 1MB+64K, then it must be at least LinearBottom, which is the
 ; beginning of the DPMI managed area
 
@@ -666,8 +682,14 @@ DPMI_TSRXIT_RELOC_NEXT:
 	 mov	 eax,ss:[esi].NRSPS_base ; Get base address of segment
 
 	 cmp	 eax,LinearClientBottom ; Is it in client region?
-	 jb	 short DPMI_TSRXIT_ADVANCE ; Jump if not
+	 jae	 short @F	; Jump if so
 
+	 cmp	 eax,LinearHoleLo ; Izit below the client hole?
+	 jb	 short DPMI_TSRXIT_ADVANCE ; Jump if so
+
+	 cmp	 eax,LinearHoleHi ; Izit in the client hole?
+	 jae	 short DPMI_TSRXIT_ADVANCE ; Jump if not
+@@:
 	 cmp	 ss:[esi].NRSPS_size,0	; Is size non-zero?
 	 je	 short DPMI_TSRXIT_ADVANCE ; Jump if so
 
@@ -1514,9 +1536,15 @@ DS:ESI	 =	 NormalizedRSPSegment being removed
 
 	 mov	 eax,ds:[esi].NRSPS_base ; Get base of segment
 
+	 cmp	 eax,LinearHoleLo ; Izit below the client hole?
+	 jb	 short @F	; Jump if so (not ours)
+
+	 cmp	 eax,LinearHoleHi ; Izit in the client hole?
+	 jb	 short DPMI_FREE_RSPSEG_VMM ; Jump if so (VMM memory)
+
 	 cmp	 eax,LinearBottom ; Do we need to free this?
 	 jb	 short @F	; Jump if not
-
+DPMI_FREE_RSPSEG_VMM:
 	 mov	 ebx,ds:[esi].NRSPS_size ; Get the size argument
 
 	 or	 ebx,ebx	; Is it zero length?

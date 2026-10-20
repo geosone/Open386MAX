@@ -1041,6 +1041,8 @@ endif				; IF @OEM_VIRTUALMEM
 	 public  @QMAX_D21_ICODE
 @QMAX_D21_ICODE:		; Mark module start in .MAP file
 
+	 extrn	 DPMIFN_FREECLI:near
+
 	 FPPROC  INT21_DPMI -- DOS Calls from DPMI Clients
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 COMMENT|
@@ -2457,7 +2459,7 @@ INT21_DPMI_GETMEM_LOOP:
 INT21_DPMI_GETMEM_NOSEL:
 	 push	 edx		; Pass byte length
 	 push	 eax		; Pass starting linear address
-	 FIXICALL PGROUP:FDEALLOCMEM,DTE_CS2 ; Deallocate the memory
+	 call	 DPMIFN_FREECLI ; Deallocate the memory
 ;;;;;;;; jc	 short ???	; Ignore error return
 
 	 jmp	 INT21_DPMI_ERRXHNDL ; Join common error code
@@ -2504,7 +2506,7 @@ INT21_DPMI_RELMEM_NEXT:
 
 	 push	 AGROUP:[edi].DPMIHNDL_LEN ; Pass byte length
 	 push	 AGROUP:[edi].DPMIHNDL_LA ; Pass starting linear address
-	 FIXICALL PGROUP:FDEALLOCMEM,DTE_CS2 ; Deallocate the memory
+	 call	 DPMIFN_FREECLI ; Deallocate the memory
 ;;;;;;;; jc	 short ???	; Ignore error return
 
 ; Free the selector

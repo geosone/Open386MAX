@@ -61,7 +61,7 @@ EDATA	 segment use16 dword public 'edata' ; Start EDATA segment
 	 extrn	 PVMTSS:dword
 	 extrn	 SEL_DS3:dword
 	 extrn	 PDTLEN:dword
-
+	 extrn	 LOWHOLE:dword
 EDATA	 ends			; End EDATA segment
 
 
@@ -70,7 +70,7 @@ LDATA	 segment use16 dword public 'icode' ; Start LDATA segment
 
 	 extrn	 ISEL_DS3:word	 ; PGROUP selector
 	 extrn	 ISEL_4GB3:word  ; AGROUP ...
-
+	 extrn	 ISEL_DSIG3:word ; IGROUP ...
 LDATA	 ends			; End LDATA segment
 
 
@@ -81,16 +81,19 @@ IDATA	 segment use16 dword public 'idata' ; Start IDATA segment
 
 	 public LinearBottom, LinearClientBottom
 	 public LinearClientTop, LinearSystemBreak, DefaultPDE
-
+	 public LinearHoleLo, LinearHoleHi
 SharedFreeList		FreeList <0,0,0,0>
 
 LinearBottom		dd	?	; bottom of shared area
 LinearClientBottom	dd	?	; start of client linear space
 LinearClientTop 	dd	?	; top of client area
 LinearSystemBreak	dd	?	; start of system area
+LinearHoleLo		dd	?	; start of the client area at 4MB
+LinearHoleHi		dd	?	; end of ... (both LinearClientBottom
+					;   if none)
 DefaultPDE		dd	?	; default page directory entry
 LSM_AllocFlags		dd	?	; flags for LSM_ALLOC call
-
+LSM_HoleOK		db	?	; 1 if LSM_ALLOC may use the hole
 IDATA	 ends			; End IDATA segment
 
 
@@ -183,6 +186,20 @@ AX	 =	 error code
 	 mov	 LinearSystemBreak,@PTBase - (2*@FourMeg) ; Set location
 	 mov	 LinearClientTop,@PTBase - (3*@FourMeg) ; ...
 
+; The memory INIT_DATA reserved at 4MB (LOWHOLE) is client area, too
+; (the "hole"):  client page directories don't map it one-to-one.
+	 mov	 eax,LinearClientBottom ; Assume no hole
+	 mov	 LinearHoleLo,eax ; ...
+	 mov	 LinearHoleHi,eax ; ...
+
+	 mov	 eax,LOWHOLE	; Get # bytes reserved at 4MB
+	 or	 eax,eax	; Izit present?
+	 jz	 short @F	; Jump if not
+
+	 add	 eax,@FourMeg	; Plus start to get end
+	 mov	 LinearHoleHi,eax ; Set location
+	 mov	 LinearHoleLo,@FourMeg ; ...
+@@:
 ; Set up the shared free list
 
 	 mov	 eax,LinearSystemBreak ; Addr for shared nodes
@@ -218,6 +235,94 @@ LSM_INIT_EXIT:
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 
 LSM_INIT endp			; End LSM_INIT procedure
+	 NPPROC  LSM_ISVMM -- Is The Address Managed By The VMM?
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+COMMENT|
+
+On entry:
+
+EAX	 =	 linear address
+
+On exit:
+
+CF	 =	 0 if in the hole or in [LinearBottom, LinearClientTop)
+	 =	 1 if not
+
+|
+
+	 push	 ds		; Save register
+
+	 mov	 ds,ISEL_DSIG3	; Get IGROUP data selector at PL3
+	 assume  ds:IGROUP	; Tell the assembler about it
+
+	 cmp	 eax,LinearHoleLo ; Izit below the hole?
+	 jb	 short @F	; Jump if so
+
+	 cmp	 eax,LinearHoleHi ; Izit in the hole?
+	 jb	 short LSM_ISVMM_YES ; Jump if so
+@@:
+	 cmp	 eax,LinearBottom ; Izit below the shared area?
+	 jb	 short LSM_ISVMM_NO ; Jump if so
+
+	 cmp	 eax,LinearClientTop ; Izit in the VMM's region?
+	 jb	 short LSM_ISVMM_YES ; Jump if so
+LSM_ISVMM_NO:
+	 stc			; Mark as not managed
+
+	 jmp	 short LSM_ISVMM_EXIT ; Join common exit code
+
+LSM_ISVMM_YES:
+	 clc			; Mark as managed
+LSM_ISVMM_EXIT:
+	 pop	 ds		; Restore
+	 assume  ds:nothing	; Tell the assembler about it
+
+	 ret			; Return to caller
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+LSM_ISVMM endp			; End LSM_ISVMM procedure
+	 NPPROC  LSM_ISSHARED -- Is The Address In The Shared Area?
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+COMMENT|
+
+On entry:
+
+EAX	 =	 linear address
+
+On exit:
+
+CF	 =	 0 if in [LinearBottom, LinearClientBottom)
+	 =	 1 if not
+
+|
+
+	 push	 ds		; Save register
+
+	 mov	 ds,ISEL_DSIG3	; Get IGROUP data selector at PL3
+	 assume  ds:IGROUP	; Tell the assembler about it
+
+	 cmp	 eax,LinearBottom ; Izit below the shared area?
+	 jb	 short LSM_ISSHARED_NO ; Jump if so
+
+	 cmp	 eax,LinearClientBottom ; Izit in the shared area?
+	 jb	 short LSM_ISSHARED_YES ; Jump if so
+LSM_ISSHARED_NO:
+	 stc			; Mark as not shared
+
+	 jmp	 short LSM_ISSHARED_EXIT ; Join common exit code
+
+LSM_ISSHARED_YES:
+	 clc			; Mark as shared
+LSM_ISSHARED_EXIT:
+	 pop	 ds		; Restore
+	 assume  ds:nothing	; Tell the assembler about it
+
+	 ret			; Return to caller
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+LSM_ISSHARED endp		; End LSM_ISSHARED procedure
 	 NPPROC  LSM_INIT_CLIENT -- Initialize LSM for current client
 	 assume  ds:IGROUP,es:nothing,fs:nothing,gs:nothing,ss:PGROUP
 COMMENT|
@@ -273,15 +378,26 @@ CR3	 =	 (if success) physical addr of client's page directory
 	 mov	 ecx,LinearClientBottom ; Get base of client region
 	 shr	 ecx,20+2	; Divide by 4MB to get number of PDEs
 S32  rep movs	 <AGROUP:[edi].EDD,AGROUP:[esi].EDD> ; Copy PDEs
-
+; Zero out the hole (no one-to-one map, nor the parent's client PDEs)
+	 push	 edi		; Save for a moment
+	 mov	 eax,LinearClientBottom ; Get # bytes of PDEs copied
+	 shr	 eax,20 	; ...
+	 sub	 edi,eax	; Back to PDE 0
+	 mov	 eax,LinearHoleLo ; Get start of hole
+	 mov	 ecx,LinearHoleHi ; Get end of hole
+	 sub	 ecx,eax	; Less start to get size
+	 shr	 eax,20 	; Convert to PDE offset
+	 add	 edi,eax	; ES:EDI ==> 1st PDE of hole
+	 shr	 ecx,20+2	; Convert to PDE count
+	 xor	 eax,eax	; Make zero
+     rep stos	 AGROUP:[edi].EDD ; Zap them
+	 pop	 edi		; Restore
 ; Zero out the client region
-
 	 mov	 ecx,LinearSystemBreak ; ECX <- top of client region
 	 sub	 ecx,LinearClientBottom ; ECX <- size of client region
 	 shr	 ecx,20+2	; Convert to PDE count for region
 	 xor	 eax,eax	; Make zero
      rep stos	 AGROUP:[edi].EDD ; Zap it
-
 ; Copy the remainder
 
 	 mov	 ecx,LinearSystemBreak ; ECX <- top of system region
@@ -332,6 +448,26 @@ S32  rep movs	 <AGROUP:[edi].EDD,AGROUP:[esi].EDD>  ; copy PDEs
 	 mov	 AGROUP:[esi].LFNsize,eax ; Store in free node
 	 mov	 AGROUP:[esi].LFNnext,0 ; Just one node now - no next node
 
+; Put the hole in front of it
+
+	 mov	 eax,LinearHoleHi ; Get end of hole
+	 sub	 eax,LinearHoleLo ; Less start to get size
+	 jz	 short @F	; Jump if none (note CF=0)
+
+	 mov	 ebx,esi	; Save the node
+	 call	 LSM_ALLOC_FREE_NODE ; ESI <- free node address
+	 mov	 ax,@DERR_INSUFF_LINEAR ; In case we fail
+	 jc	 short LSM_INIT_CLIENT_FAIL ; jump if failed
+
+	 mov	 PGROUP:[edi].FreeHead,esi ; Set head to point at it
+	 mov	 AGROUP:[esi].LFNnext,ebx ; Followed by the other one
+	 mov	 eax,LinearHoleLo ; Get base of hole
+	 mov	 AGROUP:[esi].LFNaddr,eax ; Set node address to base
+	 mov	 eax,LinearHoleHi ; Get end of hole
+	 sub	 eax,LinearHoleLo ; Less start to get size
+	 shr	 eax,@BytePage	; Convert to pages
+	 mov	 AGROUP:[esi].LFNsize,eax ; Store in free node
+@@:
 	 clc			; Flag success
 LSM_INIT_CLIENT_EXIT:
 	 REGREST <fs,es,edi,esi,edx,ecx,ebx> ; Restore registers
@@ -419,6 +555,12 @@ LSM_ALLOC_GO:			; FS:EDI points to free list object
 
 	; ebx is requested size in pages
 
+	; The hole below PRG is kept for requests at a specific address
+	; (HX DPMILD32 loads PE images at 400000h) and used for others
+	; only if nothing else fits.
+
+	mov	LSM_HoleOK, 0		; first pass:  not the hole
+LSM_ALLOC_RESCAN:
 	mov	ecx, -1 		; ecx is best delta
 	mov	edx, 0			; esi is address of best node
 	mov	esi, fs:[edi].FreeHead	; esi is current node
@@ -428,6 +570,13 @@ LSM_ALLOC_NEXTNODE:
 	or	esi,esi 		; if at end of list
 	jz	LSM_ALLOC_ANYDONE	;	go see what happened
 
+	cmp	LSM_HoleOK, 0		; may we use the hole?
+	jne	short @F		; jump if so
+
+	mov	eax,es:[esi].LFNaddr	; get address of block
+	cmp	eax,LinearHoleHi	; izit in the hole?
+	jb	short LSM_ALLOC_ADVANCE ; skip it if so
+@@:
 	 mov	 eax,es:[esi].LFNsize	; get size of block for this node
 	 sub	 eax,ebx		; subtract requested size
 	 jz	 short LSM_ALLOC_EXACTFIT
@@ -474,8 +623,14 @@ LSM_ALLOC_ANYDONE:
 ; Here after a complete scan of the list (exact fit not found)
 
 	or	edx, edx		; edx zero means no block big enough
-	jz	LSM_ALLOC_FAIL		; go die
+	jnz	short @F		; jump if found
 
+	cmp	LSM_HoleOK, 0		; did we try the hole?
+	jne	LSM_ALLOC_FAIL		; go die if so
+
+	mov	LSM_HoleOK, 1		; second pass:  the hole, too
+	jmp	LSM_ALLOC_RESCAN	; try again
+@@:
 	mov	eax, es:[edx].LFNaddr	; eax <- address to return
 	shl	ebx, @BytePage		; shrink block from which allocation
 	add	es:[edx].LFNaddr, ebx	;	was made
@@ -739,9 +894,8 @@ ECX	=	0 ==> do not update/free page tables
 	mov	es, ISEL_4GB3			; all memory selector
 	assume	es:AGROUP			; Tell the assembler about it
 
-	cmp	eax, LinearClientBottom 	; is addr in client region?
-	jb	short LSM_FREE_SHARED		; jump if not
-
+	call	LSM_ISSHARED			; is addr in shared region?
+	jnc	short LSM_FREE_SHARED		; jump if so
 	 call	 LSM_GET_CLIENT_LIST ; Returns list in FS:EDI
 	 assume  fs:nothing	; Tell the assembler about it
 
@@ -996,9 +1150,8 @@ CF	=	0 ==> success
 ; if the address is in the shared area, set the owner of the page table
 ; to "shared"
 
-	cmp	eax,LinearClientBottom	; in shared region?
-	jae	short @F		; jump if not
-
+	call	LSM_ISSHARED		; in shared region?
+	jc	short @F		; jump if not
 	push	ax			; save for a moment
 	mov	ax,$clientMask		; client mask means "shared"
 	call	PPM_SET_PAGE_OWNER	; set page owner
@@ -1447,6 +1600,10 @@ LSM_SP_STR	ends
 	cmp	eax, edi		; is given address in shared area?
 	jbe	short LSM_SP_EXIT	; jump if not
 
+	mov	eax, LinearBottom	; get bottom of shared area
+	MakePDEaddress eax		; get its PDE address
+	cmp	edi, eax		; is given address below (hole)?
+	jb	short LSM_SP_EXIT	; jump if so
 ; We have determined that the PDE is in the shared area. Now loop through
 ; and update all the other PDs in the system.
 
@@ -1506,4 +1663,4 @@ ICODE	 ends
 
 endif
 	 MEND
-
+

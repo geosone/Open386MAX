@@ -2,6 +2,7 @@ max/DISKIO               SKIP
 max/DOSXLAT              SKIP
 max/DPMI10               SKIP
 max/EMSFUNC              SKIP
+max/LOWLIN               SKIP
 max/MOUSE12              SKIP
 max/MOUSE18              SKIP
 max/QPITEST              SKIP

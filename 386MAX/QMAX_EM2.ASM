@@ -349,6 +349,9 @@ SUBSEG_PTR dw	 offset PGROUP:SUBSEG_INFO ; Dynamic ptr to next table element
 HARPO_FILESPEC db 80 dup (0)	; Drive:\path\name.ext of HARPO profile
 endif				; IF @OEM_HARPO
 
+	 public  LOWHOLE
+LOWHOLE  dd	 0		; # bytes reserved at 4MB for DPMI clients
+
 EDATA	 ends			; End EDATA segment
 
 
@@ -368,7 +371,10 @@ ECODE	 segment use16 dword public 'ecode' ; Start ECODE segment
 
 	 extrn	 FENABLE_NMI:far
 	 extrn	 FWRAP_DISABLE:far
-
+if @OEM_DPMI and @OEM_XMS
+	 extrn	 FALLOCMEM_SUB:far
+	 extrn	 FDEALLOCMEM:far
+endif				; IF @OEM_DPMI and @OEM_XMS
 	 extrn	 FFLUSH_TLB:far
 if @OEM_TIMEMEM
 	 extrn	 TIME_MEM:far
@@ -3009,6 +3015,13 @@ if @OEM_DPMI
 	 FCALL	 SET_HWSP	; Set DPMI_HWSP values for special interrupts
 endif				; IF @OEM_DPMI
 
+if @OEM_DPMI and @OEM_XMS
+
+;     * Reserve the DPMI low linear area
+
+	 call	 INIT_LOWHOLE	; Reserve memory at 4MB
+endif				; IF @OEM_DPMI and @OEM_XMS
+
 	 popf			; Restore
 
 	 popad			; Restore all EGP registers
@@ -3018,6 +3031,174 @@ endif				; IF @OEM_DPMI
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 
 INIT_DATA endp			; End INIT_DATA procedure
+
+if @OEM_DPMI and @OEM_XMS
+@LOWHOLE_LA equ 400000h 	; Start of the DPMI low linear area (4MB)
+
+	 NPPROC  INIT_LOWHOLE -- Reserve Memory For The DPMI Low Linear Area
+	 assume  ds:PGROUP,es:PGROUP,fs:nothing,gs:nothing,ss:nothing
+COMMENT|
+
+DPMI clients may allocate linear memory at a fixed low address, e.g.
+HX DPMILD32 loads a PE image without relocations at its ImageBase 400000h
+(4MB).  Client page directories don't map [4MB, 4MB+LOWHOLE) one-to-one
+(it's client area, see LSM_INIT), so nothing else may use that physical
+memory:  while a client runs, the V86 side (XMS, EMS, VDS, DMA, INT 15h)
+runs on the client's page directory and expects linear = physical.
+
+Reserve a quarter of the extended memory below PRG, at most 16MB, in 4MB
+units, if it's still available.
+
+|
+
+	 REGSAVE <eax,ecx,edi>	; Save registers
+
+	 mov	 LOWHOLE,0	; Assume none
+
+	 mov	 eax,PRGBASE	; Get program base
+	 and	 eax,not (@LOWHOLE_LA-1) ; Round down to 4MB
+	 sub	 eax,@LOWHOLE_LA	; Less the first 4MB
+	 jbe	 short INIT_LOWHOLE_EXIT ; Jump if none
+
+	 shr	 eax,2		; A quarter of it
+	 cmp	 eax,4*@LOWHOLE_LA ; Izit above 16MB?
+	 jbe	 short @F	; Jump if not
+
+	 mov	 eax,4*@LOWHOLE_LA ; Use maximum
+@@:
+	 and	 eax,not (@LOWHOLE_LA-1) ; Round down to 4MB
+	 jz	 short INIT_LOWHOLE_EXIT ; Jump if none
+
+; Ensure it's available (one XMSBMAP entry per 1KB)
+
+	 mov	 ecx,eax	; Copy byte length
+	 shr	 ecx,10-0	; Convert from bytes to 1KB
+	 mov	 edi,@LOWHOLE_LA shr 10 ; Get entry # of 4MB
+	 add	 edi,PXMSBMAP	; ES:EDI ==> its XMSBMAP entry
+@@:
+	 test	 PGROUP:[edi].LO,@XMSB_ALLOC ; Izit allocated?
+	 jnz	 short INIT_LOWHOLE_EXIT ; Jump if so
+
+	 inc	 edi		; Skip to next entry
+	 loopd	 @B		; Jump if more entries to check
+
+	 push	 eax		; Pass # bytes to allocate
+	 mov	 ecx,@LOWHOLE_LA ; Get starting linear address
+	 push	 ecx		; Pass it
+	 FIXICALL PGROUP:FALLOCMEM_SUB,DTE_CS2 ; Allocate 'em
+	 jc	 short INIT_LOWHOLE_EXIT ; Jump if something went wrong
+
+	 mov	 LOWHOLE,eax	; Save for LSM_INIT
+INIT_LOWHOLE_EXIT:
+	 REGREST <edi,ecx,eax>	; Restore
+
+	 ret			; Return to caller
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+INIT_LOWHOLE endp		; End INIT_LOWHOLE procedure
+
+	 FPPROC  LOWHOLE_E2XFREE -- Free DPMI Low Linear Area Before REMOVE_E2X
+	 assume  ds:PGROUP,es:nothing,fs:nothing,gs:nothing,ss:nothing
+COMMENT|
+
+REMOVE_E2X allocates and APPEND_E2X frees the INT 15h extended memory
+[EXTBASE, EXTBASE+EAX) as a whole.  The part of the DPMI low linear area
+(see INIT_LOWHOLE) in there is freed here before REMOVE_E2X allocates it
+and reserved again by LOWHOLE_E2XTAKE after APPEND_E2X freed it.
+
+On entry:
+
+EAX	 =	 byte length at EXTBASE
+
+|
+
+	 REGSAVE <eax,ecx>	; Save registers
+
+	 call	 LOWHOLE_E2XLEN ; ECX = byte length of the part, ZF=1 if none
+	 jz	 short @F	; Jump if none
+
+	 push	 ecx		; Pass byte length
+	 mov	 ecx,@LOWHOLE_LA ; Get starting linear address
+	 push	 ecx		; Pass it
+	 FIXICALL PGROUP:FDEALLOCMEM,DTE_CS2 ; Deallocate the memory
+@@:
+	 REGREST <ecx,eax>	; Restore
+
+	 ret			; Return to caller
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+LOWHOLE_E2XFREE endp		; End LOWHOLE_E2XFREE procedure
+
+	 FPPROC  LOWHOLE_E2XTAKE -- Reserve DPMI Low Linear Area After APPEND_E2X
+	 assume  ds:PGROUP,es:nothing,fs:nothing,gs:nothing,ss:nothing
+COMMENT|
+
+See LOWHOLE_E2XFREE.
+
+On entry:
+
+EAX	 =	 byte length at EXTBASE
+
+|
+
+	 REGSAVE <eax,ecx>	; Save registers
+
+	 call	 LOWHOLE_E2XLEN ; ECX = byte length of the part, ZF=1 if none
+	 jz	 short @F	; Jump if none
+
+	 push	 ecx		; Pass # bytes to allocate
+	 mov	 ecx,@LOWHOLE_LA ; Get starting linear address
+	 push	 ecx		; Pass it
+	 FIXICALL PGROUP:FALLOCMEM_SUB,DTE_CS2 ; Allocate 'em
+@@:
+	 REGREST <ecx,eax>	; Restore
+
+	 ret			; Return to caller
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+LOWHOLE_E2XTAKE endp		; End LOWHOLE_E2XTAKE procedure
+
+	 NPPROC  LOWHOLE_E2XLEN -- Part Of DPMI Low Linear Area In E2X Memory
+	 assume  ds:PGROUP,es:nothing,fs:nothing,gs:nothing,ss:nothing
+COMMENT|
+
+On entry:
+
+EAX	 =	 byte length at EXTBASE
+
+On exit:
+
+ECX	 =	 byte length of [4MB, 4MB+LOWHOLE) in [EXTBASE, EXTBASE+EAX)
+ZF	 =	 1 if none
+EAX	 =	 (clobbered)
+
+|
+
+	 mov	 ecx,LOWHOLE	; Get # bytes reserved at 4MB
+	 or	 ecx,ecx	; Izit present?
+	 jz	 short LOWHOLE_E2XLEN_EXIT ; Jump if not (note ZF=1)
+
+	 add	 ecx,@LOWHOLE_LA ; Plus start to get end
+	 add	 eax,EXTBASE	; Plus start to get end of E2X memory
+	 cmp	 eax,ecx	; Use the smaller
+	 jae	 short @F	; Jump if E2X memory reaches further
+
+	 mov	 ecx,eax	; Use end of E2X memory
+@@:
+	 sub	 ecx,@LOWHOLE_LA ; Less start to get length
+	 ja	 short LOWHOLE_E2XLEN_EXIT ; Jump if some (note ZF=0)
+
+	 xor	 ecx,ecx	; None (note ZF=1)
+LOWHOLE_E2XLEN_EXIT:
+	 ret			; Return to caller
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+LOWHOLE_E2XLEN endp		; End LOWHOLE_E2XLEN procedure
+endif				; IF @OEM_DPMI and @OEM_XMS
 if @OEM_EMS
 	 NPPROC  FILL_LINK -- Fill In Chained Links
 	 assume  ds:PGROUP,es:PGROUP,fs:nothing,gs:nothing,ss:nothing

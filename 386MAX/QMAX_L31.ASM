@@ -224,6 +224,8 @@ if @OEM_VIRTUALMEM
 	 extrn	 PhysicalSwappable:dword
 	 extrn	 LinearClientTop:dword
 	 extrn	 LinearBottom:dword
+	 extrn	 LinearHoleLo:dword
+	 extrn	 LinearHoleHi:dword
 	 extrn	 VirtualReserved:dword
 
 endif				; IF @OEM_VIRTUALMEM
@@ -306,6 +308,9 @@ if @OEM_VIRTUALMEM
 	 extrn	 VMM_LOCK:near
 	 extrn	 VMM_UNLOCK:near
 	 extrn	 VMM_ALLOC:near
+	 extrn	 VMM_FREE:near
+	 extrn	 LinearHoleLo:dword
+	 extrn	 LinearHoleHi:dword
 	 extrn	 VMM_REALLOC:near
 	 extrn	 VMM_QUERY:far
 	 extrn	 VMM_SET_ATTRIBUTES:near
@@ -550,6 +555,8 @@ DPMI_GETFMI_SETLOCK:
 
 	 mov	 eax,LinearClientTop			; top of LA space
 	 sub	 eax,LinearBottom			; sub bottom of space
+	 add	 eax,LinearHoleHi			; plus the client hole
+	 sub	 eax,LinearHoleLo			; ...
 	 shr	 eax,@BytePage				; convert to pages
 	 mov	 es:[edi].DPMIFMI_TPMEM1,eax		; store total LA size
 
@@ -889,11 +896,9 @@ All other registers except EBP, FS, GS, and SS may be clobbered.
 
 	 push	 ecx		; Pass byte length
 	 push	 edi		; Pass starting linear address
-	 FIXICALL PGROUP:FDEALLOCMEM,DTE_CS2 ; Deallocate the memory
+	 call	 DPMIFN_FREECLI ; Deallocate the memory
 ;;;;;;;; jc	 short ???	; Ignore error return
-
 ; Free the corresponding selector (if any)
-
 	 cmp	 AGROUP:[eax].DPMIHNDL_SEL,0 ; Izit valid?
 	 je	 short @F	; Jump if not
 
@@ -1038,7 +1043,7 @@ CF	 =	 0 if all went OK
 
 	 push	 eax		; Pass byte length
 	 push	 esi		; Pass starting linear address
-	 FIXICALL PGROUP:FDEALLOCMEM,DTE_CS2 ; Deallocate the memory
+	 call	 DPMIFN_FREECLI ; Deallocate the memory
 ;;;;;;;; jc	 short ???	; Ignore error return
 
 	 jmp	 near ptr DPMIFN_MODMEM_CLC ; Join common ending code with EDX=new size
@@ -1127,7 +1132,7 @@ endif				; IF @OEM_VIRTUALMEM
 
 	 push	 ecx		; Pass # bytes to set
 	 push	 esi		; Pass starting linear address
-	 FIXICALL PGROUP:FALLOCMEM_SUB,DTE_CS2 ; Allocate 'em
+	 call	 DPMIFN_ALLOCCLI ; Allocate 'em
 	 jnc	 short DPMIFN_MODMEM_CLC ; Jump if all went OK with EDX=new size
 
 	 int	 03h		; Call our debugger
@@ -1156,11 +1161,9 @@ DPMIFN_MODMEM_MOVE:
 
 	 push	 AGROUP:[edi].DPMIHNDL_LEN ; Pass old byte length
 	 push	 AGROUP:[edi].DPMIHNDL_LA ; Pass old starting linear address
-	 FIXICALL PGROUP:FDEALLOCMEM,DTE_CS2 ; Deallocate the memory
+	 call	 DPMIFN_FREECLI ; Deallocate the memory
 ;;;;;;;; jc	 short ???	; Ignore error return
-
 	 mov	 ebx,edx	; Save new size in bytes (/@DPMI_BOUND)
-
 	 push	 @ALLOC_DPMI	; Pass allocation type
 	 FIXICALL PGROUP:FQRY_PGCNT,DTE_CS2 ; Request free memory size
 				; Return with EAX = # available 1KB
@@ -1210,7 +1213,7 @@ DPMIFN_MODMEM_ERR:
 
 	 push	 AGROUP:[edi].DPMIHNDL_LEN ; Pass old byte length
 	 push	 AGROUP:[edi].DPMIHNDL_LA ; Pass old starting linear address
-	 FIXICALL PGROUP:FALLOCMEM_SUB,DTE_CS2 ; Deallocate the memory
+	 call	 DPMIFN_ALLOCCLI ; Re-allocate the memory
 	 jnc	 short @F	; Jump if all went OK
 
 	 int	 03h		; Call our debugger
@@ -3976,6 +3979,158 @@ DPMI_SEGLOCK:
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 
 DPMI_LOCKSEG endp		; End DPMI_LOCKSEG procedure
+	 NPPROC  DPMIFN_FREECLI -- Free A Client Memory Block
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+COMMENT|
+
+Free memory of the DPMI host or a client memory block (DPMI handle).
+Blocks in the client hole at 4MB go straight to the VMM:  DEALLOCMEM
+would take them for memory at the same (one-to-one) addresses.
+On entry:
+
+Arguments on stack (as for FDEALLOCMEM)
+
+On exit:
+
+CF	 =	 0 if successful
+	 =	 1 if not
+
+|
+
+FREECLI_STR struc
+
+	 dd	 ?		; Caller's EBP
+	 dw	 ?		; ...	   IP
+FREECLI_LA  dd	 ?		; Linear address to free
+FREECLI_LEN dd	 ?		; Byte length ...
+
+FREECLI_STR ends
+
+	 push	 ebp		; Prepare to address the stack
+	 mov	 ebp,esp	; Hello, Mr. Stack
+
+	 REGSAVE <eax,ebx,ds>	; Save registers
+
+	 mov	 ds,ISEL_DSIG3	; Get IGROUP data selector at PL3
+	 assume  ds:IGROUP	; Tell the assembler about it
+
+	 mov	 eax,[ebp].FREECLI_LA ; Get linear address
+
+	 cmp	 eax,LinearHoleLo ; Izit below the hole?
+	 jb	 short DPMIFN_FREECLI_POOL ; Jump if so
+
+	 cmp	 eax,LinearHoleHi ; Izit in the hole?
+	 jae	 short DPMIFN_FREECLI_POOL ; Jump if not
+
+	 mov	 ebx,[ebp].FREECLI_LEN ; Get byte length
+	 shr	 ebx,@BytePage	; Convert to pages
+	 call	 VMM_FREE	; Free EBX pages at EAX
+
+	 jmp	 short DPMIFN_FREECLI_EXIT ; Join common exit code
+
+DPMIFN_FREECLI_POOL:
+	 mov	 ds,ISEL_DS3	; Get PGROUP data selector at PL3
+	 assume  ds:PGROUP	; Tell the assembler about it
+
+	 push	 [ebp].FREECLI_LEN ; Pass byte length
+	 push	 eax		; Pass starting linear address
+	 FIXICALL PGROUP:FDEALLOCMEM,DTE_CS2 ; Deallocate the memory
+DPMIFN_FREECLI_EXIT:
+	 REGREST <ds,ebx,eax>	; Restore
+	 assume  ds:nothing	; Tell the assembler about it
+
+	 pop	 ebp		; Restore
+
+	 ret	 4+4		; Return to caller, popping arguments
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+DPMIFN_FREECLI endp		; End DPMIFN_FREECLI procedure
+	 FPPROC  FDPMIFN_FREECLI -- Far Call To DPMIFN_FREECLI
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+	 push	 ebp		; Prepare to address the stack
+	 mov	 ebp,esp	; Hello, Mr. Stack
+
+	 push	 dword ptr [ebp+4+4+4] ; Pass byte length
+	 push	 dword ptr [ebp+4+4] ; Pass starting linear address
+	 call	 DPMIFN_FREECLI ; Free 'em
+
+	 pop	 ebp		; Restore
+
+	 ret	 4+4		; Return to caller, popping arguments
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+FDPMIFN_FREECLI endp		; End FDPMIFN_FREECLI procedure
+	 NPPROC  DPMIFN_ALLOCCLI -- Allocate A Client Memory Block At An Address
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+COMMENT|
+
+Allocate a client memory block at a specific address (resize), see
+DPMIFN_FREECLI.
+
+On entry:
+
+Arguments on stack (as for FALLOCMEM_SUB)
+
+On exit:
+
+CF	 =	 0 if successful
+	 =	 1 if not
+
+|
+
+ALLOCCLI_STR struc
+
+	 dd	 ?		; Caller's EBP
+	 dw	 ?		; ...	   IP
+ALLOCCLI_LA  dd  ?		; Linear address to allocate
+ALLOCCLI_LEN dd  ?		; Byte length ...
+
+ALLOCCLI_STR ends
+
+	 push	 ebp		; Prepare to address the stack
+	 mov	 ebp,esp	; Hello, Mr. Stack
+
+	 REGSAVE <eax,ebx,ecx,ds> ; Save registers
+
+	 mov	 ds,ISEL_DSIG3	; Get IGROUP data selector at PL3
+	 assume  ds:IGROUP	; Tell the assembler about it
+
+	 mov	 eax,[ebp].ALLOCCLI_LA ; Get linear address
+
+	 cmp	 eax,LinearHoleLo ; Izit below the hole?
+	 jb	 short DPMIFN_ALLOCCLI_POOL ; Jump if so
+
+	 cmp	 eax,LinearHoleHi ; Izit in the hole?
+	 jae	 short DPMIFN_ALLOCCLI_POOL ; Jump if not
+
+	 mov	 ebx,[ebp].ALLOCCLI_LEN ; Get byte length
+	 shr	 ebx,@BytePage	; Convert to pages
+	 mov	 ecx,mask $commit ; Committed, as ALLOCMEM_SUB does
+	 call	 VMM_ALLOC	; Allocate EBX pages at EAX
+
+	 jmp	 short DPMIFN_ALLOCCLI_EXIT ; Join common exit code
+
+DPMIFN_ALLOCCLI_POOL:
+	 mov	 ds,ISEL_DS3	; Get PGROUP data selector at PL3
+	 assume  ds:PGROUP	; Tell the assembler about it
+
+	 push	 [ebp].ALLOCCLI_LEN ; Pass byte length
+	 push	 eax		; Pass starting linear address
+	 FIXICALL PGROUP:FALLOCMEM_SUB,DTE_CS2 ; Allocate 'em
+DPMIFN_ALLOCCLI_EXIT:
+	 REGREST <ds,ecx,ebx,eax> ; Restore
+	 assume  ds:nothing	; Tell the assembler about it
+
+	 pop	 ebp		; Restore
+
+	 ret	 4+4		; Return to caller, popping arguments
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+DPMIFN_ALLOCCLI endp		; End DPMIFN_ALLOCCLI procedure
 	 align	 4		; Ensure dword alignment
 
 ICODE	 ends			; End ICODE segment

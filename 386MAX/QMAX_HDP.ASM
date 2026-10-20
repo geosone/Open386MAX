@@ -93,6 +93,7 @@ ECODE	 segment use16 dword public 'ecode' ; Start ECODE segment
 	 extrn	 GP_HDPSTUB:near
 	 extrn	 FALLOCMEM:far
 	 extrn	 FDEALLOCMEM:far
+	 extrn	 FDPMIFN_FREECLI:far
 
 ECODE	 ends			; End ECODE segment
 
@@ -1933,7 +1934,7 @@ HDP_SHREND_KEEP:
 
 	 push	 eax		; Pass byte length
 	 push	 ebx		; Pass linear address
-	 FIXICALL PGROUP:FDEALLOCMEM,DTE_CS2 ; Deallocate the memory
+	 FIXICALL IGROUP:FDPMIFN_FREECLI,DTE_CSIG ; Deallocate the memory
 
 	 mov	 PGROUP:[edx].DPTSS_LDTSNAP,0 ; Gone
 HDP_SHREND_SYNC:

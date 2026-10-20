@@ -297,6 +297,10 @@ if @OEM_HIFILL
 	 extrn	 MAC_FREE:far
 	 extrn	 QPI_I2FD2:far
 endif				; IF @OEM_HIFILL
+if @OEM_DPMI
+	 extrn	 LOWHOLE_E2XFREE:far
+	 extrn	 LOWHOLE_E2XTAKE:far
+endif				; IF @OEM_DPMI
 
 JCODE	 ends			; End JCODE segment
 
@@ -3386,6 +3390,9 @@ EX2SIZE has been filled in
 	 push	 EXTBASE	; Pass starting linear address
 	 call	 DEALLOCMEM	; Deallocate the memory
 ;;;;;;;; jc	 short ???	; Ignore error return
+if @OEM_DPMI
+	 FIXICALL JGROUP:LOWHOLE_E2XTAKE,DTE_CSJG ; Keep DPMI low area
+endif				; IF @OEM_DPMI
 APPEND_E2X_EXIT:
 	 popf			; Restore flags
 
@@ -3437,6 +3444,9 @@ EX2SIZE has been filled in
 
 ; Allocate EAX bytes at EDI
 
+if @OEM_DPMI
+	 FIXICALL JGROUP:LOWHOLE_E2XFREE,DTE_CSJG ; Including DPMI low area
+endif				; IF @OEM_DPMI
 	 push	 eax		; Pass # bytes to set
 	 push	 EXTBASE	; Pass starting linear address
 	 call	 ALLOCMEM_SUB	; Allocate 'em

@@ -434,7 +434,7 @@ CNT	 =	 CNT + 1
 
 	 extrn	 DPMIFN_NEWLINE:near
 	 extrn	 DPMIFN_GETPSP:near
-
+	 extrn	 DPMIFN_FREECLI:near
 	 extrn	 @ENVLEN:abs
 
 	 FPPROC  IMM2_DPMIPRES -- DPMI Presence Detection
@@ -963,7 +963,7 @@ restored to the incoming TSS.
 
 	 push	 DPMIOLDPM_SIZ	; Pass byte length
 	 push	 PGROUP:[edx].DPTSS_OLDPM ; Pass starting linear address
-	 FIXICALL PGROUP:FDEALLOCMEM,DTE_CS2 ; Deallocate the memory
+	 call	 DPMIFN_FREECLI ; Deallocate the memory
 	 jnc	 short @F	; Jump if no error
 
 	 int	 03h		; Call our debugger
@@ -1110,7 +1110,7 @@ Note that both PCURTSS and VM2PM_TSS point to the outgoing TSS.
 				; as we haven't switched to this client)
 	 push	 ebx		; Pass byte length
 	 push	 PGROUP:[edx].DPTSS_LaLDT ; Pass starting linear address
-	 FIXICALL PGROUP:FDEALLOCMEM,DTE_CS2 ; Deallocate the memory
+	 call	 DPMIFN_FREECLI ; Deallocate the memory
 	 jnc	 short @F	; Jump if no error
 
 	 int	 03h		; Call our debugger
@@ -1893,9 +1893,8 @@ DPMIFN_FREEMEM_NEXT:
 
 	 push	 AGROUP:[edi].DPMIHNDL_LEN ; Pass byte length
 	 push	 AGROUP:[edi].DPMIHNDL_LA ; Pass starting linear address
-	 FIXICALL PGROUP:FDEALLOCMEM,DTE_CS2 ; Deallocate the memory
+	 call	 DPMIFN_FREECLI ; Deallocate the memory
 	 jnc	 short @F	; Jump if no error
-
 	 int	 03h		; Call our debugger
 @@:
 
@@ -1925,7 +1924,7 @@ DPMIFN_FREEMEM_LOOP:
 
 	 push	 eax		; Pass byte length
 	 push	 PGROUP:[edx].DPTSS_LaDPMIHNDL ; Pass starting linear address
-	 FIXICALL PGROUP:FDEALLOCMEM,DTE_CS2 ; Deallocate the memory
+	 call	 DPMIFN_FREECLI ; Deallocate the memory
 	 jnc	 short @F	; Jump if no error
 
 	 int	 03h		; Call our debugger
@@ -2062,7 +2061,7 @@ DPMIFN_RESTDYN_DONE:
 
 	 push	 DPMIDYN_SIZ	; Pass byte length
 	 push	 edi		; Pass starting linear address
-	 FIXICALL PGROUP:FDEALLOCMEM,DTE_CS2 ; Deallocate the memory
+	 call	 DPMIFN_FREECLI ; Deallocate the memory
 	 jnc	 short @F	; Jump if no error
 
 	 int	 03h		; Call our debugger

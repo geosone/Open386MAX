@@ -190,6 +190,8 @@ IDATA	 segment use16 dword public 'idata' ; Start IDATA segment
 if @OEM_VIRTUALMEM
 	 extrn	 LinearBottom:dword
 	 extrn	 LinearClientTop:dword
+	 extrn	 LinearHoleLo:dword
+	 extrn	 LinearHoleHi:dword
 endif				; IF @OEM_VIRTUALMEM
 
 IDATA	 ends			; End IDATA segment
@@ -2748,12 +2750,18 @@ CF	=	0 successfully locked, or not managed by VMM
 	 mov	 eax,edx	; Copy region address
 	 and	 eax,@PTE_FRM	; Isolate the 4KB frame
 
+	 cmp	 eax,LinearHoleLo ; Izit below the client hole?
+	 jb	 short @F	; Jump if so
+
+	 cmp	 eax,LinearHoleHi ; Izit in the client hole?
+	 jb	 short INT4B_VIRT_LOCK_VMM ; Jump if so (VMM address)
+@@:
 	 cmp	 LinearBottom,eax ; Izit below bottom of VMM region?
 	 ja	 short INT4B_VIRT_LOCK_EXIT ; Jump if so (note CF=0)
 
 	 cmp	 eax,LinearClientTop ; Izit above top of VMM region?
 	 jae	 short INT4B_VIRT_LOCK_EXIT ; Jump if so (note CF=0)
-
+INT4B_VIRT_LOCK_VMM:
 ; Ok, it's a VMM address so try to lock it down.
 
 	 mov	 ebx,ecx	; Copy size of region in pages
@@ -2819,12 +2827,18 @@ CF	 =	 0 if all went OK
 	 mov	 eax,esi	; Copy linear address
 	 and	 eax,@PTE_FRM	; Isolate frame
 
+	 cmp	 eax,LinearHoleLo ; Izit below the client hole?
+	 jb	 short @F	; Jump if so
+
+	 cmp	 eax,LinearHoleHi ; Izit in the client hole?
+	 jb	 short INT4B_VIRT_UNLOCK_VMM ; Jump if so (VMM address)
+@@:
 	 cmp	 LinearBottom,eax ; Izit below bottom of VMM region?
 	 ja	 short INT4B_VIRT_UNLOCK_EXIT ; Jump if so (note CF=0)
 
 	 cmp	 eax,LinearClientTop ; Izit above top of VMM region?
 	 jae	 short INT4B_VIRT_UNLOCK_EXIT ; Jump if so (note CF=0)
-
+INT4B_VIRT_UNLOCK_VMM:
 	 mov	 ebx,AGROUP:[edi].DDS_SIZE ; Get size in bytes
 	 add	 ebx,esi	; Add to address next byte
 	 add	 ebx,@PageSize-1 ; Round up to page
@@ -2909,12 +2923,18 @@ CF	=	0 successfully locked, or not managed by VMM
 	 mov	 eax,edx	; Copy region address
 	 and	 eax,@PTE_FRM	; Isolate the 4KB frame
 
+	 cmp	 eax,LinearHoleLo ; Izit below the client hole?
+	 jb	 short @F	; Jump if so
+
+	 cmp	 eax,LinearHoleHi ; Izit in the client hole?
+	 jb	 short INT4B_VLP_VMM ; Jump if so (VMM address)
+@@:
 	 cmp	 LinearBottom,eax ; Izit below bottom of VMM region?
 	 ja	 near ptr INT4B_VLP_EXIT ; Jump if so (note CF=0)
 
 	 cmp	 eax,LinearClientTop ; Izit above top of VMM region?
 	 jae	 near ptr INT4B_VLP_EXIT ; Jump if so (note CF=0)
-
+INT4B_VLP_VMM:
 	 mov	 eax,edx	; Copy address to lock
 	 and	 eax,@PTE_FRM	; Isolate the 4KB frame
 
