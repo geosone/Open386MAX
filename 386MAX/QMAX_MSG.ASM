@@ -608,6 +608,17 @@ MSG_EXTLOD db	 BEL,'ออ> EXTSIZE= must precede all LOAD= statements.',CR,LF,EOS
 endif				; IFDEF LANG_GR
 endif				; IF @OEM_DEBUG
 
+	 public  MSG_EXTBIG
+ifdef LANG_GR
+MSG_EXTBIG db	 BEL,'ออ> Achtung, EXTSIZE= ueber 2GB-64MB laesst DPMI-Programmen',CR,LF
+	 db	 '    weniger linearen Speicher, ueber 2GB-8MB ueberdeckt es die',CR,LF
+	 db	 '    DPMI-Seitenverzeichnisse (Absturz moeglich).',CR,LF,EOS
+else
+MSG_EXTBIG db	 BEL,'ออ> Warning, EXTSIZE= above 2GB-64MB leaves DPMI clients less',CR,LF
+	 db	 '    linear memory, above 2GB-8MB it overlaps the DPMI page',CR,LF
+	 db	 '    directories (may crash).',CR,LF,EOS
+endif				; IFDEF LANG_GR
+
 
 	 public  MSG_ERRPRO,MSG_ERRPRO1
 	 public  MSG_ERRTIM,MSG_ERRTIM1

@@ -743,6 +743,7 @@ if @OEM_DEBUG
 	 extrn	 MSG_EXECUP:byte
 	 extrn	 MSG_EXTLOD:byte
 endif				; IF @OEM_DEBUG
+	 extrn	 MSG_EXTBIG:byte
 
 	 extrn	 MSG_POSBOOT:byte
 
@@ -3847,6 +3848,12 @@ if @OEM_DEBUG
 endif				; IF @OEM_DEBUG
 	 and	 eax,not (4-1)	; Round down to a multiple of four
 
+	 cmp	 eax,(2048-64)*1024 ; Izit above the default maximum (QMAX_ARG)?
+	 jbe	 short @F	; Jump if not
+
+	 push	 offset YGROUP:MSG_EXTBIG ; Pass address of warning message
+	 call	 YMSGOUT2	; Display YGROUP message
+@@:
 	 mov	 TOTSIZE,eax	; Save for later use
 	 add	 eax,1024	; Plus first megabyte
 	 mov	 PHYSIZE,eax	; Save as top of physical memory

@@ -15,6 +15,7 @@ not used (memory above 4GB never is).
 A larger value gives XMS more and DPMI less linear space.  Above about
 2GB-8MB it reaches the DPMI page directories for physical mappings
 (INIT_DPMITAB) and SWAT's page directory at 2GB-4MB; don't.
+386MAX warns when it loads with EXTSIZE= above 2GB-64MB.
 
 ## LOWDPMI=nnnn
 
