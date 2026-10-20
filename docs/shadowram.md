@@ -156,3 +156,27 @@ AMD (on amd.com; "No license ... is granted by this document"):
 * Family 10h BKDG (31116), Family 15h BKDGs (42301, 42300, 49125, 50742,
   55072), Family 16h BKDG (48751):
   https://www.amd.com/content/dam/amd/en/documents/archived-tech-docs/programmer-references/
+
+## CSMWrap (UEFI without a CSM)
+
+[CSMWrap](https://github.com/CSMWrap/CSMWrap) boots legacy systems on
+UEFI firmware without a CSM:  an EFI application which brings SeaBIOS
+along as CSM.  It keeps a CPU of its own for its BIOS proxy (QEMU:
+`-smp 2`).  Test:  `CSMWRAP=csmwrapx64.efi linux/test/dosboot.sh` boots
+OVMF, which starts CSMWrap from \EFI\BOOT\BOOTX64.EFI of the DOS partition
+(QEMU machine pc; with q35 its SeaBIOS hangs booting from AHCI).
+
+Seen with CSMWrap 3.1.2 on QEMU 440FX:
+
+* all PAMs read/write DRAM (ASQ:  Shadow 1 59 0 FFFF FFFF), no CSM table;
+* C0000-C99FF the VGA BIOS, C9A00-EE7FF zeros, EE800-EFFFF and parts of
+  F0000-FFFFF data of SeaBIOS/CSMWrap;
+* the BIOS proxy runs out of the F segment on the other CPU:  a RAM test
+  which writes there for a moment (CHECK_RAM of ASQ and MAXIMIZE, which
+  wrote F0000-FFFFF as well) crashes it.  CHECK_RAM (QUILIB/RAMSCAN.ASM)
+  now leaves the system ROM alone, as 386MAX always did.
+
+Read/write DRAM is adapter RAM to 386MAX, so it finds no high DOS memory
+under CSMWrap (0KB, no EMS page frame).  Using the zeros of C9A00-EE7FF
+needs a rule which tells them from data a BIOS keeps there (open, see
+docs/ideas.md).

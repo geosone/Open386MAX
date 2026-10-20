@@ -12,6 +12,8 @@
 #   MEMSIZE  QEMU memory in MB (default 32)
 #   KEEP=1   keep the disk copy (test.img) after the run
 #   XFILES   more files (blank separated) copied to C:\
+#   MACHINE  QEMU machine (pc, q35)
+#   CSMWRAP  csmwrapx64.efi:  boot through UEFI (OVMF, directory OVMF=) and CSMWrap
 #
 # 386MAX.SYS, 386LOAD.*, 386UTIL.COM from build/bin are copied to C:\MAX.
 # Output (build/test-dosboot/): screen texts and shots
@@ -35,8 +37,24 @@ echo "${CONFIG:-DOS=HIGH,UMB|DEVICE=C:\\MAX\\386MAX.SYS|FILES=40|BUFFERS=20|SHEL
 echo "${AUTO:-@ECHO OFF|PATH C:\\;C:\\MAX}" | crlf > "$OUT/AUTOEXEC.BAT"
 mcopy -o -i "$P" "$OUT/CONFIG.SYS" "$OUT/AUTOEXEC.BAT" ::/; }
 
+# UEFI with CSMWrap (CSMWRAP=csmwrapx64.efi):  OVMF boots CSMWrap from
+# \EFI\BOOT\BOOTX64.EFI of the DOS partition, CSMWrap (one CPU for itself:
+# -smp 2) boots DOS with its SeaBIOS as CSM; MACHINE=pc (with q35 its
+# SeaBIOS hangs booting from the AHCI disk)
+QEMU=qemu-system-i386
+FW=()
+if [ -n "${CSMWRAP:-}" ]; then
+    QEMU=qemu-system-x86_64
+    OVMF=${OVMF:-/usr/share/edk2-ovmf}
+    cp "$OVMF/OVMF_VARS.fd" "$OUT/vars.fd"
+    mmd -i "$P" ::/EFI ::/EFI/BOOT 2>/dev/null
+    mcopy -o -i "$P" "$CSMWRAP" ::/EFI/BOOT/BOOTX64.EFI || exit 1
+    FW=(-drive if=pflash,format=raw,unit=0,readonly=on,file="$OVMF/OVMF_CODE.fd"
+        -drive if=pflash,format=raw,unit=1,file="$OUT/vars.fd" -smp 2)
+fi
 SOCK=$OUT/monitor.sock
-qemu-system-i386 -machine pc ${ACCEL:--accel kvm} -m "${MEMSIZE:-32}" -display none -vga std \
+$QEMU -machine "${MACHINE:-pc}" ${ACCEL:--accel kvm} -m "${MEMSIZE:-32}" -display none -vga std \
+    "${FW[@]}" \
     -monitor unix:"$SOCK",server,nowait -drive if=ide,index=0,format=raw,file="$OUT/test.img" \
     -boot c -nic none -device isa-debug-exit,iobase=0x501,iosize=0x02 ${QEMU_EXTRA:-} \
     > "$OUT/qemu.log" 2>&1 &

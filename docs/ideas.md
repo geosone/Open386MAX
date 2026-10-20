@@ -68,3 +68,9 @@ interface too, for instance on FreeGEOS.  A bridge class (library)
 hides which one is used:  wxWidgets on Windows, FreeGEOS (or similar)
 on DOS.  It becomes a project of its own, which 386MAX, MaxView,
 OpenTape, OpenASPI, GDI and the other programs then use.
+
+* Read/write shadow DRAM as high DOS memory (CSMWrap, UEFI without CSM:
+  all PAMs read/write, no CSM table; docs/shadowram.md):  e.g. whole 16KB
+  blocks of C0000-EFFFF with uniform contents, on request or when the
+  BIOS is known (SeaBIOS/CSMWrap), since a classic BIOS keeps its own
+  (perhaps still zero) data in read/write DRAM.

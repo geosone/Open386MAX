@@ -367,6 +367,11 @@ test block is defined as @LCLMEM_LEN in BIOSCRC.INC).
     mis-identify real RAM), if we find the stored value
     at more than half the positions we'll call it real RAM.
 
+The system ROM (PaSYSROM and up) is never written:  it isn't free high
+memory, and when it is RAM it may be in use by others -- under CSMWrap
+(UEFI) a second CPU runs the BIOS proxy out of it (as 386MAX, which
+marks it ROM before its RAMSCAN).
+
 On entry:
 
 BX	 =	 segment to check
@@ -380,6 +385,12 @@ CF	 =	 1 if RAM present
 
 	 REGSAVE <ax,cx,dx,si,di,es> ; Save registers
 
+	 cmp	 bx,PaSYSROM	; Izit in the system ROM?
+	 jb	 short @F	; Jump if not
+
+	 clc			; Not RAM
+	 jmp	 short CHECK_RAM_EXIT ; Join common exit code
+@@:
 	 cli			; Ensure nobody moves
 	 call	 DISABLE_NMI	; Disable NMIs
 
@@ -452,7 +463,7 @@ CHECK_RAM_REST:
 
 ; CF = 0 means many mismatches (RAM not present)
 ; CF = 1 means few  mismatches (RAM	present)
-
+CHECK_RAM_EXIT:
 	 REGREST <es,di,si,dx,cx,ax> ; Restore
 	 assume  es:nothing
 
