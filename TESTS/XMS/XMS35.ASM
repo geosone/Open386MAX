@@ -31,6 +31,9 @@ mv	XMOVE <>
 hsx	dw ?		; super-extended handle
 hlo	dw ?		; XMS handle below 4GB
 total	dd ?
+physlo	dd ?		; physical address of the locked block, bits 0-31
+physhi	dd ?		; ...					32-63
+gdt	db 48 dup (0)	; INT 15h AH=87h GDT: descriptors 2 and 3 used
 
 	.data?
 buf1	db BUFSZ dup (?)
@@ -100,6 +103,54 @@ tosx	proc
 	mov	mv.mdsthi,0
 	jmp	domove
 tosx	endp
+
+; set descriptor at gdt+bx: base eax (bits 0-31), limit FFFFh, data
+setdesc	proc
+	mov	word ptr gdt[bx],0FFFFh
+	mov	word ptr gdt[bx+2],ax
+	ror	eax,16
+	mov	byte ptr gdt[bx+4],al
+	mov	byte ptr gdt[bx+5],93h
+	mov	byte ptr gdt[bx+6],0
+	mov	byte ptr gdt[bx+7],ah
+	ror	eax,16
+	ret
+setdesc	endp
+
+; INT 15h AH=87h F00Fh: BUFSZ bytes from esi (bits 32-47 in dx) to edi
+; (bits 32-47 in bx); CF and AH as returned
+i15sx	proc
+	push	bx
+	mov	eax,esi
+	mov	bx,10h
+	call	setdesc
+	mov	eax,edi
+	mov	bx,18h
+	call	setdesc
+	pop	bx
+	push	si
+	mov	si,offset gdt
+	mov	ecx,(BUFSZ/2) shl 16 + 0F00Fh
+	mov	eax,0F00F8700h
+	int	15h
+	pop	si
+	ret
+i15sx	endp
+
+; linear address of buf1/buf2 in eax
+linbuf1	proc
+	mov	eax,ds
+	shl	eax,4
+	add	eax,offset buf1
+	ret
+linbuf1	endp
+
+linbuf2	proc
+	mov	eax,ds
+	shl	eax,4
+	add	eax,offset buf2
+	ret
+linbuf2	endp
 
 ; handle dx at offset eax -> buf2 (cleared first)
 fromsx	proc
@@ -314,6 +365,68 @@ start:
 	xms	0Ah
 	cmp	ax,1
 	CHECK	'free the block below 4GB', e
+
+	TITLE_	'INT 15h AH=87h F00Fh (above 4GB)'
+	mov	dx,hsx
+	xms	0CCh
+	cmp	ax,1
+	CHECK	'lock (CCh)', e
+	mov	physlo,ebx
+	mov	physhi,edx
+	; buf1 -> physical +10000h, read back with CBh
+	mov	eax,0C0FFEE11h
+	call	fill1
+	call	linbuf1
+	mov	esi,eax
+	mov	edi,physlo
+	add	edi,10000h
+	xor	dx,dx
+	mov	bx,word ptr physhi
+	call	i15sx
+	CHECK	'conventional -> above 4GB: CF=0', nc
+	cmp	ah,0
+	CHECK	'AH=0', e
+	mov	dx,hsx
+	mov	eax,10000h
+	call	fromsx
+	call	cmpbuf
+	CHECK	'CBh reads the data back', e
+	; CBh writes +20000h, 87h reads it to buf2
+	mov	eax,0BADC0DEh
+	call	fill1
+	mov	dx,hsx
+	mov	eax,20000h
+	call	tosx
+	mov	di,offset buf2
+	mov	cx,BUFSZ/4
+	xor	eax,eax
+	cld
+	rep	stosd
+	mov	esi,physlo
+	add	esi,20000h
+	call	linbuf2
+	mov	edi,eax
+	mov	dx,word ptr physhi
+	xor	bx,bx
+	call	i15sx
+	CHECK	'above 4GB -> conventional: CF=0', nc
+	call	cmpbuf
+	CHECK	'data equal', e
+	; beyond the CPU's physical addresses (bit 47); the low bits are our
+	; block, so a manager that drops the high bits writes only there
+	call	linbuf1
+	mov	esi,eax
+	mov	edi,physlo
+	add	edi,30000h
+	xor	dx,dx
+	mov	bx,word ptr physhi
+	or	bx,8000h
+	call	i15sx
+	CHECK	'destin at 2^47 fails: CF=1', c
+	mov	dx,hsx
+	xms	0Dh
+	cmp	ax,1
+	CHECK	'unlock (0Dh)', e
 
 	TITLE_	'error codes'
 	mov	mv.mlen,1001h

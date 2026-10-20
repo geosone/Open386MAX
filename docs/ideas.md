@@ -13,9 +13,8 @@ EMC87 check runs only on a 386).
 ## 9.x
 
 * **XMS 3.5 for the rest of the package:**  386DISK on memory above 4GB
-  (/XMSSX), INT 15h AH=87h with the F00Fh extension of Jemm/HimemSX
-  (moves above 4GB from V86 mode), a test of XMS function CBh while a
-  DPMI client's page directory is current (DPMI/XMS35PM).
+  (/XMSSX), a test of XMS function CBh while a DPMI client's page
+  directory is current (DPMI/XMS35PM).
 * **Large RAM:**  XMS well beyond 256MB, but the mapped RAM capped
   (about 1-2GB, configurable) so DPMI clients keep 1-2GB of linear
   space; DPMI 0504h at low fixed addresses (HX programs with ImageBase

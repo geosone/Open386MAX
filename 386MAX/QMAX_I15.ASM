@@ -161,6 +161,7 @@ JCODE	 segment use16 dword public 'jcode' ; Start JCODE segment
 	 assume  cs:JGROUP
 
 	 extrn	 SXM_I15:near
+	 extrn	 SXM_I87:near
 
 JCODE	 ends			; End JCODE segment
 endif				; IF @OEM_XMS
@@ -310,6 +311,7 @@ AH = 24 	 A20 functions
 AX = 4F53	 User pressed Ctrl-Alt-Del (exit protected mode)
 AH = 87 	 Block Move	      (return with CF=0, ZF=1, AH=00h if OK
 				       return with CF=1, ZF=0, AH=86h if not)
+EAX = F00F87xxh, CX = F00Fh  Block Move above 4GB (XMS 3.5, see SXM_I87)
 AH = 88 	 Get extended size    (return with CF=0, AX=EXTSIZE)
 AH = 89 	 Enter protected mode (return with CF=1, AH=86h)
 AH = C0 	 Get BIOS configuration data
@@ -749,6 +751,40 @@ INT15_MOVE:
 	 mov	 al,AGROUP:[ebx].MDTE_ES.DESC_BASE3 ; Get the high-order byte
 	 ror	 eax,8		; Rotate back into position
 	 mov	 edi,eax	; Copy to destin register
+
+if @OEM_XMS
+; XMS 3.5 extension (as Jemm 5.80+):  EAX bits 16-31 = CX = F00Fh, ECX
+; bits 16-31 = # words, DX/BX = bits 32-47 of the source/destin address.
+; A side below 4GB is checked as for 87h, the copy is SXM_I87's.
+
+	 cmp	 [ebp].INTXX_EAX.EHI,0F00Fh ; Izit the extension?
+	 jne	 short INT15_MOVE1 ; Jump if not
+
+	 cmp	 [ebp].INTXX_ECX.ELO,0F00Fh ; Izit the extension?
+	 jne	 short INT15_MOVE1 ; Jump if not
+
+	 movzx	 ecx,[ebp].INTXX_ECX.EHI ; Get # words
+	 shl	 ecx,1-0	; Convert from words to bytes
+	 jz	 near ptr INT15_MOVE_MT ; Jump if move length is zero
+
+	 cmp	 [ebp].INTXX_EDX.ELO,0 ; Izit source below 4GB?
+	 jne	 short @F	; Jump if not
+
+	 mov	 eax,esi	; Check this one
+	 call	 CHKMOVE	; Check on the move address in EAX for ECX bytes
+	 jc	 near ptr INT15_MOVE_ERRLEN ; In our yard, so that's an error
+@@:
+	 cmp	 [ebp].INTXX_EBX.ELO,0 ; Izit destin below 4GB?
+	 jne	 short @F	; Jump if not
+
+	 mov	 eax,edi	; Check this one
+	 call	 CHKMOVE	; Check on the move address in EAX for ECX bytes
+	 jc	 near ptr INT15_MOVE_ERRLEN ; In our yard, so that's an error
+@@:
+	 FIXIJMP JGROUP:SXM_I87,DTE_CSJG ; Copy ECX bytes from ESI to EDI
+
+INT15_MOVE1:
+endif				; IF @OEM_XMS
 
 ; Get move size (in bytes) into ECX
 

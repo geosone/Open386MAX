@@ -9,7 +9,7 @@ terms (see docs/specs/README.md), not under the GPL of Open 386MAX.
 | Interface | Specification | 386MAX source | Tests |
 |---|---|---|---|
 | XMS | eXtended Memory Specification 2.0 and 3.0 (Microsoft, Lotus, Intel, AST, 1988/1991) | QMAX_XMS.ASM | XMS/XMSFUNC, XMSUMB, XMSLOCK |
-| XMS 3.5 / 3.51 | memory above 4GB:  C8h, C9h, CCh (3.50), CBh move with 40-bit offsets (3.51); Japheth / Jason Hood, XMS35.txt of HimemSX and Jemm | QMAX_SXM.ASM | XMS/XMS35, KEYWORDS.LST SXMS |
+| XMS 3.5 / 3.51 | memory above 4GB:  C8h, C9h, CCh (3.50), CBh move with 40-bit offsets (3.51), INT 15h 87h F00Fh; Japheth / Jason Hood, XMS35.txt of HimemSX and Jemm | QMAX_SXM.ASM | XMS/XMS35, KEYWORDS.LST SXMS |
 | EMS | LIM Expanded Memory Specification 4.0 (Lotus, Intel, Microsoft, 1987) | QMAX_EM*.ASM, QMAX_I67.ASM | EMS/EMSFUNC, EMSMORE |
 | VCPI | Virtual Control Program Interface 1.0 (Phar Lap, Quarterdeck, Qualitas and others, 1989) | QMAX_VCP.ASM, QMAX_I67.ASM | VCPI/VCPIFUNC |
 | VCPI debugger extensions | Preliminary Proposal for Debugger Extensions to VCPI (Qualitas, 1989-94), VCPIDBG.DOC in 386SWAT (GPL 3) | 386SWAT | |

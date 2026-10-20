@@ -54,6 +54,11 @@ EMU_INT15 in QMAX_I15) report what 386MAX leaves to INT 15h clients,
 as 88h does:  E801h the same size, E820h a copy of the BIOS map taken
 at init (SXM_E820INIT) with the RAM 386MAX uses marked reserved.
 
+And INT 15h AH=87h with EAX bits 16-31 = CX = F00Fh (the XMS 3.5
+extension of the BIOS block move, as Jemm 5.80+):  SXM_I87, from
+INT15_MOVE, copies to and from physical addresses above 4GB through the
+same windows.
+
 NOSXMS turns it off.
 
 |
@@ -1607,6 +1612,136 @@ SXM_I15_NEXT:
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 
 SXM_I15  endp			; End SXM_I15 procedure
+	 NPPROC  SXM_I87 -- INT 15h AH=87h Above 4GB
+	 assume  ds:PGROUP,es:nothing,fs:nothing,gs:nothing,ss:nothing
+COMMENT|
+
+Jumped to (FIXIJMP) from INT15_MOVE in QMAX_I15 for the XMS 3.5
+extension of the BIOS block move (XMS35.txt, as Jemm 5.80+):  EAX bits
+16-31 = CX = F00Fh, the GDT at ES:SI as for 87h with bits 0-31 of the
+addresses, DX = bits 32-47 of the source, BX = bits 32-47 of the destin,
+ECX bits 16-31 = # words.  A side at or above 4GB is a physical address
+(through the copy windows, see SXM_COPY), one below 4GB is linear as for
+87h (INT15_MOVE has checked it).  Bits 40-47 and addresses beyond the
+CPU's physical address width fail.
+
+On entry:
+
+ESI	 =	 source address, bits 0-31
+EDI	 =	 destin ...
+ECX	 =	 # bytes (even, not zero)
+SS:EBP	 ==>	 INTXX_STR
+
+On exit (INT15_EXIT1):
+
+CF	 =	 0, ZF = 1, AH = 0 if all went OK
+	 =	 1, ZF = 0, AH = 86h if not supported or invalid, 01h if
+		 the copy windows can't be used
+
+|
+
+	 push	 DTE_DSJG	; Get JGROUP data selector
+	 pop	 fs		; Address it
+	 assume  fs:JGROUP	; Tell the assembler about it
+
+	 mov	 ah,86h 	; Assume not supported
+	 test	 SXM_FLAG,@SXM_ON ; Do we handle memory above 4GB?
+	 jz	 short SXM_I87_ERR ; Jump if not
+
+	 mov	 SXM_LEN,ecx	; Save length
+	 mov	 SXM_SRC.SIDE_LO,esi ; Save source, bits 0-31
+	 mov	 SXM_DST.SIDE_LO,edi ; ...	destin ...
+	 movzx	 eax,[ebp].INTXX_EDX.ELO ; Get source bits 32-47
+	 movzx	 edx,[ebp].INTXX_EBX.ELO ; ... destin ...
+	 mov	 SXM_SRC.SIDE_HI,eax ; Save
+	 mov	 SXM_DST.SIDE_HI,edx ; ...
+
+	 mov	 bl,SXM_MAXPA	; Get # physical address bits
+	 sub	 bl,32		; Less 32 to get # bits above 4GB
+	 cmp	 bl,8		; More than bits 32-39?
+	 jbe	 short @F	; Jump if not
+	 mov	 bl,8		; The windows take 40 bits
+@@:
+	 lea	 esi,SXM_SRC	; FS:ESI ==> source side
+	 call	 SXM_I87SIDE	; Check it and set SIDE_PHYS
+	 jc	 short SXM_I87_ERR ; Jump if invalid
+
+	 lea	 esi,SXM_DST	; FS:ESI ==> destin side
+	 call	 SXM_I87SIDE	; Check it and set SIDE_PHYS
+	 jc	 short SXM_I87_ERR ; Jump if invalid
+
+	 call	 SXM_COPY	; Copy SXM_LEN bytes
+	 mov	 ah,01h 	; Assume the windows can't be used
+	 jc	 short SXM_I87_ERR ; Jump if not
+
+	 mov	 ah,0		; All went OK
+	 mov	 al,[ebp].INTXX_EAX.ELO.LO ; Get original AL
+	 mov	 [ebp].INTXX_EAX.ELO,ax ; Return AH = 0
+	 and	 [ebp].INTXX_EFL.ELO,not (mask $CF) ; CF=0
+	 or	 [ebp].INTXX_EFL.ELO,mask $ZF ; ZF=1
+
+	 FIXIJMP IGROUP:INT15_EXIT1,DTE_CSIG ; Return to caller
+
+SXM_I87_ERR:
+	 mov	 [ebp].INTXX_EAX.ELO.HI,ah ; Return error code
+	 or	 [ebp].INTXX_EFL.ELO,mask $CF ; CF=1
+	 and	 [ebp].INTXX_EFL.ELO,not (mask $ZF) ; ZF=0
+
+	 FIXIJMP IGROUP:INT15_EXIT1,DTE_CSIG ; Return to caller
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+SXM_I87  endp			; End SXM_I87 procedure
+	 NPPROC  SXM_I87SIDE -- Check One Side of an 87h Move Above 4GB
+	 assume  ds:PGROUP,es:nothing,fs:JGROUP,gs:nothing,ss:nothing
+COMMENT|
+
+On entry:
+
+FS:ESI	 ==>	 SIDE_STR (SIDE_LO, SIDE_HI = bits 32-47 set)
+BL	 =	 # address bits above 4GB the copy can reach (1-8)
+SXM_LEN  =	 length of the move
+
+On exit:
+
+CF	 =	 0 if valid, SIDE_PHYS set (1 = at or above 4GB)
+	 =	 1 if not
+
+|
+
+	 REGSAVE <eax,ecx,edx>	; Save registers
+
+	 mov	 fs:[esi].SIDE_PHYS,0 ; Assume linear (below 4GB)
+	 mov	 eax,fs:[esi].SIDE_LO ; Get bits 0-31
+	 mov	 edx,fs:[esi].SIDE_HI ; ...	32-47
+	 and	 edx,edx	; Izit below 4GB?
+	 jnz	 short @F	; Jump if not
+
+	 add	 eax,SXM_LEN	; Plus length to get the end
+	 jnc	 short SXM_I87SIDE_END ; Jump if below 4GB (note CF=0)
+
+	 cmp	 eax,1		; CF=1 if it ends at 4GB
+	 cmc			; CF=0 if so, 1 if beyond
+	 jmp	 short SXM_I87SIDE_END ; Join common code
+
+@@:
+	 mov	 fs:[esi].SIDE_PHYS,1 ; Mark as physical
+	 add	 eax,SXM_LEN	; Plus length to get the end
+	 adc	 edx,0		; ...
+	 sub	 eax,1		; Less one to get the last byte
+	 sbb	 edx,0		; ...
+	 mov	 cl,bl		; Get # bits above 4GB
+	 shr	 edx,cl 	; Any bits beyond?
+	 cmp	 edx,1		; CF=1 if none
+	 cmc			; CF=1 if any
+SXM_I87SIDE_END:
+	 REGREST <edx,ecx,eax>	; Restore
+
+	 ret			; Return to caller
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+SXM_I87SIDE endp		; End SXM_I87SIDE procedure
 	 NPPROC  SXM_EXTKB -- Extended Memory 88h Reports
 	 assume  ds:PGROUP,es:nothing,fs:nothing,gs:nothing,ss:nothing
 COMMENT|

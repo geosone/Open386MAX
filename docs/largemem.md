@@ -68,7 +68,12 @@ INT 15h/E820h (from V86 mode) reports this memory as reserved, as
 XMS 3.5 asks; with `NOSXMS` it stays available.  Below 4GB E820h, like
 E801h, reports only what INT 15h AH=88h does (the memory at 1MB that
 XMS hasn't taken yet), the rest of the RAM 386MAX manages as reserved.
-Not yet:  the INT 15h AH=87h extension of Jemm for HimemSX.  `NOSXMS`
+INT 15h AH=87h with EAX bits 16-31 = CX = F00Fh (the extension of
+XMS35.txt, as Jemm 5.80+, for an XMS driver like HimemSX running under
+an EMM) moves ECX bits 16-31 words between addresses with bits 32-47 in
+DX (source) and BX (destin), through the same windows; a side below 4GB
+is checked as for 87h.  Addresses beyond the CPU's physical address
+width (or bit 40 and up) fail with CF=1, AH=86h.  `NOSXMS`
 turns XMS 3.5 memory off (the version stays 3.51, C8h reports none).
 
 Test:  `TESTS/XMS/XMS35` (skipped without such memory; run with
