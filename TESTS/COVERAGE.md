@@ -55,22 +55,24 @@ test.  Status:  **yes** (automatic test), **part** (some of it), **hand**
 
 ## 386MAX.PRO keywords
 
-None of these has an automatic test yet except EXTSIZE=, LOWDPMI= and
-NOSXMS (by hand).  Planned:  `linux/test/kwtest.py` boots once per line of
-`TESTS/KEYWORDS.LST` (keywords plus expected results) and runs
-`MAXPROBE.COM`, which reports EMS (frame, pages), XMS (total, handles,
-HMA), UMBs, DPMI, VCPI, VDS, XMS 3.5 and the first megabyte's map, so one
-line can check what a keyword should change.
+`linux/test/kwtest.py` boots once per line of `TESTS/KEYWORDS.LST` (the
+keywords in 386MAX.PRO) and checks what `MAX/MAXPROBE` reports:  the boot
+screen, EMS (version, frame, pages, handles), XMS (version, free, HMA,
+handles, UMB), XMS 3.5, VCPI, DPMI, VDS, QPI, UMBs, option ROMs, INT 15h.
+`--check` compares with `BASELINE/kw-<dos>.TXT`.
 
-| Group | Keywords |
+82 lines, 80 PASS.  Each keyword at least has "accepted and boots" (%OK:
+no Unknown keyword/Invalid/error message, MAXPROBE runs, XMS 3.50);
+these also check their effect:  FRAME=, NOFRAME, EMS=0, NODPMI, XMSHNDL=,
+USE=, RAM=, EXCLUDE=, NOHIGH, NOLOW, EXTSIZE= (and its warning), EXT=,
+HMAMIN=, FORCEA20, TERSE, NO4B, NOSXMS / XMS 3.5 (6GB), VGASWAP (no
+effect with QEMU's 38.5KB VGA ROM), unknown keywords.
+
+| Status | Keywords |
 |---|---|
-| memory sizes | EMS=, EXT=, EXTSIZE=, DPMIMEM=, HMAMIN=, NUMHANDLES=, XMSHNDL=, LOWDPMI=, TOP384, PSMEM |
-| EMS frame | FRAME=, LOWFRAME, NOFRAME, SHORTFRAME, IGNOREFLEXFRAME, EMS30, EEMS |
-| first megabyte | INCLUDE=, EXCLUDE=, RAM=, USE=, ROM=, NOROM, VIDMEM=, MONO, CGA, EGA, VGA, NOHIGH, NOLOW, HIGHDOS, NOSCAN, NOXRAM |
-| ROMs | FLEXROM=, VGASWAP, NOFLEX, NOVGASIG, SHADOWRAM, SHADOWROM, NOCOMPROM, XBIOSHI, NOXBIOS |
-| services off | NODPMI, NOEMS (via EMS=0), NOHMA, NOVCPI (DEBUG=), NOSXMS, NOWIN3, NOWIN30, NOPNP, NOVME, NODMA |
-| DMA | DMA=, 32BITDMA, SLOWDMA, NOEISADMA, NOSCSI |
-| others | AUTO, ON, OFF, PRO=, SWAP, SWAPFILE, STACKS=, ISTACKS, NOCACHE, CACHESIZE, NOPARITY, NOPULSE, NOSCRUB, NOTIME, NOWARMBOOT, RESETKEYB, SLOWKEYB, FORCEA20, NOGATE, AMRS=, TERSE, TRACE, NO4B, NO58, NOABIOS, MCE, LOAD=, LMLTOP, WEITEK=, BCF=, AUTOBCF, FORCEBCF |
+| FAIL (bug) | EXCLUDE=D000-E000 and FRAME=9000:  EMS frame in conventional memory, MS-DOS 6.22 hangs after 386MAX (FreeDOS boots) |
+| not in this version | NOHMA, NUMHANDLES=, LOWFRAME, HIGHDOS, EEMS, SLOWKEYB, INBOARD, JET386 |
+| no test yet | HPDAREG=, STACKREG=, XBDAREG=, LMLTOP=, CACHESIZE=, PSMEM=, SWAP=, LOAD=, FLEXROM=, POSFILE=, BCF=, AUTOBCF, FORCEBCF, SYS=, OFF, TRACE, WEITEK=ON/FORCE, W=ON/OFF, FASTRAM, PRO= variants |
 | DEBUG=... | debugging only, not tested |
 
 ## Programs
