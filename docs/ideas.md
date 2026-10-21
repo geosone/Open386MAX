@@ -13,9 +13,9 @@ EMC87 check runs only on a 386).
 ## 9.x
 
 * **MAXIMIZE with multi-configuration CONFIG.SYS:**  the MS-DOS 6/7
-  [MENU] syntax works (linux/test/maxmenu.sh); the menu syntax of
-  FreeDOS (MENU, 12?DEVICE=) and DR-DOS (SWITCH, ?"") is not supported
-  yet.
+  [MENU] syntax works (linux/test/maxmenu.sh), and the FreeDOS line
+  prefixes (12?DEVICE=, !, ?) and DR-DOS ?DEVICE= (maxnames.sh
+  freedos-menu, docs/startfiles.md).  Open:  DR-DOS SWITCH/GOTO/labels.
 * **One-stop setup:**  one CONFIG.SYS with 386MAX, VSBHDA, AHCIASPI,
   ASPICD (with MSCDEX or SHSUCDX) and a mouse driver, maximized, leaves
   at least 612KB (ideally 625KB) of conventional memory and 8-32MB of

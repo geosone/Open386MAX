@@ -91,7 +91,8 @@ build/kwtest/compare.md puts the values side by side.
 |---|---|
 | fixed | EXCLUDE=D000-E000, FRAME=9000:  without 64KB above 640KB EMS now runs without a page frame (a frame in conventional memory hung MS-DOS) |
 | not in this version | NOHMA, NUMHANDLES=, LOWFRAME, HIGHDOS, EEMS, SLOWKEYB, INBOARD, JET386 |
-| no test yet | HPDAREG=, STACKREG=, XBDAREG=, LMLTOP=, CACHESIZE=, PSMEM=, SWAP=, LOAD=, FLEXROM=, POSFILE=, BCF=, AUTOBCF, FORCEBCF, SYS=, OFF, TRACE, WEITEK=ON/FORCE, W=ON/OFF, FASTRAM, PRO= variants |
+| accepted, 386MAX runs (kwtest) | HPDAREG=, STACKREG=, XBDAREG=, CACHESIZE= (and without =), PSMEM=, SWAP=, FASTRAM, OFF |
+| no test yet | LMLTOP=, TRACE, LOAD= (debug builds only), FLEXROM=, POSFILE=, BCF=, AUTOBCF, FORCEBCF, SYS= (hardware of their own), WEITEK=ON/FORCE, W=ON/OFF (need a Weitek), PRO= variants |
 | DEBUG=... | debugging only, not tested |
 
 ## Programs
