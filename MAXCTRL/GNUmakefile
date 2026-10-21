@@ -4,13 +4,15 @@ PROJ     := MAXCTRL
 ROOT     := $(abspath ..)
 CMODEL   := l
 CPACK    := 1
+MSCOMPAT := 1
 INCDIRS  := . ../INCLUDE ../INC
 PROGS    := TOOLBOX.EXE
 
 TOOLBOX.EXE_OBJS := TOOLBOX.OBJ SETUPDDE.OBJ FILECOPY.OBJ MISC.OBJ
 TOOLBOX.EXE_RC   := TOOLBOX.RC
 TOOLBOX.EXE_DEF  := MAXCTRL.DEF
-TOOLBOX.EXE_LIBS := ddeml toolhelp shell $(ROOT)/build/SFTTABS/SFTTABS.LIB ctl3dv2
+TOOLBOX.EXE_LIBS := ddeml toolhelp shell $(ROOT)/build/SFTTABS/SFTTABS.LIB ctl3dv2 \
+	$(ROOT)/build/QUILIB-W/LQUILIBW.LIB
 
 include $(ROOT)/linux/mk/win.mk
 

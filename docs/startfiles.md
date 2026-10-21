@@ -30,6 +30,17 @@ FDCONFIG.SYS + FDAUTO.BAT (FreeDOS), DCONFIG.SYS + AUTODOS7.BAT
 ignores) and /K MSAUTO.BAT (MS-DOS 6.22), each with a CONFIG.SYS and
 AUTOEXEC.BAT beside them that must stay unchanged.
 
+## Windows programs
+
+SETUP.EXE and TOOLBOX.EXE take both names from `dos_startfiles`
+(QUILIB/MBPARSE.C, in LQUILIBW.LIB):  the configuration file as above,
+the startup batch file from SHELL= of the MultiConfig section in
+CONFIG=.  MAXEDIT.EXE (small model, without QUILIB) lists FDCONFIG.SYS,
+DCONFIG.SYS, FDAUTO.BAT and AUTODOS7.BAT besides CONFIG.SYS and
+AUTOEXEC.BAT if they are there.  Tried:  TOOLBOX in Windows for
+Workgroups 3.11 on MS-DOS (linux/test/win311.sh); there's no Windows
+image on FreeDOS or DR DOS yet.
+
 ## Line prefixes
 
 FreeDOS and DR DOS put prefixes on the keyword of a CONFIG.SYS line:

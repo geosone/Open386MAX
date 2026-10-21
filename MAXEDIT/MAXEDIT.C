@@ -274,6 +274,21 @@ BOOL PASCAL InitializeInstance( LPSTR lpCmdLine, WORD nCmdShow )
 	AddFile( "c:\\config.sys" );
 	AddFile( "c:\\autoexec.bat" );
 
+	// The startup files of FreeDOS and DR DOS, if there
+	// (docs/startfiles.md)
+	{
+		static char *apszOther[] = { "c:\\fdconfig.sys", "c:\\dconfig.sys",
+			"c:\\fdauto.bat", "c:\\autodos7.bat" };
+		HFILE fhOther;
+		int j;
+
+		for (j = 0; j < sizeof( apszOther ) / sizeof( apszOther[0] ); j++)
+			if ((fhOther = _lopen( apszOther[j], READ )) != HFILE_ERROR) {
+				_lclose( fhOther );
+				AddFile( apszOther[j] );
+			}
+	}
+
 	GetWindowsDirectory( sz, 128 );
 	MakePathName( sz, "system.ini" );
 	AddFile( sz );

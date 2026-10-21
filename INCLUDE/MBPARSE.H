@@ -140,6 +140,13 @@ GLOBAL char _far *ConfigSys
 /* which needs room for 16 characters. */
 char *dos_cfgname (char drive, char *name);
 
+/* The configuration file and startup batch file the running DOS uses on */
+/* drive, for the MultiConfig section in CONFIG= (menu_parse() and */
+/* config_parse(), for programs that don't parse CONFIG.SYS themselves). */
+/* cfgname and batname need room for 80 characters.  Returns 0 if */
+/* CONFIG.SYS was parsed, else the default names. */
+int dos_startfiles (char drive, char *cfgname, char *batname);
+
 /* Strip the prefixes of FreeDOS and DR DOS from the keyword of a CONFIG.SYS */
 /* line in place:  "12?DEVICE" (only for menu choices 1 and 2), "!DEVICE" */
 /* (never ask), "?DEVICE" and "DEVICE?" (ask).  Returns the menu choices */

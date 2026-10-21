@@ -9,6 +9,7 @@
 #include <io.h>
 
 #include "toolbox.h"
+#include <mbparse.h>
 
 #include <shellapi.h>
 #include <dosmax.h>
@@ -159,8 +160,8 @@ char    *szVGASwap="VGASwap";
 char    *szExtraDOS="ExtraDOS";
 char	szMaxIniPath[ _MAX_PATH + 1 ];
 
-char    szConfigSys[] = "c:\\config.sys";
-char	szAutoexec[] = "c:\\autoexec.bat";
+char    szConfigSys[80] = "c:\\config.sys";
+char	szAutoexec[80] = "c:\\autoexec.bat";
 char	szCurrentSection[80];
 char	szCurrentDescription[256];
 char	szMaxDir[80] = "c:\\qmax";
@@ -1902,8 +1903,9 @@ _asm {
 }
 	}
 
-	szConfigSys[0] = cBootDrive;
-	szAutoexec[0] = cBootDrive;
+	// CONFIG.SYS or FDCONFIG.SYS, DCONFIG.SYS; AUTOEXEC.BAT or the batch
+	// file of SHELL= (docs/startfiles.md)
+	(void) dos_startfiles( cBootDrive, szConfigSys, szAutoexec );
 
 	// read CONFIG.SYS for section names
 	if ((fh = _lopen( szConfigSys, READ | OF_SHARE_DENY_NONE)) != HFILE_ERROR) {

@@ -1003,6 +1003,40 @@ CHECK_COM_EXIT:
 
 } // check_common ()
 
+static int _far no_reloc (CONFIGLINE _far *cfg)
+// Callback of dos_startfiles ():  no line has to move
+{
+	return (0);
+} // no_reloc ()
+
+
+int dos_startfiles (char drive, char *cfgname, char *batname)
+// The configuration file and startup batch file of the running DOS (see
+// mbparse.h)
+{
+	char *sect = getenv ("CONFIG");
+	BYTE owner = '@';		// No MultiConfig sections
+	int ret = -1;
+
+	if (!menu_parse (drive, 1)) {
+	  if (MenuCount && sect && !set_current (sect)) owner = ActiveOwner;
+	  ret = config_parse (drive, owner, NULL, 0, no_reloc);
+	} // CONFIG.SYS read
+
+	if (ret) {
+	  (void) dos_cfgname (drive, cfgname);
+	  sprintf (batname, "%c:\\autoexec.bat", drive);
+	} // No CONFIG.SYS
+	else {
+	  _fstrcpy (cfgname, ConfigSys);
+	  _fstrcpy (batname, StartupBat);
+	} // Names from CONFIG.SYS
+
+	return (ret);
+
+} // dos_startfiles ()
+
+
 unsigned cfg_keyword (char *tok)
 // Strip "12?", "!" and "?" from the keyword of a CONFIG.SYS line (see
 // mbparse.h).  The FreeDOS kernel (config.c scan()) takes the digits

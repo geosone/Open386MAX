@@ -737,8 +737,9 @@ _asm {
 }
 	}
 
-	szConfigSys[0] = cBootDrive;
-	szAutoexec[0] = cBootDrive;
+	// CONFIG.SYS or FDCONFIG.SYS, DCONFIG.SYS; AUTOEXEC.BAT or the batch
+	// file of SHELL= (docs/startfiles.md)
+	(void) dos_startfiles( cBootDrive, szConfigSys, szAutoexec );
 
 	// read CONFIG.SYS for section names
 	if ((fh = _lopen( szConfigSys, READ | OF_SHARE_DENY_NONE)) != HFILE_ERROR) {
