@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The caller side of a serial line for multitasking tests:  connects to
 QEMU's COM1 (-serial unix:SOCKET,server,nowait), waits until the DOS
-side (TESTS/SCENARIO/SERECHO) sends "R", then sends COUNT bytes at RATE
+side (TESTS/SCENARIO/SERECHO) sends "R" (repeated until data comes), then sends COUNT bytes at RATE
 bytes a second and checks that every byte comes back (echo).
 
     serfeed.py SOCKET [--count N] [--rate B] [--wait S] [--out FILE]
@@ -72,11 +72,12 @@ def main():
                 echo += s.recv(4096)
     # the rest of the echo
     last = time.time() + 15
-    while time.time() < last and len(echo) < a.count:
+    while time.time() < last and len(echo.lstrip(b'R')) < a.count:
         r, _, _ = select.select([s], [], [], 1)
         if r:
             echo += s.recv(4096)
-    return report(a, sent, data, echo, '')
+    # "R"s the DOS side repeated before our first byte came
+    return report(a, sent, data, echo.lstrip(b'R'), '')
 
 
 def report(a, sent, data, echo, why):

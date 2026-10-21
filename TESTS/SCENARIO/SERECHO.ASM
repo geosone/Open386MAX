@@ -2,8 +2,9 @@
 ; (DESQview windows):  receives on COM1 by interrupt (IRQ4, as FOSSIL
 ; drivers and BBS programs do), echoes every byte back and about once a
 ; second appends a line with the count of bytes received to a file.
-; Sends "R" once it is ready, so that the other side starts sending only
-; then.  Runs until the machine is stopped.
+; Sends "R" when it is ready and again every second until the first byte
+; came (a host socket may connect late), so that the other side starts
+; sending only then.  Runs until the machine is stopped.
 ;   SERECHO file
 ; Build: jwasm -mz SERECHO.ASM
 
@@ -158,6 +159,13 @@ wait1:	; echo what came in
 	cli
 	mov	ax,rxcount
 	sti
+	or	ax,ax
+	jnz	@F
+	push	ax
+	mov	al,'R'		; nothing came yet:  ready again
+	call	txbyte
+	pop	ax
+@@:
 	mov	di,offset num+4
 	mov	cx,5
 	mov	bx,10
