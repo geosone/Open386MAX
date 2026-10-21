@@ -6,8 +6,11 @@
  * snapshot (CTRL_SYSREAD) and makes the reports (CTRL_ISETUP/IFETCH)
  * as in DOS ASQ.
  *
- *	WINASQ [snapshot.asq [/R report.txt]]
+ *	WINASQ [/N] [snapshot.asq [/R report.txt]]
  *
+ * /N makes the snapshot first:  File/New snapshot runs DOS ASQ (ASQ.EXE
+ * next to WINASQ.EXE) in a DOS window, "ASQ /S file /D title /X", and
+ * loads its snapshot when it has ended.
  * /R writes all reports of the snapshot to report.txt and exits.
  *
  * Open 386MAX - GNU General Public License version 3.
@@ -32,6 +35,10 @@ static HWND hTopics, hReport;		/* The two halves */
 static HFONT hFont;			/* OEM font of the report */
 static int SnapOK;			/* A snapshot is loaded */
 static char SnapName[128];		/* Its file name */
+static HINSTANCE hAsq;			/* ASQ running for a new snapshot */
+static char NewName[128];		/* Its snapshot file */
+static char NewTitle[40];		/* Its title */
+static char ReportName[128];		/* /R file */
 
 /* The topics in ASQ's order (ASQ/ASQTEXT.H DataInfo[]) */
 static struct { INFONUM num; char *title; } Topics[] = {
@@ -99,6 +106,8 @@ static struct { INFONUM num; char *title; } Topics[] = {
 
 long FAR PASCAL __export MainWndProc(HWND, UINT, WPARAM, LPARAM);
 BOOL FAR PASCAL __export AboutDlgProc(HWND, UINT, WPARAM, LPARAM);
+BOOL FAR PASCAL __export NewSnapDlgProc(HWND, UINT, WPARAM, LPARAM);
+static void after_load(HWND hwnd);
 
 
 static unsigned make_report(int topic)
@@ -189,6 +198,91 @@ static void load_snapshot(HWND hwnd, char *name)
 }
 
 
+static void run_asq(HWND hwnd)
+/* Start DOS ASQ for the snapshot NewName with the title NewTitle; the
+ * timer waits for its end */
+{
+	char cmd[300], *p;
+	OFSTRUCT of;
+
+	GetModuleFileName(hInst, cmd, 160);
+	p = strrchr(cmd, '\\');
+	p = p ? p + 1 : cmd;
+	lstrcpy(p, "ASQ.EXE");
+	if (OpenFile(cmd, &of, OF_EXIST) == HFILE_ERROR) hAsq = 0;
+	else {
+		/* ASQ reads quoted titles; the title must not end it */
+		for (p = NewTitle; *p; p++)
+			if (*p == '"') *p = '\'';
+		OpenFile(NewName, &of, OF_DELETE);	/* No stale one */
+		wsprintf(cmd + lstrlen(cmd), " /S %s /D \"%s\" /X",
+			 (LPSTR) NewName, (LPSTR) NewTitle);
+		hAsq = WinExec(cmd, SW_SHOWNORMAL);	/* Minimized:  stopped */
+		if (hAsq < 32) hAsq = 0;
+	}
+	if (!hAsq) {
+		wsprintf(cmd, "%s\n%s", (LPSTR) TXT_NOASQ, (LPSTR) NewName);
+		MessageBox(hwnd, cmd, TXT_TITLE, MB_OK | MB_ICONEXCLAMATION);
+		after_load(hwnd);
+		return;
+	}
+	SetWindowText(hReport, TXT_RUNNING);
+	EnableMenuItem(GetMenu(hwnd), IDM_NEW, MF_GRAYED);
+	EnableMenuItem(GetMenu(hwnd), IDM_OPEN, MF_GRAYED);
+	SetTimer(hwnd, ID_TIMER, 500, NULL);
+}
+
+
+static void asq_done(HWND hwnd)
+/* Timer:  load the new snapshot once ASQ has ended */
+{
+	if (GetModuleUsage(hAsq)) return;	/* Still running */
+	KillTimer(hwnd, ID_TIMER);
+	hAsq = 0;
+	EnableMenuItem(GetMenu(hwnd), IDM_NEW, MF_ENABLED);
+	EnableMenuItem(GetMenu(hwnd), IDM_OPEN, MF_ENABLED);
+	load_snapshot(hwnd, NewName);
+	after_load(hwnd);
+}
+
+
+static void new_snapshot(HWND hwnd)
+/* File/New snapshot:  title and file, then ASQ */
+{
+	if (DialogBox(hInst, MAKEINTRESOURCE(IDD_NEWSNAP), hwnd,
+		      (DLGPROC) NewSnapDlgProc) == IDOK)
+		run_asq(hwnd);
+}
+
+
+BOOL FAR PASCAL __export NewSnapDlgProc(HWND hdlg, UINT msg, WPARAM wParam,
+					 LPARAM lParam)
+{
+	switch (msg) {
+	case WM_INITDIALOG:
+		SetDlgItemText(hdlg, IDC_SNAPTITLE, NewTitle);
+		SetDlgItemText(hdlg, IDC_SNAPFILE, NewName);
+		SendDlgItemMessage(hdlg, IDC_SNAPTITLE, EM_LIMITTEXT,
+				   sizeof(NewTitle) - 1, 0L);
+		return TRUE;
+	case WM_COMMAND:
+		if (wParam == IDOK) {
+			GetDlgItemText(hdlg, IDC_SNAPTITLE, NewTitle, sizeof(NewTitle));
+			GetDlgItemText(hdlg, IDC_SNAPFILE, NewName, sizeof(NewName));
+			if (!NewName[0]) return TRUE;
+			EndDialog(hdlg, IDOK);
+			return TRUE;
+		}
+		if (wParam == IDCANCEL) {
+			EndDialog(hdlg, IDCANCEL);
+			return TRUE;
+		}
+		break;
+	}
+	return FALSE;
+}
+
+
 static void open_snapshot(HWND hwnd)
 /* File/Open snapshot */
 {
@@ -259,6 +353,9 @@ long FAR PASCAL __export MainWndProc(HWND hwnd, UINT msg, WPARAM wParam,
 		case IDM_OPEN:
 			open_snapshot(hwnd);
 			return 0;
+		case IDM_NEW:
+			new_snapshot(hwnd);
+			return 0;
 		case IDM_EXIT:
 			DestroyWindow(hwnd);
 			return 0;
@@ -269,7 +366,12 @@ long FAR PASCAL __export MainWndProc(HWND hwnd, UINT msg, WPARAM wParam,
 		}
 		break;
 
+	case WM_TIMER:
+		asq_done(hwnd);
+		return 0;
+
 	case WM_DESTROY:
+		if (hAsq) KillTimer(hwnd, ID_TIMER);
 		PostQuitMessage(0);
 		return 0;
 	}
@@ -295,6 +397,16 @@ BOOL FAR PASCAL __export AboutDlgProc(HWND hdlg, UINT msg, WPARAM wParam,
 		break;
 	}
 	return FALSE;
+}
+
+
+static void after_load(HWND hwnd)
+/* /R:  export the loaded snapshot and exit */
+{
+	if (!ReportName[0]) return;
+	if (!SnapOK || export_reports(ReportName) != 0)
+		MessageBox(hwnd, ReportName, TXT_TITLE, MB_OK | MB_ICONEXCLAMATION);
+	DestroyWindow(hwnd);
 }
 
 
@@ -324,30 +436,55 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrev, LPSTR lpCmd, int nShow)
 	ShowWindow(hwnd, nShow);
 	UpdateWindow(hwnd);
 
-	/* Snapshot from the command line, /R report file */
-	while (*lpCmd == ' ') lpCmd++;
-	if (*lpCmd) {
+	/* Default for File/New snapshot:  SNAPSHOT.ASQ next to WINASQ.EXE */
+	{
 		char *p;
 
-		lstrcpyn(name, lpCmd, sizeof(name));
-		p = strchr(name, ' ');
-		if (p) *p++ = '\0';
-		load_snapshot(hwnd, name);
-		if (p) {
-			while (*p == ' ') p++;
-			if (SnapOK && (p[0] == '/' || p[0] == '-') &&
-			    (p[1] == 'R' || p[1] == 'r')) {
-				for (p += 2; *p == ' '; p++);
-				if (export_reports(p) != 0)
-					MessageBox(hwnd, p, TXT_TITLE,
-						   MB_OK | MB_ICONEXCLAMATION);
-				DestroyWindow(hwnd);
-			}
-		}
+		GetModuleFileName(hInst, NewName, sizeof(NewName) - 13);
+		p = strrchr(NewName, '\\');
+		lstrcpy(p ? p + 1 : NewName, "SNAPSHOT.ASQ");
+		lstrcpy(NewTitle, TXT_DEFTITLE);
 	}
-	else {
-		SendMessage(hTopics, LB_SETCURSEL, 0, 0L);
-		show_report(0);
+
+	/* Command line:  [/N] [snapshot [/R report]] */
+	{
+		char *p = name, *tok;
+		int make = 0;
+
+		name[0] = '\0';
+		while (*lpCmd) {
+			while (*lpCmd == ' ') lpCmd++;
+			tok = p;
+			while (*lpCmd && *lpCmd != ' ' && p < name + sizeof(name) - 1)
+				*p++ = *lpCmd++;
+			*p = '\0';
+			if (!*tok) break;
+			if ((tok[0] == '/' || tok[0] == '-') && !tok[2] &&
+			    (tok[1] == 'N' || tok[1] == 'n')) make = 1;
+			else if ((tok[0] == '/' || tok[0] == '-') && !tok[2] &&
+				 (tok[1] == 'R' || tok[1] == 'r')) {
+				while (*lpCmd == ' ') lpCmd++;
+				for (p = ReportName; *lpCmd && *lpCmd != ' ' &&
+				     p < ReportName + sizeof(ReportName) - 1; )
+					*p++ = *lpCmd++;
+				*p = '\0';
+			}
+			else	lstrcpy(SnapName, tok);
+			p = name;
+		}
+		if (make) {
+			if (SnapName[0]) lstrcpy(NewName, SnapName);
+			run_asq(hwnd);
+		}
+		else if (SnapName[0]) {
+			lstrcpy(name, SnapName);
+			load_snapshot(hwnd, name);
+			after_load(hwnd);
+		}
+		else {
+			SendMessage(hTopics, LB_SETCURSEL, 0, 0L);
+			show_report(0);
+		}
 	}
 
 	while (GetMessage(&msg, 0, 0, 0)) {

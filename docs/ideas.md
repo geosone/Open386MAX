@@ -21,9 +21,9 @@ EMC87 check runs only on a 386).
   at least 612KB (ideally 625KB) of conventional memory and 8-32MB of
   XMS/DPMI for games.
 * **ASQ for Windows (WINASQ, docs/winasq.md):**  step 1 done, the
-  reports of an ASQ snapshot in a Win16 window (Windows 3.x and 9x).
-  Next:  a new snapshot from WINASQ (DOS ASQ in a DOS box), the memory
-  map as a picture, and under Windows 9x the memory ranges of the
+  reports of an ASQ snapshot in a Win16 window (Windows 3.x and 9x);
+  step 2 done, a new snapshot from WINASQ (DOS ASQ in a DOS window).
+  Next:  the memory map as a picture, and under Windows 9x the memory ranges of the
   drivers (Configuration Manager) against 386MAX's UMBs and ROM ranges.
 * **QPI:**  the functions of the QEMM manual that have no test yet
   (QPI/QPIALL).
