@@ -21,6 +21,10 @@
 #   MEMSIZE  QEMU memory in MB (default 32)
 #   KEYBLINE AUTOEXEC.BAT line for the keyboard driver (default KEYB GR;
 #            empty: none)
+#   CFGNAME  name of CFG's file (default CONFIG.SYS, e.g. FDCONFIG.SYS); a
+#            CONFIG.SYS beside it gets only "REM OTHER-CONFIG"
+#   AUTONAME name of AUTO's file (default AUTOEXEC.BAT, e.g. FDAUTO.BAT);
+#            an AUTOEXEC.BAT beside it only echoes OTHER-AUTOEXEC
 #
 # Output (build/test-maxdos/): shot<n>.png, final.png, result/ (CONFIG.SYS,
 # AUTOEXEC.BAT and C:\QMAX\*.PRO after the run)
@@ -54,13 +58,17 @@ else
     mcopy -o -i "$P" "$OUT"/dos/* ::/DOS/
     mcopy -o -i "$P" "$OUT/QEXIT.COM" ::/
     for f in "$PKG"/*; do [ -f "$f" ] && mcopy -o -i "$P" "$f" ::/INSTALL/; done
+    CN=${CFGNAME:-CONFIG.SYS}; AN=${AUTONAME:-AUTOEXEC.BAT}
+    rm -f "$OUT"/*.SYS "$OUT"/*.BAT
     echo "${CFG:-DEVICE=C:\\HIMEM.SYS|DEVICE=C:\\WINDOWS\\IFSHLP.SYS|DEVICE=C:\\WINDOWS\\RAMDRIVE.SYS 512|COUNTRY=049,850,C:\\DOS\\COUNTRY.SYS|FILES=40|BUFFERS=20|SHELL=C:\\COMMAND.COM C:\\ /P}" \
-        | crlf > "$OUT/CONFIG.SYS"
+        | crlf > "$OUT/$CN"
     # the installation replaces AUTOEXEC.BAT for MAXIMIZE and restores it
     KB=${KEYBLINE-'C:\DOS\KEYB GR,,C:\DOS\KEYBOARD.SYS'}
     echo "${AUTO:-@ECHO OFF|PATH C:\\;C:\\DOS;C:\\WINDOWS;C:\\QMAX|C:\\WINDOWS\\SMARTDRV.EXE|$KB}|IF NOT EXIST C:\\QMAX\\386MAX.SYS C:\\INSTALL\\SETUPDOS" \
-        | crlf > "$OUT/AUTOEXEC.BAT"
-    mcopy -o -i "$P" "$OUT/CONFIG.SYS" "$OUT/AUTOEXEC.BAT" ::/
+        | crlf > "$OUT/$AN"
+    [ "$CN" != CONFIG.SYS ] && echo 'REM OTHER-CONFIG' | crlf > "$OUT/CONFIG.SYS"
+    [ "$AN" != AUTOEXEC.BAT ] && echo '@ECHO OTHER-AUTOEXEC' | crlf > "$OUT/AUTOEXEC.BAT"
+    mcopy -o -i "$P" "$OUT"/*.SYS "$OUT"/*.BAT ::/
 fi
 
 # an empty floppy in A: (MAXIMIZE's ROM search tests the floppy services)
@@ -83,6 +91,7 @@ for f in "$OUT"/*.ppm; do [ -f "$f" ] && magick "$f" "${f%.ppm}.png" && rm -f "$
 
 rm -rf "$OUT/result"; mkdir -p "$OUT/result"
 mcopy -n -i "$P" ::/CONFIG.SYS ::/AUTOEXEC.BAT "$OUT/result/" 2>/dev/null
+for f in ${CFGNAME:-} ${AUTONAME:-}; do mcopy -n -i "$P" "::/$f" "$OUT/result/" 2>/dev/null; done
 mcopy -n -i "$P" '::/QMAX/*.PRO' '::/QMAX/*.BAT' "$OUT/result/" 2>/dev/null
 ls "$OUT"/*.png "$OUT/result"
 exit $RC

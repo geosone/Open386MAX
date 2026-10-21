@@ -14,6 +14,7 @@
 #include <string.h>
 
 #include "sysinfo.h"            /* System info functions */
+#include <asqshare.h>		/* CONFIG.SYS name */
 #include "info.h"               /* Info text functions */
 #include <engine.h>		/* Structures and functions */
 #include <myalloc.h>		/* malloc() and free() cover functions */
@@ -185,7 +186,7 @@ static int fillin_report(	/* Fill in report structure */
 	rept->print = SysInfo->config.print;
 	rept->fastopen = SysInfo->config.fastopen;
 	if (SysInfo->flags.cfg)
-		sprintf(rept->config_sys,"%c:\\CONFIG.SYS",SysInfo->bootdrv+'A');
+		sprintf(rept->config_sys,"%c:%s",SysInfo->bootdrv+'A',ConfigName+2);
 	if (SysInfo->flags.aut)
 		rept->pszAutoexec_bat = sysbuf_ptr (SysInfo->config.startupbat);
 

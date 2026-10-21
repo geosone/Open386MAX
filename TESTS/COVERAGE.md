@@ -108,6 +108,7 @@ build/kwtest/compare.md puts the values side by side.
 | MAXIMIZE | hand | linux/test/maxsh.sh |
 | SETUPDOS (install from floppies) | hand | linux/test/floppyinst.sh |
 | SETUPDOS + MAXIMIZE + STRIPMGR, MS-DOS 6 multi-configuration CONFIG.SYS | yes | linux/test/maxmenu.sh (found:  STRIPMGR saw no [section], so HIMEM.SYS stayed after 386MAX:  OpenWatcom small model kept ES across _fstricmp) |
+| Startup files of FreeDOS, EDR-DOS, SvarDOS, MS-DOS /K (FDCONFIG.SYS, DCONFIG.SYS, SHELL /P=, /P:, /K) | yes | linux/test/maxnames.sh (docs/startfiles.md) |
 | Shadow DRAM map (386MAX/SHADOWRAM.TXT:  386MAX, MAXIMIZE, ASQ) | part | by hand:  QEMU pc and q35, ASQ report and snapshot (linux/test/asq.sh); no real hardware yet |
 | CSM option ROM space ($EFI):  386MAX, MAXIMIZE, ASQ | yes | linux/test/csmuma.sh (CSMFAKE.SYS:  free option ROM space used, never the UMA, also with a wrong checksum; ASQ finds the table; CSMWRAP=:  through OVMF and CSMWrap) |
 | STRIPMGR, ASQ, QMT, ROMSRCH, XLAT, MEMLIMIT, EXTRADOS, RAMBASIC | no | |

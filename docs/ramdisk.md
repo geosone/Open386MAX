@@ -88,13 +88,12 @@ unchanged; 64MB:  the message and XMS memory.
 | Windows 9x (MS-DOS 7 with BootGUI=1) | - | not offered: Windows takes TEMP from DOS and its setup programs need far more room |
 | FreeDOS | FDCONFIG.SYS (before CONFIG.SYS), FDAUTO.BAT (SHELL /P=) | |
 | DR-DOS, EDR-DOS | DCONFIG.SYS (before CONFIG.SYS), AUTODOS7.BAT (SHELL /P:) | |
-| SvarDOS | CONFIG.SYS, AUTOEXEC.BAT | |
+| SvarDOS | DCONFIG.SYS (before CONFIG.SYS), AUTOEXEC.BAT | SvarCOM ignores SHELL /P=, /P:, /K |
 | 4DOS/NDOS | 4DOS.INI AutoExecPath, /K | |
 
 SETUPDOS, MAXIMIZE and STRIPMGR find the CONFIG.SYS the running DOS
-reads with dos_cfgname() (QUILIB/MBPARSE.C:  FreeDOS = INT 21h 3000h
-OEM FDh, DR DOS = INT 21h 4452h) and the startup batch file from the
-SHELL= line.  A SET TEMP= that comes after RAMTEMP in AUTOEXEC.BAT
+reads and the startup batch file from the SHELL= line (see
+startfiles.md).  A SET TEMP= that comes after RAMTEMP in AUTOEXEC.BAT
 (behind the first program) wins over it.
 
 Tested in QEMU with 386MAX on MS-DOS 6.22, MS-DOS 7.1, FreeDOS, EDR-DOS

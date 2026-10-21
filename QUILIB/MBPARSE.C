@@ -91,6 +91,47 @@ int fnDOS (char **tok, CONFIGLINE _far *cfg)
 } // fnDOS ()
 
 
+// Kinds of COMMAND.COM:  the options for another startup batch file
+// differ (FreeDOS kernel and EDR-DOS sources, tried in QEMU)
+#define SHELL_MS	0	// MS-DOS, PC DOS:  /K file instead of AUTOEXEC.BAT
+#define SHELL_FREECOM	1	// FreeCOM:  /P=file or /P:file (/K file runs after it)
+#define SHELL_DR	2	// DR DOS, EDR-DOS:  /P:file
+#define SHELL_SVARCOM	3	// SvarCOM:  always AUTOEXEC.BAT
+
+static int shell_kind (char *path)
+// Tell the kind of COMMAND.COM by its contents.  A UPX packed one is
+// FreeCOM on the FreeDOS kernel, else SvarCOM (SvarDOS, EDR-DOS kernel).
+{
+	static char *mark[] = { "FreeCOM", "Caldera", "DR-DOS", "Novell", "UPX!" };
+	char blk[512+8];
+	int fh, n, i, k, keep = 0, found = 0;
+	union REGS r;
+
+	if ((fh = open (path, O_RDONLY | O_BINARY)) == -1) return (SHELL_MS);
+	while ((n = read (fh, blk + keep, 512)) > 0) {
+	  n += keep;
+	  for (i = 0; i < n; i++)
+	    for (k = 0; k < 5; k++)
+	      if (i + (int) strlen (mark[k]) <= n &&
+		  !memcmp (blk + i, mark[k], strlen (mark[k])))
+		found |= 1 << k;
+	  keep = n < 7 ? n : 7; 	// Markers across two blocks
+	  memmove (blk, blk + n - keep, keep);
+	} // while blocks
+	close (fh);
+
+	if (found & 1) return (SHELL_FREECOM);
+	if (found & (2|4|8)) return (SHELL_DR);
+	if (found & 16) {
+	  r.x.ax = 0x3000;		// Get DOS version, OEM # in BH
+	  intdos (&r, &r);
+	  return (r.h.bh == 0xFD ? SHELL_FREECOM : SHELL_SVARCOM);
+	} // UPX packed
+	return (SHELL_MS);
+
+} // shell_kind ()
+
+
 int fnShell (CONFIGLINE _far *cfg)
 // Called from check_reloc ()
 // Process SHELL= statement.  Always returns 0.
@@ -122,22 +163,33 @@ int fnShell (CONFIGLINE _far *cfg)
 	_splitpath (tok1, pdrv, ppath, pfnam, pfext);
 
 	if (!_stricmp (pfnam, "command") && !_stricmp (pfext, ".com")) {
+	  int kind;
 
 	  // Clear 4DOS/NDOS flag (used by MAXIMIZE)
 	  Parsed4DOS = 0;
 
-	  // If COMMAND.COM, check for /K option, and for the startup
-	  // batch file of FreeCOM (/P=file, e.g. FreeDOS' FDAUTO.BAT) and
-	  // DR DOS (/P:file, AUTODOS7.BAT); a plain /P keeps AUTOEXEC.BAT.
+	  // Which COMMAND.COM (a path without drive is on the boot drive)
+	  if (*pdrv) strcpy (buff, tok1);
+	  else sprintf (buff, "%c:%s", *ConfigSys, tok1);
+	  kind = shell_kind (buff);
+
+	  // If COMMAND.COM, check for the startup batch file:  /K file of
+	  // MS-DOS, /P=file or /P:file of FreeCOM (e.g. FreeDOS' FDAUTO.BAT),
+	  // /P:file of DR DOS (AUTODOS7.BAT); a plain /P, SvarCOM and the
+	  // /K of the others keep AUTOEXEC.BAT.
 	  tok1 = NULL;			// Previous token
 	  while (tok = strtok (NULL, CfgSysSeps)) {
 	    _splitpath (tok, pdrv, ppath, pfnam, pfext);
-	    if (!_stricmp (tok, "k") && (tok = strtok (NULL, CfgSysSeps)))
-		_fstrcpy (StartupBat, tok);
-	    else if (!_strnicmp (tok, "p:", 2) && tok[2])
-		_fstrcpy (StartupBat, tok+2);
-	    else if (tok1 && !_stricmp (tok1, "p") && !_stricmp (pfext, ".bat"))
-		_fstrcpy (StartupBat, tok);
+	    if (!_stricmp (tok, "k") && (tok = strtok (NULL, CfgSysSeps))) {
+		if (kind == SHELL_MS) _fstrcpy (StartupBat, tok);
+	    } // /K file
+	    else if (!_strnicmp (tok, "p:", 2) && tok[2]) {
+		if (kind == SHELL_FREECOM || kind == SHELL_DR)
+			_fstrcpy (StartupBat, tok+2);
+	    } // /P:file
+	    else if (tok1 && !_stricmp (tok1, "p") && !_stricmp (pfext, ".bat")) {
+		if (kind == SHELL_FREECOM) _fstrcpy (StartupBat, tok);
+	    } // /P=file
 	    tok1 = tok;
 	  } // while tokens
 
