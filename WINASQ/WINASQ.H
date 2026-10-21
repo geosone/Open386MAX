@@ -27,6 +27,18 @@
 int map_cells(BYTE *cls);
 int map_entries(int page, char *buf, int nbuf);
 int map_list(char far *buf, unsigned nbuf, char *letters);
+int map_conflict(DWORD base, DWORD end, char *buf, int nbuf);
+
+/* Memory ranges of the devices, Windows 9x (WIN9XCM.C) */
+#define MAXDEVMEM	64
+typedef struct {
+	DWORD base, end;		/* Range, end inclusive */
+	char name[60];			/* DeviceDesc */
+} DEVMEM;
+extern DEVMEM DevMem[MAXDEVMEM];
+extern int nDevMem;
+int cm_read(void);
+void cm_done(void);
 
 #ifdef LANG_GR
 #define TXT_FILE	"&Datei"
@@ -41,6 +53,16 @@ int map_list(char far *buf, unsigned nbuf, char *letters);
 #define TXT_DEFTITLE	"Windows"
 #define TXT_EXIT	"&Beenden"
 #define TXT_MAP 	"Speicherkarte (Grafik)"
+#define TXT_DEVMEM	"Windows: Gerätespeicher"
+#define TXT_DEVHEAD	"Speicherbereiche der Geräte (Windows-Konfigurations-Manager)"
+#define TXT_NOCM	"Erst ab Windows 95:  Windows 3.x hat keinen Konfigurations-Manager."
+#define TXT_NODEV	"Kein Gerät hat einen Speicherbereich."
+#define TXT_CONFLICT	"!! Konflikt mit"
+#define TXT_NCONFLICT	"%d Konflikt(e) im ersten Megabyte"
+#define TXT_NOCONF	"Keine Konflikte im ersten Megabyte."
+#define TXT_NOCHECK	"Ohne Snapshot keine Prüfung:  Datei/Snapshot öffnen."
+#define TXT_MAPCONF	"Konflikt (Gerät)"
+#define TXT_DEVICE	"Gerät:"
 #define TXT_MAPHELP	"Ein Feld anklicken:  die Einträge dieser 4 KB."
 #define TXT_MAPCLASSES	"Unbekannt", "DOS-System", "Gerätetreiber", "XMS-UMB", "Verfügbar", \
 			"Video", "RAM", "ROM", "Programm", "Umgebung", "EMS-Fenster", \
@@ -65,6 +87,16 @@ int map_list(char far *buf, unsigned nbuf, char *letters);
 #define TXT_DEFTITLE	"Windows"
 #define TXT_EXIT	"E&xit"
 #define TXT_MAP 	"Memory Map (graphic)"
+#define TXT_DEVMEM	"Windows: Device Memory"
+#define TXT_DEVHEAD	"Memory ranges of the devices (Windows Configuration Manager)"
+#define TXT_NOCM	"Needs Windows 95 or later:  Windows 3.x has no Configuration Manager."
+#define TXT_NODEV	"No device has a memory range."
+#define TXT_CONFLICT	"!! Conflict with"
+#define TXT_NCONFLICT	"%d conflict(s) in the first megabyte"
+#define TXT_NOCONF	"No conflicts in the first megabyte."
+#define TXT_NOCHECK	"No check without a snapshot:  File/Open snapshot."
+#define TXT_MAPCONF	"Conflict (device)"
+#define TXT_DEVICE	"Device:"
 #define TXT_MAPHELP	"Click a field:  the entries of these 4KB."
 #define TXT_MAPCLASSES	"Unknown", "DOS system", "Device drivers", "XMS UMB", "Available", \
 			"Video", "RAM", "ROM", "Program", "Environment", "EMS frame", \

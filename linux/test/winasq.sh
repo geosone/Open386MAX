@@ -7,8 +7,12 @@
 #   new   WINASQ /N C:\MAX\NEW.ASQ /R ...:  WINASQ runs DOS ASQ in a DOS
 #         window for a new snapshot, loads and exports it (title
 #         "Windows", Windows 3.11 found, WIN386 in low DOS)
+#   win98 Windows 98 SE (linux/test/win98.sh):  the device memory of the
+#         Configuration Manager against a 386MAX snapshot (SNAP386, default
+#         build/test-csmuma/tab/SNAP.ASQ) with a "RAM" hole added at B8000
+#         where the VGA card has B8000-BFFFF:  one conflict expected
 #
-#   linux/test/winasq.sh [view|new]      (default both)
+#   linux/test/winasq.sh [view|new|win98]      (default all)
 #
 # Environment:
 #   SNAP     use this snapshot instead of making one
@@ -17,7 +21,7 @@
 set -u
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 OUT=$ROOT/build/win311test
-CASES=${1:-view new}
+CASES=${1:-view new win98}
 fail=0
 check() {   # description, fixed string expected in the report
     if grep -a -q -F -- "$2" "$OUT/REPORT.TXT"; then echo "  OK    $1"
@@ -58,6 +62,7 @@ view)
     check "map: A000 video" "A000  VVVVVVVVVVVVVVVV"
     check "map: F000 system ROM" "F000  OOOOOOOOOOOOOOOO"
     check "map: entry list" "V 1  A0000  10000  Video"
+    check "device memory: Windows 3.x" "Needs Windows 95 or later"
     ;;
 new)
     echo "== new (WINASQ /N runs DOS ASQ)"
@@ -66,6 +71,32 @@ new)
     check "snapshot title" "Title: Windows"
     check "Windows found" "Windows version: 3.11"
     check "WIN386 in low DOS" "win386.exe:"
+    ;;
+win98)
+    echo "== win98 (device memory against 386MAX's map)"
+    SNAP386=${SNAP386:-$ROOT/build/test-csmuma/tab/SNAP.ASQ}
+    [ -s "$SNAP386" ] || { echo "  FAIL  no snapshot $SNAP386 (linux/test/csmuma.sh)"; fail=1; continue; }
+    python3 - "$SNAP386" "$ROOT/build/CONFSNAP.ASQ" <<'PYEOF' || { echo "  FAIL  snapshot without the B0000 hole"; fail=1; continue; }
+import re, sys
+s = open(sys.argv[1], newline='', encoding='latin-1').read()
+m = re.search(r'^Holes +(\d+)\r\n', s, re.M)
+h = '    B0000     8000 11 "-Unused-"\r\n'
+if not m or h not in s: sys.exit(1)
+s = s.replace(m.group(0), 'Holes      %d\r\n' % (int(m.group(1)) + 1), 1)
+s = s.replace(h, h + '    B8000     1000 6 "RAM"\r\n', 1)
+open(sys.argv[2], 'w', newline='', encoding='latin-1').write(s)
+PYEOF
+    W98=$ROOT/build/win98test
+    SHOTS="100" KEEP=1 FILES="$ROOT/build/CONFSNAP.ASQ" \
+        "$ROOT/linux/test/win98.sh" WINASQ.EXE 'C:\MAX\CONFSNAP.ASQ /R C:\MAX\REPORT.TXT' > "$W98.log" 2>&1
+    rm -f "$OUT/REPORT.TXT"
+    MTOOLS_SKIP_CHECK=1 mcopy -n -i "$W98/test.img@@32256" ::/MAX/REPORT.TXT "$OUT/REPORT.TXT" 2>/dev/null
+    rm -f "$W98/test.img"
+    [ -s "$OUT/REPORT.TXT" ] || { echo "  FAIL  no REPORT.TXT"; fail=1; continue; }
+    check "VGA range A0000" "A0000-AFFFF  "
+    check "VGA range B8000" "B8000-BFFFF  "
+    check "conflict found" "!! Conflict with RAM B8000-B8FFF"
+    check "conflict count" "1 conflict(s) in the first megabyte"
     ;;
 *)  echo "unknown case $c"; exit 2 ;;
 esac

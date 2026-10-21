@@ -129,3 +129,40 @@ int map_list(char far *buf, unsigned nbuf, char *letters)
 	buf[len] = '\0';
 	return len;
 }
+
+
+int map_conflict(DWORD base, DWORD end, char *buf, int nbuf)
+/* Entries of the map in base..end (inclusive) that DOS or 386MAX use as
+ * memory (a device range there is a conflict); their number, the first
+ * ones as "name (start-end)" in buf */
+{
+	UMAP *ump, *uend;
+	int n = 0, len = 0;
+	char item[60];
+
+	buf[0] = '\0';
+	if (!SysInfo || !SysInfo->umaplen) return 0;
+	ump = sysbuf_ptr(SysInfo->umap);
+	uend = ump + SysInfo->umaplen;
+	for (; ump < uend; ump++) {
+		if (ump->length <= 0 || ump->faddr > end ||
+		    ump->faddr + ump->length - 1 < base) continue;
+		switch (ump->class) {
+		case CLASS_DOS: case CLASS_DEV: case CLASS_UMB:
+		case CLASS_AVAIL: case CLASS_RAM: case CLASS_PRGM:
+		case CLASS_ENV: case CLASS_EMS: case CLASS_SUBSEG:
+			break;
+		default:
+			continue;
+		}
+		n++;
+		wsprintf(item, "%s%.20s %05lX-%05lX", (LPSTR) (len ? ", " : ""),
+			 (LPSTR) ump->name, ump->faddr,
+			 ump->faddr + ump->length - 1);
+		if (len + lstrlen(item) < nbuf) {
+			lstrcpy(buf + len, item);
+			len += lstrlen(item);
+		}
+	}
+	return n;
+}

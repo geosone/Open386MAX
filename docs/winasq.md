@@ -44,6 +44,34 @@ low DOS, no free extended memory (Windows has it), the upper memory as
 Windows maps it into the virtual machine, timings of the virtual
 machine.  For the PC itself make the snapshot in DOS, before Windows.
 
+## Windows 9x:  device memory and conflicts
+
+The topic "Windows: Device Memory" lists the memory ranges Windows 9x
+has given the devices (Configuration Manager) with their names, and
+checks those in the first megabyte against the snapshot's map:  a
+device range on memory that DOS or 386MAX use (DOS, drivers, UMBs,
+available, RAM, programs, environments, EMS frame, MAX subsegments) is
+a conflict, e.g. a card whose memory 386MAX made into UMBs.  ROM, video
+and unused areas are not.  On the map the fields with a conflict get a
+red cross, and a click lists the devices of the field too.  Under
+Windows 3.x the topic says that it needs Windows 95.
+
+For a check of the PC as it boots, load a snapshot made in DOS with
+386MAX (before Windows); a snapshot of WINASQ /N under Windows 9x shows
+the DOS window's view of the same upper memory.
+
+Where the data comes from:  HKEY_DYN_DATA\Config Manager\Enum\<node>,
+values HardWareKey and Allocation; the name from HKEY_LOCAL_MACHINE\
+Enum\<HardWareKey>, DeviceDesc.  Allocation (as configmg.h):  DWORD
+version 0x400, DWORD priority, then records DWORD length (with the
+header), DWORD type, data, ended by length 0; type 1 (memory) holds WORD
+count, WORD 0x14, DWORD base, DWORD end (inclusive), WORD flags, WORD
+reserved (2 I/O, 3 DMA, 4 IRQ).  WINASQ is a Win16 program:  it calls
+RegOpenKeyExA, RegEnumKeyA, RegQueryValueExA and RegCloseKey of
+ADVAPI32 through the generic thunks of KERNEL (LoadLibraryEx32W,
+GetProcAddress32W, _CallProcEx32W), looked up at run time
+(WINASQ/WIN9XCM.C).
+
 ## How it is built
 
 * ASQENG/asqwin.mk:  LENGINEW.LIB, the ASQ engine compiled for Windows
@@ -61,12 +89,16 @@ linux/test/winasq.sh, in Windows for Workgroups 3.11:  "view" makes a
 snapshot with DOS ASQ, lets WINASQ export it and compares the report
 with the snapshot (title, extended memory, CPU vendor, the topics);
 "new" lets WINASQ /N make the snapshot in a DOS window (title, Windows
-3.11 found, WIN386 in low DOS).  Checked by hand in Windows 98 SE.
+3.11 found, WIN386 in low DOS); "win98" runs WINASQ in Windows 98 SE
+with a 386MAX snapshot (linux/test/csmuma.sh) that has a "RAM" hole
+added at B8000, where the VGA card has B8000-BFFFF:  exactly this
+conflict must be found.
 
 ## Next steps
 
 1. done:  a new snapshot from WINASQ (File/New snapshot, /N)
 2. done:  the memory map of the first megabyte as a picture
-3. Windows 9x:  the memory ranges the drivers have (Configuration
-   Manager, HKEY_DYN_DATA) against 386MAX's UMBs and ROM ranges,
+3. done:  Windows 9x, the memory ranges of the devices against the map,
    conflicts marked
+4. later:  live data under Windows (386MAX's own map through its API,
+   without a snapshot); I/O ports and IRQs of the devices

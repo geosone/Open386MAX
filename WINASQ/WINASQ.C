@@ -45,6 +45,7 @@ static char ReportName[128];		/* /R file */
 static struct { INFONUM num; char *title; } Topics[] = {
 #ifdef LANG_GR
 	{ INFO_UNKNOWN, 	TXT_MAP },	/* The map (MapWndProc) */
+	{ INFO_TOOBIG,		TXT_DEVMEM },	/* Windows 9x devices */
 	{ INFO_MEM_SUMM,	"Speicher-\xdc" "bersicht" },
 	{ INFO_MEM_LOW, 	"LoDOS Speicher" },
 	{ INFO_MEM_HIGH,	"HiDOS Speicher" },
@@ -75,6 +76,7 @@ static struct { INFONUM num; char *title; } Topics[] = {
 	{ INFO_SNAPSHOT,	"Snapshot-Information" },
 #else
 	{ INFO_UNKNOWN, 	TXT_MAP },	/* The map (MapWndProc) */
+	{ INFO_TOOBIG,		TXT_DEVMEM },	/* Windows 9x devices */
 	{ INFO_MEM_SUMM,	"Memory Summary" },
 	{ INFO_MEM_LOW, 	"Memory Low DOS" },
 	{ INFO_MEM_HIGH,	"Memory High DOS" },
@@ -153,7 +155,10 @@ static unsigned make_report(int topic)
 static BYTE Cells[MAPPAGES];		/* Class of each page */
 static int MapOK;			/* Cells[] valid */
 static int MapSel = -1; 		/* Page clicked */
+static BYTE Conf[MAPPAGES];		/* Page with a device conflict */
+static int nConf;			/* Such pages */
 static HBRUSH MapBrush[NMAPCLASS+1];	/* Per class, the last:  empty */
+static HPEN hConfPen;			/* Cross of a conflict */
 static COLORREF MapColor[NMAPCLASS+1] = {	/* The 16 VGA colours */
 	RGB(128,128,128),	/* Unknown */
 	RGB(0,0,128),		/* DOS system */
@@ -242,6 +247,15 @@ static void map_paint(HWND hwnd)
 				FrameRect(hdc, &rc, GetStockObject(BLACK_BRUSH));
 				InflateRect(&rc, -1, -1);
 				FrameRect(hdc, &rc, GetStockObject(WHITE_BRUSH));
+				InflateRect(&rc, 1, 1);
+			}
+			if (Conf[p]) {		/* Red cross */
+				SelectObject(hdc, hConfPen);
+				MoveTo(hdc, rc.left + 1, rc.top + 1);
+				LineTo(hdc, rc.right - 1, rc.bottom - 1);
+				MoveTo(hdc, rc.right - 2, rc.top + 1);
+				LineTo(hdc, rc.left, rc.bottom - 1);
+				SelectObject(hdc, GetStockObject(BLACK_PEN));
 			}
 		}
 	}
@@ -259,6 +273,17 @@ static void map_paint(HWND hwnd)
 		TextOut(hdc, x + 18, y, MapName[c], lstrlen(MapName[c]));
 		y += ml.th + 2;
 	}
+	if (nConf) {
+		SetRect(&rc, x, y + 2, x + 12, y + ml.th - 2);
+		FillRect(hdc, &rc, GetStockObject(WHITE_BRUSH));
+		SelectObject(hdc, hConfPen);
+		MoveTo(hdc, rc.left, rc.top);
+		LineTo(hdc, rc.right, rc.bottom);
+		MoveTo(hdc, rc.right - 1, rc.top);
+		LineTo(hdc, rc.left - 1, rc.bottom);
+		SelectObject(hdc, GetStockObject(BLACK_PEN));
+		TextOut(hdc, x + 18, y, TXT_MAPCONF, lstrlen(TXT_MAPCONF));
+	}
 
 	/* Below:  the entries of the page clicked */
 	y = ml.y0 + 16 * ml.ch + 8;
@@ -272,6 +297,16 @@ static void map_paint(HWND hwnd)
 			 ((DWORD) MapSel << 12) + 0xFFF);
 		r = lstrlen(buf);
 		map_entries(MapSel, buf + r, sizeof(buf) - r);
+		for (c = 0; c < nDevMem; c++) {	/* Windows 9x devices */
+			DWORD pb = (DWORD) MapSel << 12;
+
+			r = lstrlen(buf);
+			if (DevMem[c].base > pb + 0xFFF || DevMem[c].end < pb ||
+			    r + 100 > sizeof(buf)) continue;
+			wsprintf(buf + r, "%s %.40s %05lX-%05lX\r\n",
+				 (LPSTR) TXT_DEVICE, (LPSTR) DevMem[c].name,
+				 DevMem[c].base, DevMem[c].end);
+		}
 		SelectObject(hdc, GetStockObject(OEM_FIXED_FONT));
 		DrawText(hdc, buf, -1, &rc, DT_LEFT | DT_NOPREFIX);
 	}
@@ -287,6 +322,7 @@ long FAR PASCAL __export MapWndProc(HWND hwnd, UINT msg, WPARAM wParam,
 	case WM_CREATE:
 		for (c = 0; c <= NMAPCLASS; c++)
 			MapBrush[c] = CreateSolidBrush(MapColor[c]);
+		hConfPen = CreatePen(PS_SOLID, 2, RGB(255,0,0));
 		return 0;
 	case WM_PAINT:
 		map_paint(hwnd);
@@ -335,6 +371,7 @@ long FAR PASCAL __export MapWndProc(HWND hwnd, UINT msg, WPARAM wParam,
 	case WM_DESTROY:
 		for (c = 0; c <= NMAPCLASS; c++)
 			DeleteObject(MapBrush[c]);
+		DeleteObject(hConfPen);
 		return 0;
 	}
 	return DefWindowProc(hwnd, msg, wParam, lParam);
@@ -381,12 +418,79 @@ static unsigned make_map(void)
 }
 
 
+static void dev_conflicts(void)
+/* The devices of Windows 9x (cm_read) against the map:  Conf[] */
+{
+	int i, p;
+	char buf[2];
+
+	memset(Conf, 0, sizeof(Conf));
+	nConf = 0;
+	if (cm_read() <= 0 || !SnapOK) return;
+	for (i = 0; i < nDevMem; i++) {
+		DWORD b = DevMem[i].base, e = DevMem[i].end;
+
+		if (b >= 0x100000L || e < b) continue;
+		if (e > 0xFFFFFL) e = 0xFFFFFL;
+		for (p = (int) (b >> 12); p <= (int) (e >> 12); p++) {
+			DWORD pb = (DWORD) p << 12, pe = pb + 0xFFF;
+
+			if (Conf[p]) continue;
+			if (map_conflict(pb > b ? pb : b, pe < e ? pe : e, buf,
+					 sizeof(buf))) {
+				Conf[p] = 1;
+				nConf++;
+			}
+		}
+	}
+}
+
+
+static unsigned make_devmem(void)
+/* The Windows 9x device memory report in Report[], return its length */
+{
+	char conf[200];
+	int i, n, nc = 0;
+	unsigned len;
+
+	len = wsprintf(Report, "%s\r\n\r\n", (LPSTR) TXT_DEVHEAD);
+	if (cm_read() < 0)
+		return len + wsprintf(Report + len, "%s\r\n", (LPSTR) TXT_NOCM);
+	if (!nDevMem)
+		return len + wsprintf(Report + len, "%s\r\n", (LPSTR) TXT_NODEV);
+	for (i = 0; i < nDevMem; i++) {
+		len += wsprintf(Report + len, "%05lX-%05lX  %s\r\n",
+				DevMem[i].base, DevMem[i].end,
+				(LPSTR) DevMem[i].name);
+		if (!SnapOK || DevMem[i].base >= 0x100000L) continue;
+		n = map_conflict(DevMem[i].base, DevMem[i].end, conf,
+				 sizeof(conf));
+		if (n) {
+			nc += n;
+			len += wsprintf(Report + len, "             %s %s\r\n",
+					(LPSTR) TXT_CONFLICT, (LPSTR) conf);
+		}
+		if (len > REPSIZE - 400) break;
+	}
+	len += wsprintf(Report + len, "\r\n");
+	if (!SnapOK)
+		len += wsprintf(Report + len, "%s\r\n", (LPSTR) TXT_NOCHECK);
+	else if (nc) {
+		len += wsprintf(Report + len, TXT_NCONFLICT, nc);
+		len += wsprintf(Report + len, "\r\n");
+	}
+	else	len += wsprintf(Report + len, "%s\r\n", (LPSTR) TXT_NOCONF);
+	return len;
+}
+
+
 static void show_report(int topic)
 /* Put the report of Topics[topic] into the right half, or the map */
 {
 	if (Topics[topic].num == INFO_UNKNOWN) {
 		MapOK = SnapOK && map_cells(Cells) == 0;
 		MapSel = -1;
+		dev_conflicts();
 		ShowWindow(hReport, SW_HIDE);
 		ShowWindow(hMap, SW_SHOW);
 		InvalidateRect(hMap, NULL, TRUE);
@@ -394,7 +498,8 @@ static void show_report(int topic)
 	}
 	ShowWindow(hMap, SW_HIDE);
 	ShowWindow(hReport, SW_SHOW);
-	if (!SnapOK) lstrcpy(Report, TXT_NOSNAP);
+	if (Topics[topic].num == INFO_TOOBIG) make_devmem();
+	else if (!SnapOK) lstrcpy(Report, TXT_NOSNAP);
 	else if (!make_report(topic)) lstrcpy(Report, TXT_NOREPORT);
 	SetWindowText(hReport, Report);
 }
@@ -415,7 +520,9 @@ static int export_reports(char *name)
 		memset(head + n, '=', n - 2);
 		lstrcpy(head + n + n - 2, "\r\n\r\n");
 		_lwrite(fh, head, lstrlen(head));
-		len = Topics[i].num == INFO_UNKNOWN ? make_map() : make_report(i);
+		len = Topics[i].num == INFO_UNKNOWN ? make_map() :
+		      Topics[i].num == INFO_TOOBIG ? make_devmem() :
+		      make_report(i);
 		if (len) _lwrite(fh, Report, len);
 		_lwrite(fh, "\r\n", 2);
 	}
@@ -624,6 +731,7 @@ long FAR PASCAL __export MainWndProc(HWND hwnd, UINT msg, WPARAM wParam,
 
 	case WM_DESTROY:
 		if (hAsq) KillTimer(hwnd, ID_TIMER);
+		cm_done();
 		PostQuitMessage(0);
 		return 0;
 	}
@@ -687,8 +795,12 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrev, LPSTR lpCmd, int nShow)
 		if (!RegisterClass(&wc)) return 0;
 	}
 
+	/* Nearly the whole screen:  the map and the reports want room */
 	hwnd = CreateWindow("WinAsq", TXT_TITLE, WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+		GetSystemMetrics(SM_CXSCREEN) / 32,
+		GetSystemMetrics(SM_CYSCREEN) / 32,
+		GetSystemMetrics(SM_CXSCREEN) * 15 / 16,
+		GetSystemMetrics(SM_CYSCREEN) * 14 / 16,
 		0, 0, hInstance, NULL);
 	ShowWindow(hwnd, nShow);
 	UpdateWindow(hwnd);

@@ -20,11 +20,10 @@ EMC87 check runs only on a 386).
   ASPICD (with MSCDEX or SHSUCDX) and a mouse driver, maximized, leaves
   at least 612KB (ideally 625KB) of conventional memory and 8-32MB of
   XMS/DPMI for games.
-* **ASQ for Windows (WINASQ, docs/winasq.md):**  step 1 done, the
-  reports of an ASQ snapshot in a Win16 window (Windows 3.x and 9x);
-  step 2 done, a new snapshot from WINASQ (DOS ASQ in a DOS window);
-  step 3 done, the memory map as a picture.  Next:  under Windows 9x the memory ranges of the
-  drivers (Configuration Manager) against 386MAX's UMBs and ROM ranges.
+* **ASQ for Windows (WINASQ, docs/winasq.md):**  done:  snapshot
+  reports, a new snapshot from WINASQ, the memory map as a picture,
+  under Windows 9x the device memory against the map with conflicts.
+  Later:  live data from 386MAX without a snapshot, I/O ports and IRQs.
 * **QPI:**  the functions of the QEMM manual that have no test yet
   (QPI/QPIALL).
 * **Tests:**  the 386MAX.PRO keywords and programs without a test (see
