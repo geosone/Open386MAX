@@ -13,11 +13,18 @@ that existed only as binaries, and develops 386MAX further:
 - runs on modern hardware: chipset shadow RAM (PAM/MTRR), E820/E801
   reserved areas (AHCI, EBDA, ACPI) stay untouched, more than 256 MB RAM,
   ISA DMA above 16 MB
-- QEMM QPI port trapping API for SBEMU and VSBHDA
-- versioned Open MaxView backend discovery API (the 9.x branch exposes
-  capability negotiation and root-context status; multi-VM services remain
-  disabled until their contracts are implemented)
-- no serial numbers or registration; version 8.55, English and German
+- QEMM programming interface (QPI):  port trapping for SBEMU and VSBHDA,
+  the multitasking functions DESQview 2.80 uses on QEMM (DESQview runs on
+  386MAX in its QEMM mode)
+- DPMI host on par with HDPMI, XMS 3.5
+- versioned Open MaxView backend discovery API (capability negotiation and
+  root-context status; multi-VM services remain disabled until their
+  contracts are implemented)
+- ASQ for Windows (WINASQ)
+- no serial numbers or registration; English and German
+
+Branches:  `main` is the development line (9.x, test releases such as
+9.00-beta1), `8.x` the maintenance line of 8.58 (bug fixes only).
 
 Tested in QEMU with complete installation and MAXIMIZE runs (DOS and
 Windows SETUP, all three MAXIMIZE passes): MS-DOS 6.22, MS-DOS 7.1,
@@ -41,7 +48,9 @@ python3 linux/tools/mkpkg.py build/package .   # installation package
 ```
 
 The version number is in one place, the file `VERSION` (e.g. `8.51`); the
-build passes it to all programs, resources and the release media.
+build passes it to all programs, resources and the release media.  A
+suffix names test releases (`9.00-beta1`):  the media carry it, the
+programs report `9.00`.
 
 `linux/jwasm` and `linux/jwlink` are git submodules (branch `386max` of
 [geosone/JWasm](https://github.com/geosone/JWasm) and

@@ -22,4 +22,5 @@ all: engine
 engine:
 	$(MAKE) -f asqwin.mk -C ../ASQENG
 $(OUT)/WINASQ.EXE: engine
+$(ROOT)/build/ASQENG-W/LENGINEW.LIB: engine ;
 .PHONY: engine

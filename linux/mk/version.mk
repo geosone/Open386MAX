@@ -4,9 +4,12 @@
 # C sources and resource scripts O386_VER_MAJOR/O386_VER_MINOR and
 # O386_VER_MINOR_S (minor as written, for the strings; INCLUDE/MVERSION.H).
 VERSION_FILE  := $(ROOT)/VERSION
+# A suffix after "-" ("9.00-beta1") names test releases:  only the
+# release media carry it, the programs get major.minor
 O386_VERSION  := $(strip $(shell tr -d '\r' < $(VERSION_FILE)))
-O386_VMAJ     := $(word 1,$(subst ., ,$(O386_VERSION)))
-O386_VMINS    := $(word 2,$(subst ., ,$(O386_VERSION)))
+O386_VNUM     := $(word 1,$(subst -, ,$(O386_VERSION)))
+O386_VMAJ     := $(word 1,$(subst ., ,$(O386_VNUM)))
+O386_VMINS    := $(word 2,$(subst ., ,$(O386_VNUM)))
 O386_VMIN     := $(or $(patsubst 0%,%,$(O386_VMINS)),0)
 ifeq ($(O386_VMAJ)$(O386_VMINS),)
 $(error $(VERSION_FILE): no version (major.minor))
