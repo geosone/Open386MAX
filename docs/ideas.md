@@ -55,10 +55,37 @@ their own linear range reached only on 386MAX's page directory, with
 the VCPI calls of a client in protected mode, DE03h-DE05h, switching to
 it).
 
+## 10.x:  loadable modules
+
+PGROUP is full (132 bytes left).  Optional features (QPI, XMS 3.5, the
+HDPMI API, extended DOS translation, the legacy paths) become modules
+386MAX loads at init, on the existing LOAD=/.LOD protocol (MD_STR,
+USE32 code possible); cold core code moves out of PGROUP first.  See
+segments.md.
+
 ## 10.x:  common user interface
 
-The Windows programs get a ribbon design, and the DOS side a graphical
-interface too, for instance on FreeGEOS.  A bridge class (library)
-hides which one is used:  wxWidgets on Windows, FreeGEOS (or similar)
-on DOS.  It becomes a project of its own, which 386MAX, MaxView,
-OpenTape, OpenASPI, GDI and the other programs then use.
+One library, its own project, used by 386MAX, MaxView, OpenTape,
+OpenASPI, GDI and the other programs.  A DOS program tries a graphics
+interface (VESA, else VGA) and falls back to text mode; the backends
+are text (QUILIB's windows), VGA/VESA (own small renderer in real mode,
+mouse through INT 33h), Win16 (Windows 3.x) and Win32 (Windows 9x/ME),
+the Windows ones on the native API (ribbon design).  FreeGEOS is not
+the base:  it's a complete system (kernel, own memory manager, object
+system, own toolchain), not a library for a 16-bit DOS program.
+
+## 11.x or 12.x:  GEOS
+
+After the module system (it would be a module itself):  386MAX as the
+memory manager for FreeGEOS the way 386MAX.VXD is for Windows, and a
+GEOS front end for the tools.  From the FreeGEOS sources
+(github.com/bluewaysw/pcgeos, Apache 2.0):  the kernel runs in real mode
+only, its heap is conventional memory, UMBs and the HMA; memory above
+1MB is only swap space through its swap drivers (Driver/Swap:  XMS,
+EMS, ExtMem, Disk; interface Include/Internal/swapDr.def); DOS programs
+run through task drivers (Driver/Task:  NonTS leaves GEOS, DOS5 is the
+DOS 5 task switcher protocol INT 2Fh 4Bxxh).  Steps:  build the GEOS
+toolchain and boot GEOS under 386MAX in QEMU; low memory setup; an own
+swap driver that remaps pages instead of copying; then the real goal, a
+task driver with DOS sessions in V86 next to GEOS (386MAX as the task
+switcher, as Windows with 386MAX.VXD or DESQview with QPI).
