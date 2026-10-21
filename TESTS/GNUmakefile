@@ -6,7 +6,7 @@ JWASM ?= $(ROOT)/linux/bin/jwasm
 OUT   := $(ROOT)/build/TESTS
 SRCS  := $(shell sed -n 's/^\([A-Z0-9_]*\/[A-Z0-9_]*\).*/\1/p' MAX.LST)
 # helpers for scenario tests (no pass/fail of their own)
-SRCS  += SCENARIO/TICK SCENARIO/SBPM
+SRCS  += SCENARIO/TICK SCENARIO/SBPM SCENARIO/SERECHO
 # MAXPROBE for linux/test/kwtest.py (KEYWORDS.LST)
 SRCS  += MAX/MAXPROBE
 EXES  := $(addprefix $(OUT)/,$(addsuffix .EXE,$(notdir $(SRCS))))

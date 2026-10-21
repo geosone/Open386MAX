@@ -9,6 +9,7 @@ SOCKET is the monitor's unix socket (qemu -monitor unix:SOCKET,server,nowait).
 Steps:
     wait:TEXT[:SECONDS]   wait until TEXT is on the screen (default 120 s);
                           "_" in TEXT stands for a blank
+    gone:TEXT[:SECONDS]   wait until TEXT is no longer on the screen
     key:K[,K...]          sendkey (QEMU key names), 0.3 s apart
     type:TEXT             type TEXT (US layout, "_" = blank) and Enter
     sleep:N               wait N seconds
@@ -91,13 +92,13 @@ def main():
     fired = 0
     for step in sys.argv[3:]:
         what, _, arg = step.partition(':')
-        if what == 'wait':
+        if what in ('wait', 'gone'):
             text, _, secs = arg.rpartition(':')
             if not secs.isdigit():
                 text, secs = arg, ''
             text = text.replace('_', ' ')
             end = time.time() + (float(secs) if secs else 120)
-            while text not in m.screen():
+            while (text not in m.screen()) == (what == 'wait'):
                 if time.time() > end:
                     print('timeout waiting for %r' % text, flush=True)
                     with open(os.path.join(outdir, 'fail.txt'), 'w') as f:
@@ -106,7 +107,7 @@ def main():
                     m.cmd('quit')
                     return 1
                 time.sleep(1)
-            print('found %r' % text, flush=True)
+            print('%s %r' % ('found' if what == 'wait' else 'gone', text), flush=True)
         elif what == 'rule':
             text, _, keys = arg.partition('=')
             rules.append((text.replace('_', ' '), keys.split(',')))

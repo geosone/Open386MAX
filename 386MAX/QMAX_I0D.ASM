@@ -353,6 +353,49 @@ This handler is called if the MSR index is not valid.
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 
 TMPINT0D endp			; End TMPINT0D procedure
+	 FPPROC  GPJG_HLT -- Emulate HLT
+	 assume  ds:PGROUP,es:AGROUP,fs:nothing,gs:nothing,ss:nothing
+COMMENT|
+
+Emulate HLT instruction
+
+IF=1:  wait for an interrupt, except with IRQ calldowns (QPI 1Ch,
+DESQview):  the multitasker gets the IRQ in its task, an IRQ taken here
+(from PL0) would run its scheduler nested in this frame.  Return at
+once as QEMM does.
+IF=0:  NMI (DEBUG=HLT) or stop.
+
+|
+
+	 test	 [ebp].INTXX_EFL.ELO,mask $IF ; Test IF
+	 jz	 short GPJG_HLT_CLI ; Jump if IF=0
+
+	 test	 QPI_CDFLG,@QPI_CDON ; Are IRQ calldowns enabled?
+	 jnz	 short GPJG_HLT_EXIT ; Jump if so (return at once)
+
+	 sti			; Allow interrupts
+	 hlt
+	 cli			; Disallow interrupts
+
+	 jmp	 short GPJG_HLT_EXIT ; Join common exit code
+
+GPJG_HLT_CLI:
+	 test	 DBG_FLAG,@DBG_HLT ; Signal NMI instead?
+	 jz	 short @F	; Not this time
+
+	 or	 GLB_FLAG,@GLB_NMI ; Mark as NMI occurred
+
+	 jmp	 short GPJG_HLT_EXIT ; Join common exit code
+
+@@:
+	 cli			; Stop the presses
+	 hlt
+GPJG_HLT_EXIT:
+	 ret			; Return to caller
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+GPJG_HLT endp			; End GPJG_HLT procedure
 	 align	 4		; Ensure dword alignment
 
 JCODE	 ends			; End JCODE segment
@@ -373,6 +416,9 @@ EDATA	 segment use16 dword public 'edata' ; Start EDATA segment
 
 	 extrn	 DBG_FLAG:word
 ;;;;;;;; include QMAX_DBG.INC
+
+	 extrn	 QPI_CDFLG:byte ; QMAX_QPI:  IRQ calldowns enabled (QPI 1Ch)
+@QPI_CDON equ	 03h		; ...  bit 0 = IRQ0-7, bit 1 = IRQ8-15
 
 if @OEM_DPMI
 	 extrn	 PPL0STK_DNRM:dword
@@ -845,25 +891,7 @@ GP_REP:
 GP_HLT:
 	 assume  ds:PGROUP,es:AGROUP,ss:nothing ; Tell the assembler about it
 
-	 test	 [ebp].INTXX_EFL.ELO,mask $IF ; Test IF
-	 jnz	 short GP_HLT1	; Return to caller at CS:IP
-
-	 test	 DBG_FLAG,@DBG_HLT ; Signal NMI instead?
-	 jz	 short GP_HLT2	; Not this time
-
-	 or	 GLB_FLAG,@GLB_NMI ; Mark as NMI occurred
-
-	 jmp	 INT0D_IRETD	; Return to caller at CS:IP
-
-GP_HLT1:
-	 sti			; Allow interrupts
-	 hlt
-
-	 jmp	 INT0D_IRETD	; Return to caller at CS:IP
-
-GP_HLT2:
-	 cli			; Stop the presses
-	 hlt
+	 FIXICALL JGROUP:GPJG_HLT,DTE_CSJG ; Emulate it
 
 	 jmp	 INT0D_IRETD	; Return to caller at CS:IP
 

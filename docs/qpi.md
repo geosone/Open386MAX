@@ -65,6 +65,10 @@ its registers.
   `1302h`-`1305h`, `1307h`, `130Bh`, `130Dh`-`1310h`), `19h`, `1Dh`, `21h` (no Stealth), `24h`, `25h`
   (debugger interface), `26h` (VxD loader), `27h`, `29h`, `2Bh`, `2Ch`.
 * QPI is a V86 interface; it is not available inside Windows DOS boxes.
+* With IRQ calldowns enabled (`1C01h`/`1C03h`), `HLT` in V86 mode with
+  `IF=1` returns at once, as on QEMM:  the multitasker gets the IRQs in its
+  task (a wait in 386MAX would run its scheduler nested in the monitor's
+  frame; DESQview then stopped the window's clock).
 
 ## Tests
 
@@ -73,3 +77,11 @@ its registers.
 (contexts, 0Ah, 0Bh, 0Fh), `QPIIRQ` (1Ch), `QPITIMER` (15h), `QPICRT`
 (0Dh/0Eh), `QPIVID` (13h), `QPIPROT` (14h).  Run them with `linux/test/suite.py`; the
 `qemm` profile runs them on QEMM 97 for comparison (local image only).
+
+DESQview 2.80 itself:  `linux/test/desqview.sh` (local images with
+DESQview, on 386MAX and on QEMM 97 as the reference):  two windows
+counting the clock with COM1 output (`TESTS/SCENARIO/TICK`), a BBS node
+receiving on COM1 by IRQ4 in a background window
+(`TESTS/SCENARIO/SERECHO`, the other end `linux/test/serfeed.py`),
+DESQview's Memory Status, and the V86/EMS/XMS/VCPI/VDS/DPMI tests each in
+a Big DOS window (386MAX must do at least as well as QEMM).

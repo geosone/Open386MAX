@@ -152,7 +152,14 @@ haveqpi:
 	jne	@F
 	INFO	'(QEMM:  no software INT 08h, it crashes)'
 	jmp	short noswint
-@@:	mov	bx,cs:cnt0
+@@:	push	es			; right after a tick:  no real IRQ0
+	push	40h			; ...  until the check is done
+	pop	es
+	mov	ax,es:[6Ch]
+@@:	cmp	ax,es:[6Ch]
+	je	@B
+	pop	es
+	mov	bx,cs:cnt0
 	int	08h			; software INT:  IVT, not the calldown
 	cmp	bx,cs:cnt0
 	CHECK	'software INT 08h goes to the IVT', e

@@ -28,9 +28,11 @@ EMC87 check runs only on a 386).
   (QPI/QPIALL).
 * **Tests:**  the 386MAX.PRO keywords and programs without a test (see
   TESTS/COVERAGE.md, "no test yet").
-* **Open findings:**  DESQview 2.80 foreground window gets no timer
-  ticks; VSBHDA with a DOS/4GW program hangs sporadically after the
-  first file read (also before 9.x).
+* **DESQview 2.80:**  done, linux/test/desqview.sh (windows, COM1 send
+  and receive by IRQ, Memory Status, the regression tests in a window)
+  passes, at least as well as on QEMM 97.
+* **Open findings:**  VSBHDA with a DOS/4GW program hangs sporadically
+  after the first file read (also before 9.x; 10.x).
 
 ## Chipset-specific UMBs
 

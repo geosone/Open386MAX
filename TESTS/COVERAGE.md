@@ -124,6 +124,6 @@ build/kwtest/compare.md puts the values side by side.
 |---|---|
 | Windows 3.1 enhanced mode | hand (win311.sh) |
 | Windows 98 | hand (win98.sh) |
-| DESQview 2.80 | hand |
+| DESQview 2.80 | yes (linux/test/desqview.sh, local images, QEMM 97 as reference) |
 | HX programs (HDPMI regression tests) | yes (suite hx) |
 | Jemm's tests | yes (suite jemm) |
