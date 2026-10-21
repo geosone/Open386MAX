@@ -96,6 +96,8 @@ if @OEM_XMS
 	 extrn	 PPDTUNW:dword
 	 extrn	 PPDTUNWZ:dword
 	 extrn	 PPDT1MB:dword
+	 extrn	 PPDT1P1MB:dword
+	 extrn	 PPDTCVD:dword
 	 extrn	 PPDTEMMZ:dword
 	 extrn	 PPHNDLVMS:dword
 	 extrn	 PPAGELINK:dword
@@ -1210,6 +1212,81 @@ EAX	 =	 translated offset
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 
 XMS_XLAT endp			; End XMS_XLAT procedure
+	 NPPROC  FIND_XMSPAGE -- Find An Allocated Page By Its Physical Address
+	 assume  ds:PGROUP,es:nothing,fs:nothing,gs:nothing,ss:nothing
+COMMENT|
+
+Open 386MAX:  find the linear address of an allocated 4KB page by its
+physical address in our PTEs, for pages VCPI_DEALLOC doesn't find
+through the VMS chain:  memory ALLOCMEM took outside the EMS pool (no
+PAGELINK entry) and pages whose linear address isn't mapped one-to-one
+(the PTEs of the EMS pool then hold another frame), e.g. with 512MB
+VCPI DE05h failed with 8Ah for the pages DE04h had given.
+
+On entry:
+
+EDX	 =	 physical address (4KB frame)
+
+On exit:
+
+CF	 =	 0 if found
+	 =	 1 otherwise
+ESI	 =	 linear address (if found)
+
+|
+
+	 REGSAVE <eax,ebx,ecx>	; Save registers
+
+	 mov	 ecx,XMSBMAP_LEN ; Get # 1KB entries in XMSBMAP
+	 shr	 ecx,12-10	; Convert from 1KB to 4KB
+	 mov	 ebx,1024*1024/(4*1024) ; Start at 1MB (in 4KB)
+FIND_XMSPAGE_NEXT:
+	 cmp	 ebx,ecx	; Izit beyond the end?
+	 cmc			; CF=1 if so
+	 jc	 short FIND_XMSPAGE_EXIT ; Jump if so (not found)
+
+	 lea	 eax,[ebx*4]	; Convert from 4KB to 4KB in dwords
+
+; The 1MB wrap region uses the PTEs in the CHECK_VDISK region
+
+	 cmp	 eax,PPDT1MB	; Izit at or above 1MB?
+	 jb	 short @F	; Jump if not
+
+	 cmp	 eax,PPDT1P1MB	; Izit at or above 1.1MB?
+	 jae	 short @F	; Jump if so
+
+	 sub	 eax,PPDT1MB	; Convert to origin-1MB
+	 add	 eax,PPDTCVD	; Convert to origin-CVD
+@@:
+	 add	 eax,PRGPDT	; Plus offset in PGROUP of PDT
+	 mov	 eax,PGROUP:[eax].PDT_PTE ; Get the PTE
+	 and	 ax,mask $PTE_FRM ; Isolate the frame
+
+	 cmp	 eax,edx	; Izit our page?
+	 jne	 short FIND_XMSPAGE_LOOP ; Jump if not
+
+	 lea	 eax,[ebx*4]	; Convert from 4KB to 1KB
+	 mov	 esi,PXMSBMAP	; Get offset of XMSBMAP
+	 test	 byte ptr PGROUP:[esi+eax],@XMSB_ALLOC ; Izit allocated?
+	 jnz	 short FIND_XMSPAGE_FND ; Jump if so
+FIND_XMSPAGE_LOOP:
+	 inc	 ebx		; Skip to next 4KB page
+
+	 jmp	 short FIND_XMSPAGE_NEXT ; Go around again
+
+FIND_XMSPAGE_FND:
+	 mov	 esi,ebx	; Copy 4KB page #
+	 shl	 esi,12-0	; Convert from 4KB to bytes
+
+	 clc			; Mark as found
+FIND_XMSPAGE_EXIT:
+	 REGREST <ecx,ebx,eax>	; Restore
+
+	 ret			; Return to caller
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+FIND_XMSPAGE endp		; End FIND_XMSPAGE procedure
 if @OEM_EMS or @OEM_XMS or @OEM_VCPI
 	 NPPROC  SET_XMSBMAP -- Set XMSBMAP Bits To Mark As Allocated
 	 assume  ds:PGROUP,es:nothing,fs:nothing,gs:nothing,ss:nothing
