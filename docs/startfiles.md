@@ -29,3 +29,25 @@ FDCONFIG.SYS + FDAUTO.BAT (FreeDOS), DCONFIG.SYS + AUTODOS7.BAT
 (EDR-DOS), DCONFIG.SYS + AUTOEXEC.BAT (SvarDOS, also with a /P= SvarCOM
 ignores) and /K MSAUTO.BAT (MS-DOS 6.22), each with a CONFIG.SYS and
 AUTOEXEC.BAT beside them that must stay unchanged.
+
+## Line prefixes
+
+FreeDOS and DR DOS put prefixes on the keyword of a CONFIG.SYS line:
+
+| prefix | DOS | meaning |
+|---|---|---|
+| `12?DEVICE=` | FreeDOS | only for menu choices 1 and 2 (MENU, MENUDEFAULT=); the kernel puts the choice in `CONFIG=` |
+| `!DEVICE=` | FreeDOS | never ask (F8 single step) |
+| `?DEVICE=` | DR DOS, EDR-DOS | ask |
+| `DEVICE?=` | FreeDOS, DR DOS | ask |
+
+`cfg_keyword` (QUILIB/MBPARSE.C) strips them, so STRIPMGR, MAXIMIZE and
+the MultiConfig parser see the keyword.  STRIPMGR takes out a memory
+manager on every choice, because 386MAX goes into a line for all of them.
+MAXIMIZE leaves the lines of the other choices alone (`cfg_forme`).  Not
+handled:  DR DOS SWITCH=, GOTO and :labels (all lines are taken as
+active), a blank after `?` or `!`.
+
+STRIPMGR.LST knows the FreeDOS memory managers HIMEMX, HIMEMSX, JEMMEX
+and JEMM386.  Test:  the case freedos-menu of linux/test/maxnames.sh
+(`1?DEVICE=HIMEMX.EXE`, `2?DEVICE=JEMMEX.EXE`).

@@ -140,6 +140,16 @@ GLOBAL char _far *ConfigSys
 /* which needs room for 16 characters. */
 char *dos_cfgname (char drive, char *name);
 
+/* Strip the prefixes of FreeDOS and DR DOS from the keyword of a CONFIG.SYS */
+/* line in place:  "12?DEVICE" (only for menu choices 1 and 2), "!DEVICE" */
+/* (never ask), "?DEVICE" and "DEVICE?" (ask).  Returns the menu choices */
+/* as bits (bit n for choice n), 0 if the line is for all of them. */
+unsigned cfg_keyword (char *tok);
+
+/* FALSE if line is a FreeDOS "12?" line that isn't for the menu choice */
+/* made at boot (the kernel puts it in CONFIG=). */
+int cfg_forme (char _far *line);
+
 /* Parse CONFIG.SYS into specified output file for selected section owner. */
 /* Use callback to determine if a line can stay in a common or included */
 /* section.  Calls menu_parse() if not already done. */

@@ -86,6 +86,20 @@ himem.sys
 himem.exe
 	~runhi
 
+: HIMEMX.EXE, HIMEMSX.EXE (FreeDOS XMS managers)
+himemx.exe
+
+himemsx.exe
+
+: JEMMEX.EXE, JEMM386.EXE (FreeDOS EMM, JEMMEX with XMS)
+jemmex.exe
+	~loadhigh
+	~lh
+
+jemm386.exe
+	~loadhigh
+	~lh
+
 : CEMM.EXE (COMPAQ EMS manager)
 : all switched for RUNHI begin with /
 cemm.exe

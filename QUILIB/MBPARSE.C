@@ -624,6 +624,7 @@ int read_config (void)
 		_fstrcpy (tmp, buff);	/* Save before strtok () */
 
 		tok[0] = strtok (buff, CfgSysSeps); /* Get DEVICE, INCLUDE, etc */
+		(void) cfg_keyword (tok[0]);	/* 1?DEVICE, DEVICE?, ... */
 		tok[1] = strtok (NULL, CfgSysSeps); /* Argument 1 */
 		for (i=2; i < NTOK; i++)
 			tok[i] = strtok (NULL, CfgSysSeps); /* Argument 2 - 9 */
@@ -1001,6 +1002,51 @@ CHECK_COM_EXIT:
 	return (ret);
 
 } // check_common ()
+
+unsigned cfg_keyword (char *tok)
+// Strip "12?", "!" and "?" from the keyword of a CONFIG.SYS line (see
+// mbparse.h).  The FreeDOS kernel (config.c scan()) takes the digits
+// only before a '?', DR DOS (genercfg.asm) the '?' before or after the
+// keyword.
+{
+	unsigned menus = 0, m = 0;
+	char *s = tok, *d;
+
+	if (!tok) return (0);
+	for (; *s >= '0' && *s <= '9'; s++) m |= 1 << (*s - '0');
+	if (s > tok && *s == '?') { menus = m; s++; }
+	else s = tok;			// "386MAX" isn't a choice
+	if (*s == '!' || *s == '?') s++;
+
+	for (d = tok; *s; s++)
+	  if (*s != '?') *d++ = *s;
+	*d = '\0';
+
+	return (menus);
+
+} // cfg_keyword ()
+
+
+int cfg_forme (char _far *line)
+// FALSE for a FreeDOS "12?" line that isn't for the menu choice in
+// CONFIG= (0 without a menu, as the kernel's MenuSelected).
+{
+	char tok[16], *env;
+	unsigned menus;
+	int i, choice = 0;
+
+	while (*line == ' ' || *line == '\t') line++;
+	for (i = 0; i < sizeof (tok) - 1 && line[i] && line[i] != ' ' &&
+		line[i] != '\t' && line[i] != '='; i++) tok[i] = line[i];
+	tok[i] = '\0';
+	if (!(menus = cfg_keyword (tok))) return (1);
+
+	if ((env = getenv ("CONFIG")) && env[0] >= '0' && env[0] <= '9' &&
+		!env[1]) choice = env[0] - '0';
+	return ((menus & (1 << choice)) != 0);
+
+} // cfg_forme ()
+
 
 int config_parse (	char bootdrive,
 			BYTE selowner,

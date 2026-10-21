@@ -1482,6 +1482,7 @@ int _far callback_mm(CONFIGLINE FARDATA *cfg)
 		return 0;
 
 	sscanf(line,"%[^ \t=]%*[ \t=]%n",driver_name,&j);
+	(void) cfg_keyword (driver_name);	// 1?DEVICE, DEVICE?, ...
 
 	// skip past DEVICE[high]= and INSTALL=
 	// This is kinda weak, but we need to handle DEVICEHIGH=EMM386.EXE
@@ -1638,6 +1639,7 @@ int _far callback_dd(CONFIGLINE FARDATA *cfg)
 		return 0;
 
 	sscanf(line,"%[^ \t=]%*[ \t=]%n",driver_name,&j);
+	(void) cfg_keyword (driver_name);	// 1?DEVICE, DEVICE?, ...
 
 	// skip past DEVICE= and INSTALL=
 	if (	!stricmp(driver_name,"device") ||
