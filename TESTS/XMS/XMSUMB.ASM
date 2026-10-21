@@ -55,6 +55,11 @@ start:
 	INFO	' paras'
 	cmp	bl,0B0h		; smaller UMB available
 	je	have
+	cmp	bl,80h		; XMS driver without UMBs (HIMEM alone)
+	jne	@F
+	mov	dx,TLSTR('SKIP: no UMB functions (80h)')
+	call	skip_all
+@@:
 	cmp	bl,0B1h
 	CHECK	'error B0h or B1h', e
 	cmp	umbsz,0

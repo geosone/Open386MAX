@@ -7,15 +7,29 @@
 # 8.x, INT 33h 12h/18h, the HDPMI API, the full QPI) are in the tree but not
 # listed here; 9.x lists them.
 XMS/XMSFUNC   needs=xms timeout=120
+XMS/XMSUMB    needs=xms
+XMS/XMSLOCK   needs=xms
 EMS/EMSFUNC   needs=ems
+EMS/EMSMORE   needs=ems
 VCPI/VCPIFUNC needs=vcpi
 VDS/VDSFUNC   needs=vds
 V86/V86FUNC
 V86/INT15
 V86/A20
 MAX/MAXINFO
+MAX/UMBDOS
+MAX/HMADOS
 MAX/UTIL      timeout=120
 DPMI/DPMI10   needs=dpmi,dpmi1
+DPMI/DPMIMISC needs=dpmi,xlat
+DPMI/MAXAPI   needs=dpmi,xlat
+DPMI/RMCBNEST needs=dpmi timeout=90
+DPMI/PMSTACK  needs=dpmi,xlat timeout=60
+DPMI/CALLGATE needs=dpmi,xlat
+DPMI/NULLSEG  needs=dpmi,xlat
+DPMI/LINOOM   needs=dpmi,xlat
+DPMI/MANYSEL  needs=dpmi,xlat timeout=60
+DPMI/DPMILEAK needs=dpmi timeout=90
 DPMI/PM26     needs=dpmi timeout=60
 DPMI/STKFLT   needs=dpmi term
 DPMI/XMSMAP   needs=dpmi,xms

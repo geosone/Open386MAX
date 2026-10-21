@@ -74,8 +74,8 @@ start:
 	mov	al,INFO_VER+3
 	call	pchar
 	call	pcrlf
-	cmp	byte ptr INFO_VER,'9'
-	CHECK	'version 9', e
+	cmp	byte ptr INFO_VER,'8'
+	CHECK	'version 8', e
 	mov	al,byte ptr INFO_VER+1	; byte 7:  high DOS memory open
 	cmp	al,'.'			; ('.') or closed (';')
 	je	@F

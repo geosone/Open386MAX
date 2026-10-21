@@ -29,7 +29,7 @@ obuf	db	8192 dup (?)
 
 ; command tail, expected text (0-terminated pairs, an empty tail ends)
 cases	label	byte
-	db	'/V',0, 'Version 9',0
+	db	'/V',0, 'Version 8',0
 	db	'LIST',0, 'Memory Usage',0
 	db	'/L',0, 'Memory Usage',0
 	db	'/D',0, 'DEVICE DRIVERS',0
