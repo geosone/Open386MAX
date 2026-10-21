@@ -14,6 +14,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <share.h>
+#include <dos.h>
 
 #include "commdef.h"
 #include "dmalloc.h"
@@ -90,6 +91,47 @@ int fnDOS (char **tok, CONFIGLINE _far *cfg)
 } // fnDOS ()
 
 
+// Kinds of COMMAND.COM:  the options for another startup batch file
+// differ (FreeDOS kernel and EDR-DOS sources, tried in QEMU)
+#define SHELL_MS	0	// MS-DOS, PC DOS:  /K file instead of AUTOEXEC.BAT
+#define SHELL_FREECOM	1	// FreeCOM:  /P=file or /P:file (/K file runs after it)
+#define SHELL_DR	2	// DR DOS, EDR-DOS:  /P:file
+#define SHELL_SVARCOM	3	// SvarCOM:  always AUTOEXEC.BAT
+
+static int shell_kind (char *path)
+// Tell the kind of COMMAND.COM by its contents.  A UPX packed one is
+// FreeCOM on the FreeDOS kernel, else SvarCOM (SvarDOS, EDR-DOS kernel).
+{
+	static char *mark[] = { "FreeCOM", "Caldera", "DR-DOS", "Novell", "UPX!" };
+	char blk[512+8];
+	int fh, n, i, k, keep = 0, found = 0;
+	union REGS r;
+
+	if ((fh = open (path, O_RDONLY | O_BINARY)) == -1) return (SHELL_MS);
+	while ((n = read (fh, blk + keep, 512)) > 0) {
+	  n += keep;
+	  for (i = 0; i < n; i++)
+	    for (k = 0; k < 5; k++)
+	      if (i + (int) strlen (mark[k]) <= n &&
+		  !memcmp (blk + i, mark[k], strlen (mark[k])))
+		found |= 1 << k;
+	  keep = n < 7 ? n : 7; 	// Markers across two blocks
+	  memmove (blk, blk + n - keep, keep);
+	} // while blocks
+	close (fh);
+
+	if (found & 1) return (SHELL_FREECOM);
+	if (found & (2|4|8)) return (SHELL_DR);
+	if (found & 16) {
+	  r.x.ax = 0x3000;		// Get DOS version, OEM # in BH
+	  intdos (&r, &r);
+	  return (r.h.bh == 0xFD ? SHELL_FREECOM : SHELL_SVARCOM);
+	} // UPX packed
+	return (SHELL_MS);
+
+} // shell_kind ()
+
+
 int fnShell (CONFIGLINE _far *cfg)
 // Called from check_reloc ()
 // Process SHELL= statement.  Always returns 0.
@@ -121,14 +163,35 @@ int fnShell (CONFIGLINE _far *cfg)
 	_splitpath (tok1, pdrv, ppath, pfnam, pfext);
 
 	if (!_stricmp (pfnam, "command") && !_stricmp (pfext, ".com")) {
+	  int kind;
 
 	  // Clear 4DOS/NDOS flag (used by MAXIMIZE)
 	  Parsed4DOS = 0;
 
-	  // If COMMAND.COM, check for /K option
-	  while (tok = strtok (NULL, CfgSysSeps))
-	    if (!_stricmp (tok, "k") && (tok = strtok (NULL, CfgSysSeps)))
-		_fstrcpy (StartupBat, tok);
+	  // Which COMMAND.COM (a path without drive is on the boot drive)
+	  if (*pdrv) strcpy (buff, tok1);
+	  else sprintf (buff, "%c:%s", *ConfigSys, tok1);
+	  kind = shell_kind (buff);
+
+	  // If COMMAND.COM, check for the startup batch file:  /K file of
+	  // MS-DOS, /P=file or /P:file of FreeCOM (e.g. FreeDOS' FDAUTO.BAT),
+	  // /P:file of DR DOS (AUTODOS7.BAT); a plain /P, SvarCOM and the
+	  // /K of the others keep AUTOEXEC.BAT.
+	  tok1 = NULL;			// Previous token
+	  while (tok = strtok (NULL, CfgSysSeps)) {
+	    _splitpath (tok, pdrv, ppath, pfnam, pfext);
+	    if (!_stricmp (tok, "k") && (tok = strtok (NULL, CfgSysSeps))) {
+		if (kind == SHELL_MS) _fstrcpy (StartupBat, tok);
+	    } // /K file
+	    else if (!_strnicmp (tok, "p:", 2) && tok[2]) {
+		if (kind == SHELL_FREECOM || kind == SHELL_DR)
+			_fstrcpy (StartupBat, tok+2);
+	    } // /P:file
+	    else if (tok1 && !_stricmp (tok1, "p") && !_stricmp (pfext, ".bat")) {
+		if (kind == SHELL_FREECOM) _fstrcpy (StartupBat, tok);
+	    } // /P=file
+	    tok1 = tok;
+	  } // while tokens
 
 	} // It's COMMAND.COM
 	else {
@@ -561,6 +624,7 @@ int read_config (void)
 		_fstrcpy (tmp, buff);	/* Save before strtok () */
 
 		tok[0] = strtok (buff, CfgSysSeps); /* Get DEVICE, INCLUDE, etc */
+		(void) cfg_keyword (tok[0]);	/* 1?DEVICE, DEVICE?, ... */
 		tok[1] = strtok (NULL, CfgSysSeps); /* Argument 1 */
 		for (i=2; i < NTOK; i++)
 			tok[i] = strtok (NULL, CfgSysSeps); /* Argument 2 - 9 */
@@ -630,13 +694,44 @@ READ_CONFIG_EXIT:
 } // read_config ()
 
 
+char *dos_cfgname (char drive, char *name)
+// The CONFIG.SYS the running DOS reads:  the FreeDOS kernel takes
+// FDCONFIG.SYS before CONFIG.SYS, DR DOS (3.41 to 7.0x, EDR-DOS)
+// DCONFIG.SYS.  Other names (ODCONFIG.SYS, DRCONFIG.SYS of some
+// DR-DOS 7 builds) aren't handled.
+{
+	union REGS r;
+	char *alt = NULL;
+
+	r.x.ax = 0x3000;		// Get DOS version, OEM # in BH
+	intdos (&r, &r);
+	if (r.h.bh == 0xFD) alt = "fdconfig.sys"; // FreeDOS
+	else {
+		r.x.ax = 0x4452;	// DR DOS:  get version (CF=0)
+		r.x.cflag = 1;
+		intdos (&r, &r);
+		if (!r.x.cflag) alt = "dconfig.sys";
+	} // Not FreeDOS
+
+	if (alt) {
+		sprintf (name, "%c:\\%s", drive, alt);
+		if (!access (name, 0)) return (name);
+	} // FreeDOS or DR DOS
+
+	sprintf (name, "%c:\\config.sys", drive);
+	return (name);
+
+} // dos_cfgname ()
+
+
 int menu_parse (char bootdrive, int keepmem)
 // Parse CONFIG.SYS on specified drive to get menu
 {
 	int ret = -1;
 	int ordered, added;
+	char cfgname[16];
 
-	ConfigSys[0] = bootdrive;
+	_fstrcpy (ConfigSys, dos_cfgname (bootdrive, cfgname));
 
 	if ((added = read_config ()) == -1)
 		goto MENU_PARSE_EXIT;
@@ -907,6 +1002,51 @@ CHECK_COM_EXIT:
 	return (ret);
 
 } // check_common ()
+
+unsigned cfg_keyword (char *tok)
+// Strip "12?", "!" and "?" from the keyword of a CONFIG.SYS line (see
+// mbparse.h).  The FreeDOS kernel (config.c scan()) takes the digits
+// only before a '?', DR DOS (genercfg.asm) the '?' before or after the
+// keyword.
+{
+	unsigned menus = 0, m = 0;
+	char *s = tok, *d;
+
+	if (!tok) return (0);
+	for (; *s >= '0' && *s <= '9'; s++) m |= 1 << (*s - '0');
+	if (s > tok && *s == '?') { menus = m; s++; }
+	else s = tok;			// "386MAX" isn't a choice
+	if (*s == '!' || *s == '?') s++;
+
+	for (d = tok; *s; s++)
+	  if (*s != '?') *d++ = *s;
+	*d = '\0';
+
+	return (menus);
+
+} // cfg_keyword ()
+
+
+int cfg_forme (char _far *line)
+// FALSE for a FreeDOS "12?" line that isn't for the menu choice in
+// CONFIG= (0 without a menu, as the kernel's MenuSelected).
+{
+	char tok[16], *env;
+	unsigned menus;
+	int i, choice = 0;
+
+	while (*line == ' ' || *line == '\t') line++;
+	for (i = 0; i < sizeof (tok) - 1 && line[i] && line[i] != ' ' &&
+		line[i] != '\t' && line[i] != '='; i++) tok[i] = line[i];
+	tok[i] = '\0';
+	if (!(menus = cfg_keyword (tok))) return (1);
+
+	if ((env = getenv ("CONFIG")) && env[0] >= '0' && env[0] <= '9' &&
+		!env[1]) choice = env[0] - '0';
+	return ((menus & (1 << choice)) != 0);
+
+} // cfg_forme ()
+
 
 int config_parse (	char bootdrive,
 			BYTE selowner,

@@ -1245,7 +1245,7 @@ void parse_config (void)
 
 	if (!RestoreFile) {
 	  StartupBat[0] = boot_drive;	// Make sure we have an AUTOEXEC name
-	  sprintf (con_dpfne, "%c:\\config.sys", boot_drive);
+	  (void) dos_cfgname (boot_drive, con_dpfne); // CONFIG.SYS, FDCONFIG.SYS ...
 	} // Not restoring after STRIPMGR /e
 
 	// For our temporary file directory, use a directory we know we can

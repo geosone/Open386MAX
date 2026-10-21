@@ -268,7 +268,11 @@ REINSTALL_INVAL:
 /*** At this point we may have detected a swapped drive configuration ***/
 
 	 // Check for read-only files
-	 err = check_rdonly("?:\\config.sys");
+	 {
+		char cfgname[16];
+
+		err = check_rdonly(dos_cfgname (boot_drive, cfgname));
+	 }
 	 err |= check_rdonly(StartupBat);
 	 if (err) goto done;
 

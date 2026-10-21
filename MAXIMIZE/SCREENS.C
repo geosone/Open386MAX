@@ -309,8 +309,7 @@ top:
 
 	drivebad = 1;	/* If we go back, we'll ask before shooting */
 
-	buff[0] = drvedit[0];
-	strcpy (buff+1, ":\\CONFIG.SYS");
+	(void) dos_cfgname (drvedit[0], buff); // CONFIG.SYS, FDCONFIG.SYS ...
 
 	truename (buff);
 
@@ -328,11 +327,9 @@ top:
 	} /* End IF */
 	ActiveFiles[CONFIG] = str_mem(buff);
 
-	/* If the AUTOEXEC file doesn't exist, create it */
+	/* The startup batch file (readconfig () takes the one of the */
+	/* SHELL= line, e.g. FDAUTO.BAT, and creates it if it's missing) */
 	strcpy (&buff[1], ":\\AUTOEXEC.BAT");
-	if (_access (buff, 0) < 0)
-		createfile (buff);
-
 	ActiveFiles[AUTOEXEC] = str_mem(buff);
 	BootDrive = drvedit[0];
 

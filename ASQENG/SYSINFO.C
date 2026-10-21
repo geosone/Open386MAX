@@ -500,7 +500,7 @@ int sysinfo_init(void *scrat,WORD nscrat)
 	/* Config */
 	reportEval(EVAL_CONFIG);
 	get_config_parms();
-	SysInfo->flags.cfg = get_disk_file(CONFIG_SYS,TRUE,&SysInfo->pszCnfgsys,&SysInfo->cnfglen);
+	SysInfo->flags.cfg = get_disk_file(ConfigName,FALSE,&SysInfo->pszCnfgsys,&SysInfo->cnfglen);
 
 	reportEval(EVAL_AUTOEXEC);
 	SysInfo->flags.aut = get_disk_file(sysbuf_ptr (SysInfo->config.startupbat),FALSE,&SysInfo->pszAutobat,&SysInfo->autolen);
@@ -1737,6 +1737,10 @@ void get_config_parms(void)
 	if (!menu_parse (ConfigName[0], 0)) {
 	  char _far *tmp;
 	  WORD high_mac, lseg;
+
+	  /* The CONFIG.SYS the DOS reads (FDCONFIG.SYS, DCONFIG.SYS ...) */
+	  if (_fstrlen (ConfigSys) < sizeof (ConfigName))
+		_fstrcpy (ConfigName, ConfigSys);
 
 	  if (qmaxpres (&high_mac, &lseg) == FALSE &&
 		qmovpres (&high_mac, &lseg) == FALSE) high_mac = 0xffff;

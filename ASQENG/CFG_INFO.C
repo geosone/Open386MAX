@@ -17,6 +17,7 @@
 #include <engine.h>		/* Engine definitons */
 #include "info.h"               /* Internal info functions */
 #include "sysinfo.h"            /* System info structures / functions */
+#include <asqshare.h>		/* CONFIG.SYS name */
 #include <commfunc.h>		/* Utility functions */
 #include <libtext.h>		/* Localization constants */
 
@@ -189,7 +190,7 @@ void Config_CONFIG_SYS(HANDLE info)
 	else {
 		char text[80+40];
 
-		sprintf(text,MSG2043,CONFIG_SYS,SysInfo->bootdrv+'A');
+		sprintf(text,MSG2043,ConfigName+3,SysInfo->bootdrv+'A');
 		ictrtext(info,text,DWIDTH2);
 	}
 }

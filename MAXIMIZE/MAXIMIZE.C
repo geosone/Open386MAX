@@ -393,6 +393,7 @@ int CMParse_CB (CONFIGLINE *cfg)
 	buffer[sizeof(buffer)-1] = '\0';
 	strip_endcrlf (buffer); /* Strip off leading CR trailing LF */
 	tok1 = strtok (buffer, ValPathTerms); /* DEVICE / DEVICEHIGH */
+	(void) cfg_keyword (tok1);	/* 1?DEVICE, DEVICE?, ... */
 	tok2 = strtok (NULL, ValPathTerms); /* d:\path\max.sys */
 	if (tok2) {
 		// If it's not a DEVICE= line, ignore it

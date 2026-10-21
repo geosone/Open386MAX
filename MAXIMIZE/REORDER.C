@@ -1341,7 +1341,12 @@ int textcmp(char *s,char *t)
 
 static char *dev_eq(char *str)
 {
+	char *t;
+
 	while (*str && isspace(*str)) str++;
+	for (t = str; isdigit(*t); t++) ;	/* FreeDOS 12?DEVICE= */
+	if (t > str && *t == '?') str = t+1;
+	if (*str == '!' || *str == '?') str++;	/* !DEVICE=, ?DEVICE= */
 	if (_memicmp(str,"device",6) == 0 ||
 	    _memicmp(str,"install",7) == 0) {
 		char *pp;

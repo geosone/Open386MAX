@@ -66,7 +66,7 @@ char PROGRAM[] = PROGNAME;		   // program name
 char striplist[80] = PROGNAME ".LST";
 char MBSection[130];
 char MBOwnerID;
-char config_sys[] = "C:\\CONFIG.SYS";
+char config_sys[16] = "C:\\CONFIG.SYS";
 char autoexec[] = "C:\\AUTOEXEC.BAT";
 
 // To support INSTALL, we use the undocumented /E option.  /E takes as
@@ -240,6 +240,7 @@ no_4dos:
 		// try the current drive
 		autoexec[0] = config_sys[0] = (char)(_getdrive() + 64);
 	}
+	(void) dos_cfgname (config_sys[0], config_sys); // CONFIG.SYS, FDCONFIG.SYS ...
 
 	// Process command line arguments
 	if (argv[1] == NULL) argv++;
@@ -1481,6 +1482,7 @@ int _far callback_mm(CONFIGLINE FARDATA *cfg)
 		return 0;
 
 	sscanf(line,"%[^ \t=]%*[ \t=]%n",driver_name,&j);
+	(void) cfg_keyword (driver_name);	// 1?DEVICE, DEVICE?, ...
 
 	// skip past DEVICE[high]= and INSTALL=
 	// This is kinda weak, but we need to handle DEVICEHIGH=EMM386.EXE
@@ -1637,6 +1639,7 @@ int _far callback_dd(CONFIGLINE FARDATA *cfg)
 		return 0;
 
 	sscanf(line,"%[^ \t=]%*[ \t=]%n",driver_name,&j);
+	(void) cfg_keyword (driver_name);	// 1?DEVICE, DEVICE?, ...
 
 	// skip past DEVICE= and INSTALL=
 	if (	!stricmp(driver_name,"device") ||

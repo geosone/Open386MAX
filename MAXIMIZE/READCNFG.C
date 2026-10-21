@@ -125,6 +125,7 @@ int MBCallback (CONFIGLINE *cfg)
 	if (tok1 && (!_stricmp (tok1, "lh") ||
 		     !_stricmp (tok1, "loadhigh")))
 		tok1 = strtok (NULL, ValPathTerms);
+	(void) cfg_keyword (tok1);	/* 1?DEVICE, DEVICE?, ... */
 	tok2 = strtok (NULL, ValPathTerms);
 	if (tok2) {
 		// If it's not a DEVICE= or INSTALL= line, ignore it
@@ -281,7 +282,7 @@ BOOL readconfig (int *drive)
 		ActiveFiles[AUTOEXEC] = StartupBat;
 
 	  /* Tell 'em what we're doing */
-	  sprintf (buff, "%c:\\config.sys", *drive);
+	  (void) dos_cfgname (*drive, buff); // CONFIG.SYS, FDCONFIG.SYS ...
 
 	} /* No MultiBoot; read CONFIG.SYS directly */
 
@@ -313,7 +314,11 @@ CONFIGSYS_ERR:
 	p = cfg;
 
 	cfg->visible = 1;	/* Assume it's visible */
-	if (MultiBoot) {
+	if (!cfg_forme (pbuff)) {	/* FreeDOS 1? line of another choice */
+	  cfg->MBtype = ID_REM;
+	  cfg->visible = 0;
+	}
+	else if (MultiBoot) {
 	  cfg->MBtype = buff[0];
 	  cfg->MBOwner = buff[1];
 	  if (	cfg->MBOwner != ActiveOwner &&
@@ -334,7 +339,11 @@ CONFIGSYS_ERR:
 		strip_endcrlf (buff);	/* Strip off leading CR, trailing LF */
 		q->text = str_mem (pbuff);
 		q->visible = 1; 	/* Assume it's visible */
-		if (MultiBoot) {
+		if (!cfg_forme (pbuff)) { /* FreeDOS 1? line of another choice */
+		  q->MBtype = ID_REM;
+		  q->visible = 0;
+		}
+		else if (MultiBoot) {
 		  q->MBtype = buff[0];
 		  q->MBOwner = buff[1];
 		  if (	q->MBOwner != ActiveOwner &&
@@ -755,6 +764,7 @@ void fndevice (DSPTEXT *s, FILE *lcfg)
 
 	h = str_mem (s->text);	/* Make working copy */
 	token = strtok (h, ValPathTerms); /* Get LH or INSTALL, DEVICE */
+	(void) cfg_keyword (token);	/* 1?DEVICE, DEVICE?, ... */
 	/* If LH INSTALL= or DEVICEHIGH is in there, we'll ignore it. */
 	/* Since STRIPMGR should have removed it, the user must have */
 	/* put it in, and it WILL work with MAX 7. */
