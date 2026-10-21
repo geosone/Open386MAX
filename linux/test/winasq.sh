@@ -2,7 +2,8 @@
 # WINASQ (ASQ for Windows) in Windows for Workgroups 3.11, two runs:
 #   view  makes a snapshot with DOS ASQ (linux/test/asq.sh), lets WINASQ
 #         write all its reports (WINASQ C:\MAX\SNAP.ASQ /R C:\MAX\REPORT.TXT)
-#         and compares them with the snapshot (title, extended memory, CPU)
+#         and compares them with the snapshot (title, extended memory, CPU,
+#         the memory map as text)
 #   new   WINASQ /N C:\MAX\NEW.ASQ /R ...:  WINASQ runs DOS ASQ in a DOS
 #         window for a new snapshot, loads and exports it (title
 #         "Windows", Windows 3.11 found, WIN386 in low DOS)
@@ -54,6 +55,9 @@ view)
     vendor=$(tr -d '\r' < "$SNAP" | awk '$1 == "CpuParm" {print $NF; exit}')
     [ -n "$vendor" ] && check "CPU vendor $vendor" "Vendor: $vendor"
     check "snapshot file" "File: C:\\MAX\\SNAP.ASQ"
+    check "map: A000 video" "A000  VVVVVVVVVVVVVVVV"
+    check "map: F000 system ROM" "F000  OOOOOOOOOOOOOOOO"
+    check "map: entry list" "V 1  A0000  10000  Video"
     ;;
 new)
     echo "== new (WINASQ /N runs DOS ASQ)"

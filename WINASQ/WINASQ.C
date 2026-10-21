@@ -32,6 +32,7 @@ static char __far Report[REPSIZE];	/* Text of the report shown */
 
 static HINSTANCE hInst;
 static HWND hTopics, hReport;		/* The two halves */
+static HWND hMap;			/* The map instead of hReport */
 static HFONT hFont;			/* OEM font of the report */
 static int SnapOK;			/* A snapshot is loaded */
 static char SnapName[128];		/* Its file name */
@@ -43,6 +44,7 @@ static char ReportName[128];		/* /R file */
 /* The topics in ASQ's order (ASQ/ASQTEXT.H DataInfo[]) */
 static struct { INFONUM num; char *title; } Topics[] = {
 #ifdef LANG_GR
+	{ INFO_UNKNOWN, 	TXT_MAP },	/* The map (MapWndProc) */
 	{ INFO_MEM_SUMM,	"Speicher-\xdc" "bersicht" },
 	{ INFO_MEM_LOW, 	"LoDOS Speicher" },
 	{ INFO_MEM_HIGH,	"HiDOS Speicher" },
@@ -72,6 +74,7 @@ static struct { INFONUM num; char *title; } Topics[] = {
 	{ INFO_HW_FIRM, 	"Maschine: Firmware/CPU" },
 	{ INFO_SNAPSHOT,	"Snapshot-Information" },
 #else
+	{ INFO_UNKNOWN, 	TXT_MAP },	/* The map (MapWndProc) */
 	{ INFO_MEM_SUMM,	"Memory Summary" },
 	{ INFO_MEM_LOW, 	"Memory Low DOS" },
 	{ INFO_MEM_HIGH,	"Memory High DOS" },
@@ -107,6 +110,8 @@ static struct { INFONUM num; char *title; } Topics[] = {
 long FAR PASCAL __export MainWndProc(HWND, UINT, WPARAM, LPARAM);
 BOOL FAR PASCAL __export AboutDlgProc(HWND, UINT, WPARAM, LPARAM);
 BOOL FAR PASCAL __export NewSnapDlgProc(HWND, UINT, WPARAM, LPARAM);
+long FAR PASCAL __export MapWndProc(HWND, UINT, WPARAM, LPARAM);
+long FAR PASCAL __export ListSubProc(HWND, UINT, WPARAM, LPARAM);
 static void after_load(HWND hwnd);
 
 
@@ -144,9 +149,251 @@ static unsigned make_report(int topic)
 }
 
 
-static void show_report(int topic)
-/* Put the report of Topics[topic] into the right half */
+/* The memory map:  16 rows of 64KB, 16 fields of 4KB each */
+static BYTE Cells[MAPPAGES];		/* Class of each page */
+static int MapOK;			/* Cells[] valid */
+static int MapSel = -1; 		/* Page clicked */
+static HBRUSH MapBrush[NMAPCLASS+1];	/* Per class, the last:  empty */
+static COLORREF MapColor[NMAPCLASS+1] = {	/* The 16 VGA colours */
+	RGB(128,128,128),	/* Unknown */
+	RGB(0,0,128),		/* DOS system */
+	RGB(0,0,255),		/* Device drivers */
+	RGB(0,128,128), 	/* XMS UMB */
+	RGB(0,255,0),		/* Available */
+	RGB(255,0,255), 	/* Video */
+	RGB(0,128,0),		/* RAM */
+	RGB(255,0,0),		/* ROM */
+	RGB(255,255,0), 	/* Program */
+	RGB(128,128,0), 	/* Environment */
+	RGB(0,255,255), 	/* EMS frame */
+	RGB(192,192,192),	/* Unused */
+	RGB(0,0,0),		/* Not installed */
+	RGB(128,0,0),		/* RAM/ROM */
+	RGB(128,0,128), 	/* MAX subsegment */
+	RGB(255,255,255)	/* Empty */
+};
+static char *MapName[NMAPCLASS+1] = { TXT_MAPCLASSES };
+static char MapLetter[] = "?DdU.VROPeM-nXS ";	/* For /R, the same order */
+
+#define CLS(p) (Cells[p] < NMAPCLASS ? Cells[p] : NMAPCLASS)
+
+typedef struct {			/* Where the map is drawn */
+	int x0, y0;			/* Top left field */
+	int cw, ch;			/* Size of a field */
+	int th; 			/* Text height */
+} MAPLAYOUT;
+
+static void map_layout(HWND hwnd, HDC hdc, MAPLAYOUT *ml)
 {
+	RECT rc;
+	TEXTMETRIC tm;
+
+	GetClientRect(hwnd, &rc);
+	GetTextMetrics(hdc, &tm);
+	ml->th = tm.tmHeight + tm.tmExternalLeading;
+	ml->x0 = 12 + LOWORD(GetTextExtent(hdc, "F000", 4));
+	ml->y0 = 8 + ml->th;
+	ml->cw = (rc.right - ml->x0 - 150) / 16;
+	if (ml->cw > 28) ml->cw = 28;
+	if (ml->cw < 8) ml->cw = 8;
+	ml->ch = (rc.bottom - ml->y0 - 7 * ml->th) / 16;
+	if (ml->ch > ml->th + 4) ml->ch = ml->th + 4;
+	if (ml->ch < 6) ml->ch = 6;
+}
+
+static void map_paint(HWND hwnd)
+{
+	PAINTSTRUCT ps;
+	HDC hdc;
+	MAPLAYOUT ml;
+	RECT rc;
+	char buf[1200];
+	int r, c, p, x, y, used[NMAPCLASS+1];
+
+	hdc = BeginPaint(hwnd, &ps);
+	SelectObject(hdc, GetStockObject(ANSI_VAR_FONT));
+	SetBkMode(hdc, TRANSPARENT);
+	map_layout(hwnd, hdc, &ml);
+	if (!MapOK) {
+		GetClientRect(hwnd, &rc);
+		DrawText(hdc, SnapOK ? TXT_NOREPORT : TXT_NOSNAP, -1, &rc,
+			 DT_LEFT | DT_WORDBREAK | DT_NOPREFIX);
+		EndPaint(hwnd, &ps);
+		return;
+	}
+
+	/* Column and row heads */
+	for (c = 0; c < 16; c++) {
+		wsprintf(buf, "%X", c);
+		TextOut(hdc, ml.x0 + c * ml.cw + ml.cw / 2 - 3, 4, buf, 1);
+	}
+	memset(used, 0, sizeof(used));
+	for (r = 0; r < 16; r++) {
+		y = ml.y0 + r * ml.ch;
+		wsprintf(buf, "%X000", r);
+		TextOut(hdc, 6, y + (ml.ch - ml.th) / 2, buf, 4);
+		for (c = 0; c < 16; c++) {
+			p = r * 16 + c;
+			x = ml.x0 + c * ml.cw;
+			SetRect(&rc, x, y, x + ml.cw - 1, y + ml.ch - 1);
+			FillRect(hdc, &rc, MapBrush[CLS(p)]);
+			used[CLS(p)] = 1;
+			if (p == MapSel) {
+				FrameRect(hdc, &rc, GetStockObject(BLACK_BRUSH));
+				InflateRect(&rc, -1, -1);
+				FrameRect(hdc, &rc, GetStockObject(WHITE_BRUSH));
+			}
+		}
+	}
+	SetRect(&rc, ml.x0 - 1, ml.y0 - 1, ml.x0 + 16 * ml.cw, ml.y0 + 16 * ml.ch);
+	FrameRect(hdc, &rc, GetStockObject(GRAY_BRUSH));
+
+	/* Legend:  the classes on the map */
+	x = ml.x0 + 16 * ml.cw + 12;
+	y = ml.y0;
+	for (c = 0; c <= NMAPCLASS; c++) {
+		if (!used[c]) continue;
+		SetRect(&rc, x, y + 2, x + 12, y + ml.th - 2);
+		FillRect(hdc, &rc, MapBrush[c]);
+		FrameRect(hdc, &rc, GetStockObject(GRAY_BRUSH));
+		TextOut(hdc, x + 18, y, MapName[c], lstrlen(MapName[c]));
+		y += ml.th + 2;
+	}
+
+	/* Below:  the entries of the page clicked */
+	y = ml.y0 + 16 * ml.ch + 8;
+	GetClientRect(hwnd, &rc);
+	rc.left = 6;
+	rc.top = y;
+	if (MapSel < 0)
+		DrawText(hdc, TXT_MAPHELP, -1, &rc, DT_LEFT | DT_NOPREFIX);
+	else {
+		wsprintf(buf, "%05lX-%05lX\r\n", (DWORD) MapSel << 12,
+			 ((DWORD) MapSel << 12) + 0xFFF);
+		r = lstrlen(buf);
+		map_entries(MapSel, buf + r, sizeof(buf) - r);
+		SelectObject(hdc, GetStockObject(OEM_FIXED_FONT));
+		DrawText(hdc, buf, -1, &rc, DT_LEFT | DT_NOPREFIX);
+	}
+	EndPaint(hwnd, &ps);
+}
+
+long FAR PASCAL __export MapWndProc(HWND hwnd, UINT msg, WPARAM wParam,
+				     LPARAM lParam)
+{
+	int c;
+
+	switch (msg) {
+	case WM_CREATE:
+		for (c = 0; c <= NMAPCLASS; c++)
+			MapBrush[c] = CreateSolidBrush(MapColor[c]);
+		return 0;
+	case WM_PAINT:
+		map_paint(hwnd);
+		return 0;
+	case WM_SIZE:
+		InvalidateRect(hwnd, NULL, TRUE);
+		return 0;
+	case WM_LBUTTONDOWN:
+		{
+			MAPLAYOUT ml;
+			HDC hdc = GetDC(hwnd);
+			int x = LOWORD(lParam), y = HIWORD(lParam);
+
+			SelectObject(hdc, GetStockObject(ANSI_VAR_FONT));
+			map_layout(hwnd, hdc, &ml);
+			ReleaseDC(hwnd, hdc);
+			if (MapOK && x >= ml.x0 && x < ml.x0 + 16 * ml.cw &&
+			    y >= ml.y0 && y < ml.y0 + 16 * ml.ch) {
+				MapSel = (y - ml.y0) / ml.ch * 16 + (x - ml.x0) / ml.cw;
+				InvalidateRect(hwnd, NULL, TRUE);
+				SetFocus(hwnd);
+			}
+		}
+		return 0;
+	case WM_SETFOCUS:
+		if (MapSel < 0) MapSel = 0;
+		InvalidateRect(hwnd, NULL, TRUE);
+		return 0;
+	case WM_KEYDOWN:
+		c = MapSel;
+		switch (wParam) {
+		case VK_LEFT:	c--;	break;
+		case VK_RIGHT:	c++;	break;
+		case VK_UP:	c -= 16; break;
+		case VK_DOWN:	c += 16; break;
+		case VK_HOME:	c = 0;	break;
+		case VK_END:	c = MAPPAGES - 1; break;
+		case VK_TAB:	SetFocus(hTopics); return 0;
+		default:	return 0;
+		}
+		if (c >= 0 && c < MAPPAGES && c != MapSel) {
+			MapSel = c;
+			InvalidateRect(hwnd, NULL, TRUE);
+		}
+		return 0;
+	case WM_DESTROY:
+		for (c = 0; c <= NMAPCLASS; c++)
+			DeleteObject(MapBrush[c]);
+		return 0;
+	}
+	return DefWindowProc(hwnd, msg, wParam, lParam);
+}
+
+
+/* The topic list:  Tab goes to the report or the map */
+static WNDPROC OldListProc;
+
+long FAR PASCAL __export ListSubProc(HWND hwnd, UINT msg, WPARAM wParam,
+				      LPARAM lParam)
+{
+	if (msg == WM_KEYDOWN && wParam == VK_TAB) {
+		SetFocus(IsWindowVisible(hMap) ? hMap : hReport);
+		return 0;
+	}
+	return CallWindowProc((FARPROC) OldListProc, hwnd, msg, wParam, lParam);
+}
+
+static unsigned make_map(void)
+/* The map as text in Report[] (for /R), return its length */
+{
+	int r, c, n, len;
+
+	MapOK = SnapOK && map_cells(Cells) == 0;
+	if (!MapOK) return 0;
+	len = wsprintf(Report, "      0123456789ABCDEF\r\n");
+	for (r = 0; r < 16; r++) {
+		len += wsprintf(Report + len, "%X000  ", r);
+		for (c = 0; c < 16; c++)
+			Report[len++] = MapLetter[CLS(r * 16 + c)];
+		len += wsprintf(Report + len, "\r\n");
+	}
+	len += wsprintf(Report + len, "\r\n");
+	for (c = n = 0; c <= NMAPCLASS; c++) {
+		len += wsprintf(Report + len, "%c %-18s", MapLetter[c],
+				(LPSTR) MapName[c]);
+		if (++n % 3 == 0) len += wsprintf(Report + len, "\r\n");
+	}
+	len += wsprintf(Report + len, "\r\n\r\n");
+	/* The entries:  class, layer (h:  found by mapping holes) */
+	len += map_list(Report + len, REPSIZE - len, MapLetter);
+	return len;
+}
+
+
+static void show_report(int topic)
+/* Put the report of Topics[topic] into the right half, or the map */
+{
+	if (Topics[topic].num == INFO_UNKNOWN) {
+		MapOK = SnapOK && map_cells(Cells) == 0;
+		MapSel = -1;
+		ShowWindow(hReport, SW_HIDE);
+		ShowWindow(hMap, SW_SHOW);
+		InvalidateRect(hMap, NULL, TRUE);
+		return;
+	}
+	ShowWindow(hMap, SW_HIDE);
+	ShowWindow(hReport, SW_SHOW);
 	if (!SnapOK) lstrcpy(Report, TXT_NOSNAP);
 	else if (!make_report(topic)) lstrcpy(Report, TXT_NOREPORT);
 	SetWindowText(hReport, Report);
@@ -168,7 +415,7 @@ static int export_reports(char *name)
 		memset(head + n, '=', n - 2);
 		lstrcpy(head + n + n - 2, "\r\n\r\n");
 		_lwrite(fh, head, lstrlen(head));
-		len = make_report(i);
+		len = Topics[i].num == INFO_UNKNOWN ? make_map() : make_report(i);
 		if (len) _lwrite(fh, Report, len);
 		_lwrite(fh, "\r\n", 2);
 	}
@@ -323,6 +570,10 @@ long FAR PASCAL __export MainWndProc(HWND hwnd, UINT msg, WPARAM wParam,
 			WS_HSCROLL | ES_MULTILINE | ES_READONLY |
 			ES_AUTOVSCROLL | ES_AUTOHSCROLL,
 			0, 0, 0, 0, hwnd, (HMENU) IDC_REPORT, hInst, NULL);
+		OldListProc = (WNDPROC) SetWindowLong(hTopics, GWL_WNDPROC,
+						      (LONG) ListSubProc);
+		hMap = CreateWindow("AsqMap", NULL, WS_CHILD | WS_BORDER,
+			0, 0, 0, 0, hwnd, 0, hInst, NULL);
 		hFont = GetStockObject(OEM_FIXED_FONT);
 		SendMessage(hReport, WM_SETFONT, (WPARAM) hFont, 0L);
 		for (i = 0; i < NTOPICS; i++)
@@ -336,6 +587,7 @@ long FAR PASCAL __export MainWndProc(HWND hwnd, UINT msg, WPARAM wParam,
 		if (i < 200) i = 200;
 		MoveWindow(hTopics, 0, 0, i, HIWORD(lParam), TRUE);
 		MoveWindow(hReport, i, 0, LOWORD(lParam) - i, HIWORD(lParam), TRUE);
+		MoveWindow(hMap, i, 0, LOWORD(lParam) - i, HIWORD(lParam), TRUE);
 		return 0;
 
 	case WM_SETFOCUS:
@@ -427,6 +679,11 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrev, LPSTR lpCmd, int nShow)
 		wc.hbrBackground = (HBRUSH) (COLOR_WINDOW + 1);
 		wc.lpszMenuName = "WinAsqMenu";
 		wc.lpszClassName = "WinAsq";
+		if (!RegisterClass(&wc)) return 0;
+		wc.lpfnWndProc = MapWndProc;
+		wc.hIcon = 0;
+		wc.lpszMenuName = NULL;
+		wc.lpszClassName = "AsqMap";
 		if (!RegisterClass(&wc)) return 0;
 	}
 

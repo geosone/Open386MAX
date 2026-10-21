@@ -19,6 +19,15 @@
 
 #define ID_TIMER	1	/* Waiting for ASQ */
 
+/* Memory map (WINMAP.C):  4KB pages of the first megabyte, their class
+ * is a MAPCLASS of the engine (ASQENG/SYSINFO.H) or MAPGAP */
+#define MAPPAGES	256
+#define MAPGAP		255
+#define NMAPCLASS	15	/* CLASS_UNKNOWN ... CLASS_SUBSEG */
+int map_cells(BYTE *cls);
+int map_entries(int page, char *buf, int nbuf);
+int map_list(char far *buf, unsigned nbuf, char *letters);
+
 #ifdef LANG_GR
 #define TXT_FILE	"&Datei"
 #define TXT_OPEN	"Snapshot ö&ffnen..."
@@ -31,6 +40,11 @@
 #define TXT_NOASQ	"ASQ.EXE läßt sich nicht starten:"
 #define TXT_DEFTITLE	"Windows"
 #define TXT_EXIT	"&Beenden"
+#define TXT_MAP 	"Speicherkarte (Grafik)"
+#define TXT_MAPHELP	"Ein Feld anklicken:  die Einträge dieser 4 KB."
+#define TXT_MAPCLASSES	"Unbekannt", "DOS-System", "Gerätetreiber", "XMS-UMB", "Verfügbar", \
+			"Video", "RAM", "ROM", "Programm", "Umgebung", "EMS-Fenster", \
+			"Ungenutzt", "Nicht installiert", "RAM/ROM", "MAX-Unterteil", "Leer"
 #define TXT_HELP	"&Hilfe"
 #define TXT_ABOUT	"&Info über WINASQ..."
 #define TXT_TITLE	"ASQ für Windows"
@@ -50,6 +64,11 @@
 #define TXT_NOASQ	"ASQ.EXE can't be started:"
 #define TXT_DEFTITLE	"Windows"
 #define TXT_EXIT	"E&xit"
+#define TXT_MAP 	"Memory Map (graphic)"
+#define TXT_MAPHELP	"Click a field:  the entries of these 4KB."
+#define TXT_MAPCLASSES	"Unknown", "DOS system", "Device drivers", "XMS UMB", "Available", \
+			"Video", "RAM", "ROM", "Program", "Environment", "EMS frame", \
+			"Unused", "Not installed", "RAM/ROM", "MAX subsegment", "Empty"
 #define TXT_HELP	"&Help"
 #define TXT_ABOUT	"&About WINASQ..."
 #define TXT_TITLE	"ASQ for Windows"
