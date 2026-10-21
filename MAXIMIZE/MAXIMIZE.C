@@ -299,6 +299,10 @@ int _cdecl main (int argc, char **argv)
 	/* handle it manually through the command line */
 	have_cfg = readconfig (&BootDrive);
 
+	/* If the startup batch file doesn't exist, create it */
+	if (!AnyError && _access (ActiveFiles[AUTOEXEC], 0) < 0)
+		createfile (ActiveFiles[AUTOEXEC]);
+
 	/* Fill in ActiveFiles[BETAFILE] */
 	set_betafile ();
 

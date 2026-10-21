@@ -1,7 +1,20 @@
+max/A20                  PASS
+max/CALLGATE             PASS
 max/DPMI10               PASS
+max/DPMILEAK             PASS
+max/DPMIMISC             PASS
 max/EMSFUNC              PASS
+max/EMSMORE              PASS
+max/HMADOS               PASS
 max/INT15                PASS
+max/LINOOM               PASS
+max/MANYSEL              PASS
+max/MAXAPI               PASS
+max/MAXINFO              PASS
+max/NULLSEG              PASS
 max/PM26                 PASS
+max/PMSTACK              PASS
+max/RMCBNEST             PASS
 max/STKFLT               PASS
 max/UMBDOS               PASS
 max/UTIL                 PASS
@@ -9,4 +22,6 @@ max/V86FUNC              PASS
 max/VCPIFUNC             PASS
 max/VDSFUNC              PASS
 max/XMSFUNC              PASS
+max/XMSLOCK              PASS
 max/XMSMAP               PASS
+max/XMSUMB               PASS

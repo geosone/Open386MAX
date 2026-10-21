@@ -74,7 +74,6 @@ hx/RMCB1                 END
 hx/RMCB3                 END
 hx/RMCB6                 END
 hx/RMCB7                 END
-hx/RMCB8                 CRASH
 hx/RMCB8                 END
 hx/RMCB9                 END
 hx/SETCR0                END
