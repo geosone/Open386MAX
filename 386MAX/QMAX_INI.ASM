@@ -767,6 +767,9 @@ XCODE	 segment use16 byte public 'xcode' ; Start XCODE segment
 
 	 assume  cs:XGROUP
 	 extrn	 E820_GET:near
+if @OEM_XMS
+	 extrn	 SXM_E820INIT:near
+endif				; IF @OEM_XMS
 
 	 public  @QMAX_INI_XCODE
 @QMAX_INI_XCODE:		; Mark module start in .MAP file
@@ -4724,6 +4727,9 @@ endif				; IF @OEM_BCF
 
 	 call	 CHECK_ARGS	; Check command line arguments
 	 jc	 near ptr UGH_INIT ; Something went wrong
+if @OEM_XMS
+	 call	 SXM_E820INIT	; Save the BIOS memory map for INT 15h E820h
+endif				; IF @OEM_XMS
 
 ; We must defer display of the ABIOS initialization error message till
 ; here so we can override it with NOABIOS.

@@ -1,6 +1,7 @@
 ; INT15.ASM - INT 15h under the V86 monitor:  C0h configuration table,
 ; C1h extended BIOS data segment, 88h extended memory size, 89h (enter
-; protected mode refused under 386MAX), E801h, E820h memory map, 2400h-2403h A20
+; protected mode refused under 386MAX), E801h, E820h memory map (under
+; 386MAX:  the same memory as 88h), 2400h-2403h A20
 ; (2400h/2401h checked through the 1MB wrap, under 386MAX only).
 ; Errorlevel 0 = all OK, 1 = a check failed.
 ; Build: jwasm -mz INT15.ASM
@@ -14,6 +15,7 @@ e820	db	24 dup (0)
 maxname	db	'386MAX$$',0
 is386	db	0		; 1 = running under 386MAX
 size88	dw	?
+avail1m	dd	?
 
 	.code
 	include	TESTLIB.INC
@@ -124,8 +126,12 @@ no89:
 	INFO	' x 64 KB above 16 MB'
 	cmp	cx,3C00h
 	CHECK	'E801h CX <= 15 MB', be
-	cmp	cx,size88
-	CHECK	'E801h CX >= 88h', ae
+	cmp	is386,1
+	jne	e801x
+	cmp	cx,size88	; 386MAX:  what it doesn't use, as 88h
+	CHECK	'E801h CX = 88h', e
+	cmp	dx,0
+	CHECK	'E801h DX = 0', e
 	jmp	e801x
 noe801:	INFO	'E801h not supported'
 e801x:
@@ -134,6 +140,7 @@ e801x:
 	xor	ebx,ebx
 	xor	si,si		; entries
 	xor	bp,bp		; available below 640KB at 0
+	mov	avail1m,0
 e820n:	mov	eax,0E820h
 	mov	ecx,20
 	mov	edx,534D4150h
@@ -153,6 +160,14 @@ e820n:	mov	eax,0E820h
 	cmp	dword ptr e820[16],1
 	jne	@F
 	inc	bp
+@@:	cmp	dword ptr e820[16],1	; available at/above 1MB below 4GB
+	jne	@F
+	cmp	dword ptr e820[4],0
+	jne	@F
+	cmp	dword ptr e820,100000h
+	jb	@F
+	mov	eax,dword ptr e820[8]
+	add	avail1m,eax
 @@:	or	ebx,ebx
 	jz	e820x
 	cmp	si,64
@@ -165,6 +180,17 @@ e820x:	NOTE_	'entries '
 	CHECK	'at least 2 entries', ae
 	cmp	bp,1
 	CHECK	'available RAM at 0', e
+	NOTE_	'available at 1MB-4GB: '
+	mov	eax,avail1m
+	shr	eax,10
+	call	phex32
+	INFO	' KB'
+	cmp	is386,1
+	jne	@F
+	movzx	edx,size88
+	cmp	eax,edx
+	CHECK	'386MAX:  E820h available above 1MB = 88h', e
+@@:
 
 	TITLE_	'2400h-2403h A20'
 	mov	ax,2403h

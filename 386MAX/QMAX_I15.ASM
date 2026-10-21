@@ -45,6 +45,9 @@ Modifications by:  None.
 PGROUP	 group	 CODE,ECODE,EDATA
 FGROUP	 group	 FDATA
 IGROUP	 group	 LCODE,LDATA,ICODE
+if @OEM_XMS
+JGROUP	 group	 JCODE
+endif				; IF @OEM_XMS
 
 
 CODE	 segment use16 byte public 'prog' ; Start CODE segment
@@ -153,6 +156,16 @@ LDATA	 segment use16 dword public 'icode' ; Start LDATA segment
 LDATA	 ends			; End LDATA segment
 
 
+if @OEM_XMS
+JCODE	 segment use16 dword public 'jcode' ; Start JCODE segment
+	 assume  cs:JGROUP
+
+	 extrn	 SXM_I15:near
+
+JCODE	 ends			; End JCODE segment
+endif				; IF @OEM_XMS
+
+
 ICODE	 segment use16 dword public 'icode' ; Start ICODE segment
 	 assume  cs:IGROUP
 
@@ -242,6 +255,11 @@ if @OEM_DPMI
 endif				; IF @OEM_DPMI
 	 cmp	 ah,87h 	; Izit BIOS block move?
 	 je	 short INT15_STK ; Jump if it is
+if @OEM_XMS
+	 cmp	 ah,0E8h	; Izit E801h/E820h memory size/map?
+	 je	 short INT15_STK ; Jump if so (as 87h, before the INT 15h
+				; chain:  see SXM_I15)
+endif				; IF @OEM_XMS
 
 	 cmp	 [esp].NRM_CS,seg PGROUP ; Check against caller's CS
 	 org	 $-2
@@ -296,6 +314,8 @@ AH = 88 	 Get extended size    (return with CF=0, AX=EXTSIZE)
 AH = 89 	 Enter protected mode (return with CF=1, AH=86h)
 AH = C0 	 Get BIOS configuration data
 AH = C1 	 Get Extended BIOS Data Area segment
+AX = E801	 Extended memory size (as 88h, see SXM_I15)
+AX = E820	 Memory map (what 386MAX uses reserved, see SXM_I15)
 
 On entry:
 
@@ -352,6 +372,13 @@ if @OEM_WIN3
 	 je	 near ptr INT15_XBIOS ; Handle separately
 endif				; IF @OEM_WIN3
 
+if @OEM_XMS
+	 cmp	 ah,0E8h	; Check for E801h/E820h
+	 je	 short INT15_E8 ; Handle separately
+endif				; IF @OEM_XMS
+
+	 public  INT15_PASS
+INT15_PASS:
 	 mov	 ax,[ebp].INTXX_ICOMHI ; Get previous frame offset
 	 shl	 eax,16 	; Shift to high-order word
 	 mov	 ax,[ebp].INTXX_ICOMLO ; Get previous frame offset
@@ -365,6 +392,18 @@ endif				; IF @OEM_WIN3
 	 add	 esp,size INTXX_ERR ; Strip off error code
 INTPROC15_LCL:
 	 FIXIJMP PGROUP:INTPROC15,DTE_CS2 ; Give it to the real mode handler
+
+if @OEM_XMS
+COMMENT|
+
+AH=E8:	E801h and E820h in QMAX_SXM (no room here), which continues
+	with INT15_EXIT1 or INT15_PASS
+
+|
+
+INT15_E8:
+	 FIXIJMP JGROUP:SXM_I15,DTE_CSJG ; Handle it
+endif				; IF @OEM_XMS
 
 COMMENT|
 
@@ -926,6 +965,7 @@ INT15_DONE1:
 	 and	 [ebp].INTXX_EFL.ELO,not (mask $CF) ; Clear the carry flag (CF=0)
 INT15_EXIT:
 	 mov	 [ebp].INTXX_EAX.ELO,ax ; Put return value onto stack
+	 public  INT15_EXIT1
 INT15_EXIT1:
 	 FIXIJMP PGROUP:INT0D_IRETD,DTE_CS2 ; Return to caller
 
