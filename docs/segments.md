@@ -46,6 +46,20 @@ XMS 10h-12h (XMS_UMBJ), E801h/E820h (SXM_I15), the HMA flag
 largest modules, are the next to go through.  This is the only thing
 that frees PGROUP directly.
 
+**Init code and data in PGROUP** (the biggest lever):  NCODE and NDATA
+sit behind the resident part (ZDATA) and are dropped after init, but
+they take PGROUP offsets:  0x2C46 + 0xA60, about 14K.  By module:  EVM
+6.9K code (ENTERPM, HOIST_GROUP, FILL_PDT, SET_PHYS, SWAP_DMA,
+FILL_PHYS2SEG ...:  the switch to protected mode and the copy of the
+groups to extended memory), TIM 1.8K code, IOP 0.9K, LOD 0.6K, BCF 0.5K;
+data:  STA 2K (MEM_MAP, the map of the first megabyte in 512-byte
+blocks; used through DS/ES = PGROUP in ARG, CPQ, FCN and EVM, also in
+protected mode).  Ways:  MEM_MAP into XGROUP (accessors get a segment
+register for it), real mode init code into XGROUP/YGROUP (far calls),
+the protected mode init code of EVM into its own group with a
+descriptor during init.  Each step needs the whole suite, EVM's on all
+DOSes and with Windows.
+
 **Loadable modules** (10.x):  optional features become files 386MAX
 loads at init, e.g. QPI (DESQview, VSBHDA), XMS 3.5, the HDPMI API, the
 extended DOS translation, mouse translation, and the legacy paths
