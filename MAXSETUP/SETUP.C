@@ -1185,6 +1185,11 @@ SetupGroup:
 	pmAddItem( szTemp, "MAXedit", NULLSTR, 0 );
 
 	SetupYield(0);
+	MakePath(szDest, "winasq.exe", szTemp );
+	pmDeleteItem( "ASQ" );
+	pmAddItem( szTemp, "ASQ", NULLSTR, 0 );
+
+	SetupYield(0);
 	MakePath(szDest, szMMName, szTemp );
 	pmDeleteItem( szMAXmeter );
 	pmAddItem( szTemp, szMAXmeter, NULLSTR, 0 );

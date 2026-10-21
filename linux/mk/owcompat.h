@@ -95,9 +95,11 @@ typedef int (__cdecl *owc_cmpfn)(const void *, const void *);
 typedef void (__cdecl *owc_sigfn)(int);
 extern void owc_qsort(void *base, size_t num, size_t width, owc_cmpfn cmp);
 extern owc_sigfn owc_signal(int sig, owc_sigfn func);
+#if !defined(__WINDOWS__) || defined(OWC_MSC)
+#define qsort(b, n, w, f) owc_qsort((b), (n), (w), (owc_cmpfn)(f))
+#endif
 #ifndef __WINDOWS__
 extern void owc_harderr(void (__cdecl __far *handler)(unsigned, unsigned, unsigned __far *));
-#define qsort(b, n, w, f) owc_qsort((b), (n), (w), (owc_cmpfn)(f))
 #define signal(s, f) owc_signal((s), (owc_sigfn)(f))
 #define _harderr(f) owc_harderr((void (__cdecl __far *)(unsigned, unsigned, unsigned __far *))(f))
 #endif

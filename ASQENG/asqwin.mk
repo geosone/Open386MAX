@@ -1,0 +1,21 @@
+# LENGINEW.LIB, the ASQ engine for Windows (WINASQ):  the C modules for
+# Win16 (large model), the assembler modules and SHDMAP from the DOS build
+# (GNU make, see linux/mk/win.mk).  WINASQ only reads snapshots with it
+# (CTRL_SYSREAD), the hardware probes (CTRL_SYSINIT) stay with DOS ASQ.
+PROJ     := ASQENG-W
+ROOT     := $(abspath ..)
+CMODEL   := l
+CDEFS    := DOS_VERSION OWC_MSC
+INCDIRS  := . ../INCLUDE ../INC ../386MAX
+
+LIBRARIES := LENGINEW.LIB
+LENGINEW.LIB_OBJS  := ADF.OBJ CFG_INFO.OBJ CPUTEXT.OBJ ENGINE.OBJ GLIST.OBJ HDW_INFO.OBJ \
+	INFO.OBJ MAPINFO.OBJ MEM_INFO.OBJ PROFILE.OBJ QTAS.OBJ READSYS.OBJ SYSBUF.OBJ \
+	WRITSYS.OBJ MODINFO.OBJ MODREPT.OBJ
+LENGINEW.LIB_EXTRA := $(addprefix $(ROOT)/build/ASQENG/,BIOSID.OBJ MULTIME.OBJ QTAS_MAC.OBJ \
+	TESTMEM.OBJ TIMER.OBJ XMSINFO.OBJ FLEXROMS.OBJ BUSINFO.OBJ MODHW.OBJ SHDMAP.OBJ)
+
+MODREPT.OBJ_CFLAGS := -zc -i=$(ROOT)/build/ASQENG
+MODINFO.OBJ_CFLAGS := -zc
+
+include $(ROOT)/linux/mk/win.mk

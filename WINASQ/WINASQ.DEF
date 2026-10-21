@@ -1,0 +1,12 @@
+; WINASQ.DEF:  ASQ for Windows
+NAME         WINASQ
+DESCRIPTION  'Open 386MAX ASQ for Windows'
+EXETYPE      WINDOWS
+STUB         'WINSTUB.EXE'
+
+DATA         PRELOAD MOVEABLE MULTIPLE
+
+HEAPSIZE     8192
+STACKSIZE    12288
+
+; the window and dialog procedures are exported with __export

@@ -37,6 +37,7 @@ maxmeter.exe   1 bin
 snapshot.exe   7 bin
 dosmax32.dll   1 bin
 rdosmax.exe    1 bin
+winasq.exe     1 bin
 readme         1 README
 xlat.com       1 bin
 memlimit.exe   1 bin

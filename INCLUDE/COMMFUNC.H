@@ -55,9 +55,9 @@ extern "C" {
 #endif
 
 /* Sleep the process for a fixed number of milliseconds */
-#if !(defined(__WATCOMC__) && defined(__cplusplus))
+#if !(defined(__WATCOMC__) && (defined(__cplusplus) || defined(__WINDOWS__)))
 /* (OpenWatcom C++: dos.h has sleep(unsigned seconds); an extern "C"
-   function can't be overloaded) */
+   function can't be overloaded.  Windows:  QUILIB's isn't there) */
 void sleep(long msecs);
 #endif
 

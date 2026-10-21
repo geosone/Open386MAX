@@ -24,4 +24,10 @@
    handles of non-STRICT programs are compared with it */
 #undef NULL
 
+/* OWC_MSC=1 (CDEFS):  also the Microsoft C behaviour of owcompat.h
+ * (qsort with cdecl callbacks, strtok ...) for DOS sources built for
+ * Windows; the program links the compatibility modules (MSCOMPAT := 1) */
+#ifdef OWC_MSC
+#include "owcompat.h"
+#endif
 #endif
