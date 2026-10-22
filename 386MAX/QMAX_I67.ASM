@@ -2844,9 +2844,17 @@ On exit:
 CF	 =	 0 if all went OK
 	 =	 1 if logical page not found
 
+All of it with interrupts disabled:  a hardware interrupt in between
+would run its handler with RPNCUR half remapped, and a handler which
+switches EMS contexts itself (DESQview's IRQ calldowns:  5B01h, 4E01h)
+comes back into here.  DESQview then hung with IRQ0 never EOIed.
+
 |
 
 	 REGSAVE <ax,cx,esi,edi> ; Save registers
+
+	 pushf			; Save flags
+	 cli			; Disallow interrupts
 
 	 xor	 ax,ax		; Initialize physical page #
 RPN_DIFF_NEXT:
@@ -2856,21 +2864,18 @@ RPN_DIFF_NEXT:
 	 sub	 esi,size RPN_STR ; Back off to source RPN
 	 sub	 edi,size RPN_STR ; ... 	dest
 
-	 pushf			; Save flags
-	 cli			; Disallow interrupts
-
 	 push	 ds:[esi].RPN_RPN ; Pass the relative 16KB page # (origin-0)
 	 push	 ax		; Pass the physical 16KB page # (origin-0)
 	 call	 RPNMAP_COM	; Call common page map routine
 	 jc	 short RPN_DIFF_ERR ; Jump if relative page # not found
 
 S32	 movs	 <es:[edi].ELO,ds:[esi].ELO> ; Move RPN
-
-	 popf			; Restore flags
 RPN_DIFF_LOOP:
 	 inc	 ax		; Skip to next physical 16KB page
 
 	 loop	 RPN_DIFF_NEXT	; Jump if more physical 16KB pages to map
+
+	 popf			; Restore flags
 
 	 clc			; Indicate all went well
 
