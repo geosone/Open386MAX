@@ -83,6 +83,8 @@ EDATA	 segment use16 dword public 'edata' ; Start EDATA segment
 	 extrn	 I31_FLAG:word
 
 	 extrn	 DPMI_CPIHOOK:byte
+	 extrn	 NEWIMR1:word
+	 extrn	 NEWIMR2:word
 	 extrn	 DPMI_PVFHOOK:byte
 
 	 extrn	 SAVE_EAX:dword
@@ -2119,6 +2121,35 @@ INT68_VM:
 
 INT68_XVM:
 
+; While a PIC base puts an IRQ on vector 68h (VCPI DE0Bh:  DESQview sets
+; the master's to 68h), an interrupt from PL0 or one the DPMI client
+; hasn't hooked is that IRQ:  it goes the way of all hardware interrupts
+; (INTCOM).  Returning here instead left IRQ0 without its handler and EOI:
+; the PIC stopped and DESQview hung.
+
+	 push	 ax		; Save register
+	 mov	 ax,68h 	; Our vector
+	 sub	 ax,NEWIMR1	; Less the master PIC's base
+	 cmp	 ax,8		; Izit one of its IRQs?
+	 jb	 short @F	; Jump if so (CF=1)
+
+	 mov	 ax,68h 	; Our vector
+	 sub	 ax,NEWIMR2	; Less the slave PIC's base
+	 cmp	 ax,8		; Izit one of its IRQs? (CF=1 if so)
+@@:
+	 pop	 ax		; Restore (flags unchanged)
+	 jnc	 short INT68_SW ; Jump if not an IRQ vector
+
+	 test	 [esp].INTDPI_CS,mask $PL ; Izit at PL0?
+	 jz	 short INT68_VM ; Jump if so (a hardware interrupt)
+
+	 test	 DPMI_CPIHOOK[68h/8],1 shl (68h mod 8) ; Izit hooked by current client?
+	 jz	 short INT68_VM ; Jump if not (as all hardware interrupts)
+
+	 jmp	 short INT68_CLIENT ; Give it to the client
+
+INT68_SW:
+
 ; If the caller is at PL0, don't pass on to any DPMI clients
 
 	 test	 [esp].INTDPI_CS,mask $PL ; Izit at PL0?
@@ -2134,6 +2165,7 @@ INT68_XVM:
 
 	 test	 DPMI_CPIHOOK[68h/8],1 shl (68h mod 8) ; Izit hooked by current client?
 	 jz	 short INT68_INTRETPM ; Jump if not
+INT68_CLIENT:
 
 ; The stack is mapped by INTDPI_STR
 
