@@ -1,0 +1,62 @@
+MAXTEXT - DOS hardware text mode driver (public API 1.1)
+Copyright: Open 386MAX contributors 2026.
+GNU General Public License version 3; see LICENSE.TXT.
+Source and full architecture: docs/maxtext.md.
+
+The installer copies MAXTEXT.SYS, MAXTEXT.COM and these instructions.
+Standard setup adds DEVICE=...386LOAD.SYS PROG=...MAXTEXT.SYS after 386MAX
+in CONFIG.SYS. Loading preserves the current video mode.
+
+Expert DOS setup (SETUPDOS /EXPERT) asks whether to load MAXTEXT. SETUP.INF
+supports [Setup] Mode=Expert and [386MAX] MaxText=0 to disable it. MaxText
+is 1 by default. MAXCFG edits these settings. Windows setup provides a
+checked-by-default MAXTEXT option on the Configure page.
+
+With DOS UMB support and 386MAX, add after the memory manager:
+  DOS=HIGH,UMB
+  DEVICEHIGH=C:\386MAX\MAXTEXT.SYS
+
+Alternatively, including the tested Enhanced DR-DOS configuration:
+  DEVICE=C:\386MAX\386LOAD.SYS PROG=C:\386MAX\MAXTEXT.SYS
+
+Use only one loading method. Ordinary DEVICE=MAXTEXT.SYS works without
+386MAX. DEVICEHIGH may fall back to low memory: inspect /STATUS.
+No device arguments are accepted. Do not specify /MODE in CONFIG.SYS.
+
+After boot, or from AUTOEXEC.BAT before starting Windows:
+  MAXTEXT /LIST
+  MAXTEXT /STATUS
+  MAXTEXT /MODE:80x25
+  MAXTEXT /MODE:80x43
+  MAXTEXT /MODE:80x50
+  MAXTEXT /RESTORE
+
+/RESTORE sets the boot geometry and clears the screen. Mode changes are
+restricted to validated VGA color text mode 3, page zero, outside Windows.
+They clear the display on success. An error rolls back text, fonts and
+video state. Keep an application out of its interactive UI while changing
+modes; applications must re-read the geometry afterwards.
+
+80x43 uses BIOS 350-line text when available. If BIOS mode 3 ignores the
+350-line selection, a verified standard 400-line VGA mode can use a
+344-line text viewport; clocks, totals and sync are unchanged.
+No VBE/SVGA/132-column/60-row modes are enabled in this version. Unknown
+hardware and unsupported contexts fail; MAXTEXT does not emulate text
+with graphics. CON and applications hardcoded to 80x25 are not replaced.
+
+The driver is about 4 KiB resident, including its BIOS stack. Clients use
+104 KiB of temporary conventional memory for complete screen/font/BIOS
+backup during changes. MAXTEXT.COM frees this before exiting.
+
+Public API: open MAXTEXT$ with INT 21h/3D02h, verify a character device
+using 4400h, read the 24-byte MAXTEXT_STATUS with 4402h, check MXT1,
+version/size and the available mode bitmap. Then use 4403h with a 16-byte
+MAXTEXT_CONTROL (MXTC, command, columns, rows, DOS scratch segment,
+scratch paragraphs, result). Check carry, returned byte count and result.
+MAXTEXT.H and MAXTEXT.INC define structures/constants. MTEXAPI.C is a
+standalone 16-bit DOS C example that discovers the driver, lists its
+capabilities and optionally sets 25, 43 or 50 rows. It is nonresident.
+
+Tested in QEMU/SeaBIOS with MS-DOS 6.22, FreeDOS and Enhanced DR-DOS,
+with ordinary loading and UMB loading via 386MAX. This is not a claim of
+physical GPU or Windows VDD compatibility. No dynamic loader/unloader.

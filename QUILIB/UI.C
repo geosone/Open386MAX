@@ -2,6 +2,7 @@
 /******************************************************************************
  *									      *
  * (C) Copyright 1991-93 Qualitas, Inc.  GNU General Public License version 3.		      *
+ * (C) Copyright 2026 Open 386MAX contributors.                              *
  *									      *
  * UI.C 								      *
  *									      *
@@ -56,8 +57,6 @@ void initializeScreenInfo( BOOL snowcontrol )
 
 	get_video_parm(&parm);
 
-	ScreenSize.col = parm.cols;
-	ScreenSize.row = parm.rows;
 	AdapterType = parm.id[0].adapter;
 
 	/* Set screen I/O mode */
@@ -65,6 +64,11 @@ void initializeScreenInfo( BOOL snowcontrol )
 		set_mode(WINMODE_SLOW);
 	else
 		set_mode(WINMODE_FAST);
+
+	/* set_mode may normalize a graphics/40-column mode. Re-read after it. */
+	get_video_parm(&parm);
+	ScreenSize.col = parm.cols;
+	ScreenSize.row = parm.rows;
 
 	if (!ScreenSet) {
 		if (parm.monotube)

@@ -2,6 +2,7 @@
 /******************************************************************************
  *									      *
  * (C) Copyright 1991-95 Qualitas, Inc.  GNU General Public License version 3.		      *
+ * Copyright 2026 Open 386MAX contributors (MAXTEXT setup).
  *									      *
  * SCRN.C								      *
  *									      *
@@ -2065,6 +2066,16 @@ void do_qmt (void)
  if (key == RESP_YES) install_qmt (key);
 
 } // do_qmt ()
+
+/* Standard installs enable MAXTEXT without another prompt. Expert mode
+ * exposes the choice; SETUP.INF supports the same choice unattended. */
+void do_maxtext (void)
+{
+ int enabled = inf_bool ("386MAX", "MaxText", 1);
+ if (AdvancedOpts && !Unattended)
+   enabled = (do_yesno (MsgMaxText, 0) == RESP_YES);
+ install_maxtext (enabled);
+}
 
 /*************************** do_ramdisk *********************************/
 // Ask if they want a RAM disk (386DISK) for TEMP and TMP.  Its size:

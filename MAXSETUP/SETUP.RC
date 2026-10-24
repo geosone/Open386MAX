@@ -160,6 +160,8 @@ BEGIN
 			20,83,180,11
 	CONTROL 		"Run &Qualitas Memory Tester on bootup",IDC_QMT,"Button",BS_AUTOCHECKBOX | 
 					  WS_TABSTOP,20,115,180,11
+    CONTROL "Load MAX&TEXT text driver (default)",IDC_MAXTEXT,"Button",BS_AUTOCHECKBOX |
+                      WS_TABSTOP,20,128,210,10
 END
 
 

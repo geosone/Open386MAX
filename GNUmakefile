@@ -17,10 +17,10 @@
 #                   make distclean removes everything and the tools too
 
 PROJECTS := 386MAX 386LOAD 386DISK MEMLIMIT ROMSRCH XLAT RAMBASIC QMT EXTRADOS MAXVRAM VXD QUILIB ASQENG ASQ MAXIMIZE INSTALL SNAPSHOT BATPROC STRIPMGR
-# new open source parts instead of binaries of the original (help engine,
+# new components and open source replacements for original binaries (help engine,
 # version library, DOS reader for Windows help files, the MAX shell
 # reconstructed from the binary)
-NEWPROJECTS := HELPENG VERLIB HHELP QSHELL
+NEWPROJECTS := HELPENG VERLIB HHELP QSHELL MAXTEXT
 # Windows programs (OpenWatcom, linux/mk/win.mk) and help files
 WINPROJECTS := CTL3D SFTTABS MAXMETER MAXEDIT QPOPUP QPIFEDIT DOSMAX16 DOSMAX32 RDOSMAX MAXCTRL GOAHEAD MAXSETUP STATUTIL WINMXMZ WINASQ MAXCFG DOSHELP MAXHELP
 # DOS regression tests (TESTS/README.md) -> build/TESTS
@@ -56,6 +56,7 @@ devpkg: all
 	linux/scripts/mkdevpkg.sh
 
 # libraries used by other projects
+TESTS: QUILIB
 ASQ: QUILIB ASQENG HELPENG VERLIB
 QSHELL: QUILIB HELPENG
 MAXIMIZE: QUILIB HELPENG

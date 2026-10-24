@@ -9,6 +9,7 @@
 
 [Setup]
 Unattended=0            ; 1: no questions
+;Mode=Standard          ; Standard | Expert (expert exposes MAXTEXT choice)
 ;Directory=C:\QMAX      ; installation directory
 ;ProgramFiles=1         ; Windows setup: program files
 ;OnlineHelp=1           ; Windows setup: Windows help
@@ -19,6 +20,7 @@ Unattended=0            ; 1: no questions
 [386MAX]
 ;EMS=0                  ; provide EMS memory
 ;MDA=1                  ; use the MDA region B000-B800 if it is free
+;MaxText=1              ; load MAXTEXT.SYS by default; 0 disables it
 ;MemoryTester=0         ; QMT memory test at boot
 ;RamDisk=0              ; RAM disk (386DISK) for TEMP and TMP
 

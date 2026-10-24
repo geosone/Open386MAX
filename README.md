@@ -2,7 +2,7 @@
 
 Open 386MAX is the **386MAX memory manager** for DOS, Windows 3.1x and
 Windows 9x: memory manager (386MAX.SYS, 386LOAD, 386UTIL), MAXIMIZE,
-ASQ, the MAX shell, ExtraDOS, the Windows tools (MAXedit, MAXmeter, the PIF
+ASQ, the MAX shell, MAXTEXT, ExtraDOS, the Windows tools (MAXedit, MAXmeter, the PIF
 editor, GoAhead, DOSMAX, the Toolbox) and the DOS and Windows installers.
 
 Qualitas, Inc. released the 386MAX sources under the GNU GPL v3
@@ -24,10 +24,13 @@ that existed only as binaries, and develops 386MAX further:
   root-context status; multi-VM services remain disabled until their
   contracts are implemented)
 - ASQ for Windows (WINASQ)
+- MAXTEXT: standalone VGA hardware text modes (80x25, 80x43, 80x50),
+  UMB loading and a public DOS API; shared DOS UI routines honor the
+  current geometry, font height and screen-page stride
 - no serial numbers or registration; English and German
 
 Branches:  `main` is the development line (9.x, test releases such as
-9.00-beta3), `8.x` the maintenance line of 8.59 (bug fixes only).
+9.00-beta4), `8.x` the maintenance line of 8.59 (bug fixes only).
 
 Tested in QEMU with complete installation and MAXIMIZE runs (DOS and
 Windows SETUP, all three MAXIMIZE passes): MS-DOS 6.22, MS-DOS 7.1,
@@ -70,17 +73,56 @@ linux/scripts/buildlang.sh US    # release/US/tree, release/US/package
 linux/scripts/mkmedia.sh US      # floppy set, USB image, ISO, ZIP in release/US
 ```
 
+## MAXTEXT hardware text modes
+
+`make MAXTEXT` builds `MAXTEXT.SYS` and `MAXTEXT.COM` into `build/bin`.
+The installation package includes the driver, control program, loading
+instructions and public C/assembler API definitions. Standard installation
+adds `DEVICE=...386LOAD.SYS PROG=...MAXTEXT.SYS` after the memory manager
+in CONFIG.SYS. It preserves the boot video mode. Expert setup can disable
+MAXTEXT (`SETUPDOS /EXPERT`, or `Setup/Mode=Expert` and `386MAX/MaxText=0`
+in SETUP.INF); Windows setup exposes the same checked-by-default option.
+For manual installation on DOS with DEVICEHIGH support:
+
+```ini
+DEVICE=C:\386MAX\386MAX.SYS
+DOS=HIGH,UMB
+DEVICEHIGH=C:\386MAX\MAXTEXT.SYS
+```
+
+After boot, `MAXTEXT /LIST` reports supported modes, `/MODE:80x50` selects
+one and `/STATUS` reports the current geometry and resident location.
+`/RESTORE` returns to the boot geometry and clears the screen. The tested
+Enhanced DR-DOS configuration uses `386LOAD.SYS PROG=...` for UMB loading;
+see the [architecture, public API and loading guide](docs/maxtext.md).
+
+API 1.1 lets DOS applications detect `MAXTEXT$`, query capabilities and
+request a supported text mode through handle IOCTL. Unknown hardware,
+unsupported contexts and unimplemented VBE/SVGA modes are rejected.
+132-column and 60-row modes are not enabled in this version.
+
+QUILIB and the DOS programs also work without MAXTEXT. Their screen
+geometry comes from the BIOS/BDA, including ordinary 80x25 and BIOS-set
+80x50 modes; using MAXTEXT's mode-selection API is optional.
+
+`make TESTS` builds the [MAXTEXT regression tests](TESTS/MAXTEXT/README.md)
+into `build/TESTS/MAXTEXT/bin`. Test sources are in `TESTS/MAXTEXT`; shell
+runners are under `linux/test`. The DOS/UMB matrix, rollback checks, installation at 80x50, MAX editor and ASQ checks passed
+in QEMU; see the [results and remaining coverage](TESTS/MAXTEXT/RESULTS.md).
+
 ## Layout
 
 | Path | Content |
 |---|---|
 | `386MAX`, `386LOAD`, `386DISK`, `EXTRADOS`, `VXD`, ... | the DOS and VxD parts (assembler) |
+| `MAXTEXT` | standalone VGA hardware text driver, control program and public API example |
 | `ASQ`, `ASQENG`, `MAXIMIZE`, `INSTALL`, `QSHELL`, `QUILIB`, ... | the DOS programs in C |
 | `MAXEDIT`, `MAXMETER`, `QPIFEDIT`, `MAXCTRL`, `MAXSETUP`, `WINMXMZ`, ... | the Windows programs |
 | `CTL3D`, `SFTTABS`, `HELPENG`, `VERLIB`, `HHELP`, `RDOSMAX` | new GPL code for parts that were only binaries |
 | `DOSHELP`, `MAXHELP` | DOS and Windows help |
 | `PACKAGE` | data files and file list of the installation package |
 | `INC`, `INCLUDE` | shared include files |
+| `TESTS` | DOS regression sources and component tests, including `TESTS/MAXTEXT` |
 | `linux/mk` | build rules (`dos.mk`, `win.mk`) |
 | `linux/tools` | help compilers, package tools, logo generator, build helpers |
 | `linux/test` | tests in QEMU (DOS, Windows for Workgroups 3.11, installation) |
@@ -91,6 +133,7 @@ The tests need a DOS boot image and, for Windows, a Windows for Workgroups
 
 ## License
 
-GNU General Public License version 3, see `LICENSE`.
+GNU General Public License version 3, see [LICENSE](LICENSE). The MAXTEXT
+driver, SDK and regression tests use the same license.
 
 (C) Copyright 1987-97 Qualitas, Inc.; Open 386MAX contributors 2022-2026.

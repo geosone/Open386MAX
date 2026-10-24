@@ -36,7 +36,7 @@
 \par }\pard \widctlpar\tx6300 #PROGNAME# konnte keine vorhandene Lizenz eines Qualitas Memory Management Produktes finden. Falls Sie die Installation fortsetzen, kann #PROGNAME# die korrekte Arbeitsweise aller Funktionen nicht garantieren.
 \par \pard \widctlpar\tx6300 
 \par \pard \widctlpar {\b M”chten Sie den Vorgang fortsetzen?
-\par 
+\par
 \par }\pard \widctlpar {\b W„hlen Sie Vorher fr die erneute Eingabe des Verzeichnisses Ihrer vorhandenen Installation.
 \par }\pard \widctlpar 
 \par \pard \widctlpar {\fs28\cf6 >>M.BadWinSubdir
@@ -187,4 +187,7 @@ nnen einen Systemabsturz und Datenverlust bewirken.
 \par \pard \widctlpar 
 \par \pard \widctlpar {\b M”chten Sie, daá #PROGNAME# eine RAM-Disk fr TEMP eintr„gt?}
 \par \pard \widctlpar 
+\par \pard\plain \s16\keepn \f276\fs28\cf6 >>M.MaxText
+\par \pard\plain \f276 MAXTEXT stellt VGA-Hardware-Textmodi und eine oeffentliche DOS-API bereit. Setup laedt MAXTEXT.SYS normalerweise ueber 386LOAD.SYS in CONFIG.SYS. Der aktuelle Bildschirmmodus bleibt beim Laden erhalten. Nach dem Start koennen Sie mit MAXTEXT.COM einen unterstuetzten Modus waehlen.\par \par {\b MAXTEXT beim Systemstart laden?}
+\par
 \par }

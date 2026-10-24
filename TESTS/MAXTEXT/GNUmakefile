@@ -1,0 +1,20 @@
+# Open 386MAX
+# Copyright: Open 386MAX contributors 2026.
+# GNU General Public License version 3; see LICENSE.
+# SPDX-License-Identifier: GPL-3.0-only
+#
+# MAXTEXT API, mode transaction and shared QUILIB regressions.
+PROJ := TESTS/MAXTEXT
+ROOT := $(abspath ../..)
+SRCDIRS := . ../../MAXTEXT
+ASMINC := . ../../INC ../../INCLUDE ../../MAXTEXT
+CMODEL := l
+CASEMAP := mx
+CDEFS := DOS_VERSION
+PROGS := MTTEST.COM MTUITEST.EXE MTEXAPI.EXE
+MTTEST.COM_OBJS := MTTEST.OBJ
+MTUITEST.EXE_OBJS := MTUITEST.OBJ
+MTUITEST.EXE_LIBS := $(ROOT)/build/QUILIB/LQUILIBR.LIB
+# Compile the public SDK example as an independent API consumer.
+MTEXAPI.EXE_OBJS := MTEXAPI.OBJ
+include $(ROOT)/linux/mk/dos.mk

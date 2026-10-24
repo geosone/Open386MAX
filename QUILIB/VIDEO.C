@@ -2,6 +2,7 @@
 /******************************************************************************
  *									      *
  * (C) Copyright 1991-92 Qualitas, Inc.  GNU General Public License version 3.		      *
+ * (C) Copyright 2026 Open 386MAX contributors.                              *
  *									      *
  * VIDEO.C								      *
  *									      *
@@ -58,6 +59,7 @@ void get_video_parm(		/* Get video hardware parameters */
 #else	/* DOS_VERSION */
 	WORD shape;
 	BYTE mode;
+	BYTE page;
 	BYTE row;
 	BYTE col;
 	DWORD drtn;
@@ -71,6 +73,30 @@ void get_video_parm(		/* Get video hardware parameters */
 
 		VideoParm.rows = biosdata[0x84] + 1;
 	}
+	/* Honor hardware text geometry, including MAXTEXT and VBE text BIOSes.
+	 * Bound the layout to the 32 KiB legacy text aperture and byte-sized
+	 * window coordinates used by WINDOWFN. */
+	{
+		BYTE far *bda = (BYTE far *)0x00400000L;
+		unsigned cols = *(WORD far *)(bda + 0x4a);
+		unsigned rows = VideoParm.rows;
+		_asm {
+			mov ah,15
+			int 0x10
+			mov mode,al
+		}
+		VideoParm.mode = mode & 0x7f;
+		page = bda[0x62];
+		if ((VideoParm.mode == 2 || VideoParm.mode == 3 || VideoParm.mode == 7)
+		    && cols >= 40 && cols <= 160 && rows >= 25 && rows <= 100
+		    && (unsigned long)cols * rows <= 16384UL)
+			VideoParm.cols = cols;
+		else {
+			VideoParm.rows = 25;
+			VideoParm.cols = 80;
+		}
+	}
+
 	switch (VideoParm.id[0].display) {
 	case DISPLAYID_MDA:	/* MDA monochrome display */
 		VideoParm.monotube = 1;
@@ -101,7 +127,7 @@ void get_video_parm(		/* Get video hardware parameters */
 	/* Get cursor shape */
 	_asm {
 		mov ah,3
-		mov bh,0
+		mov bh,page
 		int 0x10
 		mov shape,cx
 		mov row,dh
@@ -227,6 +253,12 @@ CURSOR fat_cursor(void) 	/* Return shape for fat (i.e. block) cursor */
 		get_video_parm(NULL);
 	}
 
+	if (VideoParm.id[0].adapter == ADAPTERID_VGA ||
+	    VideoParm.id[0].adapter == ADAPTERID_EGA) {
+		WORD height = *(WORD far *)0x00400085L;
+		if (height >= 3 && height <= 32) return (1 << 8) | (height - 2);
+	}
+
 	switch (VideoParm.id[0].adapter) {
 	case ADAPTERID_MDA:
 	case ADAPTERID_HGC:
@@ -252,6 +284,12 @@ CURSOR thin_cursor(void)	/* Return shape for thin (i.e. line) cursor */
 	if (!InitDone) {
 		VIDEOPARM dummy;
 		get_video_parm(&dummy);
+	}
+
+	if (VideoParm.id[0].adapter == ADAPTERID_VGA ||
+	    VideoParm.id[0].adapter == ADAPTERID_EGA) {
+		WORD height = *(WORD far *)0x00400085L;
+		if (height >= 3 && height <= 32) return ((height - 2) << 8) | (height - 1);
 	}
 
 	switch (VideoParm.id[0].adapter) {

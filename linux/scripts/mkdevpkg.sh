@@ -15,6 +15,11 @@ trap 'rm -rf "$tmp"' EXIT
 mkdir -p "$tmp/BIN" "$tmp/TESTS" "$ROOT/release"
 cp "$ROOT"/build/bin/* "$tmp/BIN/"
 cp "$ROOT"/build/TESTS/*.EXE "$ROOT/build/TESTS/RUNTESTS.BAT" "$ROOT/build/TESTS/README.TXT" "$tmp/TESTS/"
+if [ -d "$ROOT/build/TESTS/MAXTEXT/bin" ]; then
+    mkdir -p "$tmp/TESTS/MAXTEXT"
+    cp "$ROOT"/build/TESTS/MAXTEXT/bin/* "$tmp/TESTS/MAXTEXT/"
+    sed 's/$/\r/' "$ROOT/TESTS/MAXTEXT/README.md" > "$tmp/TESTS/MAXTEXT/README.TXT"
+fi
 sed 's/$/\r/' "$ROOT/LICENSE" > "$tmp/LICENSE.TXT"
 rm -f "$out"
 (cd "$tmp" && zip -q -X -r "$out" BIN TESTS LICENSE.TXT)

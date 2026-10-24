@@ -2,6 +2,7 @@
 /******************************************************************************
  *									      *
  * (C) Copyright 1991-95 Qualitas, Inc.  GNU General Public License version 3.		      *
+ * Copyright 2026 Open 386MAX contributors (MAXTEXT setup).
  *									      *
  * INSTALL.C								      *
  *									      *
@@ -392,6 +393,7 @@ Stripmgr_return:
 #if !MOVEM
 	do_qmt ();			// Add QMT statement to AUTOEXEC
 	do_ramdisk ();			// Add 386DISK and RAMTEMP for TEMP
+	do_maxtext ();			// Default-on text driver; expert opt-out
 #endif	// not Move'EM
 
 	config_act = do_configsysn ();	// Show changes and let 'em quit
@@ -548,6 +550,13 @@ void setOptions(int argc, char **argv)
 		} /* End IF */
 
 		switch( toupper( *opt )) {
+		case 'E':       /* Expert installation: SETUPDOS /EXPERT */
+            if (strnicmp ((char *)opt, "EXPERT", 6) ||
+                (opt[6] && !isspace(opt[6]) && opt[6] != '/')) goto showHelp;
+            AdvancedOpts = TRUE;
+            skip = 6;
+            break;
+
 		case 'A':       /* Answer file (SETUP.INF) */
 			if (*(opt+1) == ':') opt++;
 			pp = arg_token(opt+1,&ntok);

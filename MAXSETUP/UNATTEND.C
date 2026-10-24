@@ -113,6 +113,7 @@ static int answer (HWND hDlg, int id)
 		return (IDC_CONTINUE);
 
 	case CONFIGUREDLGBOX:
+        CheckDlgButton (hDlg, IDC_MAXTEXT, inf_int ("386MAX", "MaxText", 1));
 		CheckDlgButton (hDlg, IDC_GOAHEAD, inf_int ("Windows", "GoAhead",
 			IsDlgButtonChecked (hDlg, IDC_GOAHEAD)));
 		CheckDlgButton (hDlg, IDC_MAXMETER, inf_int ("Windows", "MAXmeter",

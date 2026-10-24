@@ -6,6 +6,7 @@
 COMMENT|		Module Specifications
 
 Copyright:  (C) Copyright 1984-97 Qualitas, Inc.  GNU General Public License version 3.
+Copyright:  Open 386MAX contributors 2026 (text geometry and page offsets).
 
 Segmentation:  Depends upon memory model.
 
@@ -323,7 +324,7 @@ endif
 ; Setup SSCR as screen buffer segment
 
 	 mov	 ax,SCR_SEG	; Get screen buffer address
-	 add	 ah,DISP_PAGE	; Account for display page #
+	 add	 RSCR,SCR_OFFSET ; BDA byte offset; page stride varies with rows
 	 mov	 SSCR,ax	; Set screen buffer address
 	 assume  SSCR:nothing
 
@@ -652,6 +653,7 @@ WINDOW	 ends
 MONO_SEG equ	 0B000h 	; Segment for monochrome screen buffer
 COLR_SEG equ	 0B800h 	; Segment for color screen buffer
 SCR_SEG  dw	 MONO_SEG	; Screen segment
+SCR_OFFSET dw 0		; BDA active-page byte offset
 
 @DIR_TEST equ	 5Ah		; PGC direct mode test value
 @EMU_TEST equ	 28h		; PGC emulator ...
@@ -1372,6 +1374,7 @@ SET_MODE_MONO:
 	 mov	 SCR_SEG,MONO_SEG ; Send text to monochrome screen buffers
 	 mov	 UPD_MODE,FAST_MODE ; Save flag
 SET_MODE_COM:
+	 call	 SYNC_GEOMETRY
 	 REGREST <bx,ax>	; Restore
 
 	 pop	 bp		; Restore
@@ -1406,6 +1409,7 @@ RESET_MODE_MONO:
 	 mov	 SCR_SEG,MONO_SEG ; Send text to monochrome screen buffers
 	 mov	 UPD_MODE,FAST_MODE ; Save flag
 RESET_MODE_COM:
+	 call	 SYNC_GEOMETRY
 	 REGREST <bx,ax>	; Restore
 
 	 ret			; Return to caller
@@ -1413,6 +1417,41 @@ RESET_MODE_COM:
 	 assume  ds:nothing,es:nothing
 
 reset_mode endp 		; End RESET_MODE procedure
+; Refresh the legacy text geometry after selecting/changing a page.
+SYNC_GEOMETRY proc near
+ push ax
+ push dx
+ push es
+ mov ax,40h
+ mov es,ax
+ mov ax,es:[4Ah]
+ cmp ax,40
+ jb SYNC_DONE
+ cmp ax,160
+ ja SYNC_DONE
+ mov NSCR_COLS,al
+ mov al,es:[62h]
+ mov DISP_PAGE,al
+ mov ax,es:[4Eh]
+ mov SCR_OFFSET,ax
+ mov NSCR_ROWS,25
+ call izitega
+ cmp ax,-1
+ je SYNC_DONE
+ mov al,es:[84h]
+ inc al
+ cmp al,25
+ jb SYNC_DONE
+ cmp al,100
+ ja SYNC_DONE
+ mov NSCR_ROWS,al
+SYNC_DONE:
+ pop es
+ pop dx
+ pop ax
+ ret
+SYNC_GEOMETRY endp
+
 	 PPROC	 izitega	;-- Check For Presence of EGA
 	 assume  ds:nothing,es:nothing
 COMMENT|

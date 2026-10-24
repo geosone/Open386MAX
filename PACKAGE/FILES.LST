@@ -73,3 +73,11 @@ maxhelp.bat    1 MAXHELP.BAT
 editor.bat     1 EDITOR.BAT
 dosmaxw.qpe    1 DOSMAXW.QPE
 dosmaxf.qpe    1 DOSMAXF.QPE
+
+; Standalone VGA hardware text driver and public DOS API (opt-in loading).
+maxtext.sys    1 bin
+maxtext.com    1 bin
+maxtext.txt    1 MAXTEXT.TXT
+maxtext.h      1 ../INCLUDE/MAXTEXT.H
+maxtext.inc    1 ../INC/MAXTEXT.INC
+mtexapi.c      1 ../MAXTEXT/MTEXAPI.C

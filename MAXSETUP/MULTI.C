@@ -3,6 +3,7 @@
 // multi.c
 // created by Peter Johnson (PETERJ) 1/19/96
 // Copyright (C) 1994-96 Qualitas, Inc. GNU General Public License version 3.
+// Copyright 2026 Open 386MAX contributors (MAXTEXT setup).
 // created by stealing it from Henry's DOS version for 386Max install.
 // Copyright (C) 1992-96 Qualitas, Inc.  GNU General Public License version 3.
 //------------------------------------------------------------------
@@ -943,6 +944,38 @@ static void insert_cfg_after(CFGTEXT *p, char *text)
 	}
 }
 
+/* Default-on MAXTEXT CONFIG.SYS entry, with a Configure-dialog opt-out.
+ * MBPARSE has expanded shared device sections before these edits. */
+extern BOOL bMaxText;
+static int configure_maxtext (void)
+{
+ CFGTEXT *p;
+ char line[2*MAXPATH+80], *name;
+ int found = FALSE, changed = FALSE;
+ sprintf (line, "%sMAXTEXT.SYS", dest_subdir);
+ if (bMaxText && access(line,0)) return FALSE; /* program files not installed */
+ sprintf (line, "DEVICE=%s386LOAD.SYS PROG=%sMAXTEXT.SYS\n", dest_subdir, dest_subdir);
+ for (p = CfgSys; p; p = p->next) {
+   if (MultiBoot && p->Owner != ActiveOwner && p->Owner != CommonOwner) continue;
+   name = MBfname_part (p);
+   if (!name || stricmp(name, "MAXTEXT.SYS")) continue;
+   if (bMaxText && !found) {
+     found = TRUE;
+     if (stricmp(p->text,line)) { p->text = str_mem(line); changed = TRUE; }
+   } else {
+     p->text = str_mem("REM MAXTEXT disabled by setup\n");
+     p->ltype = ID_REM;
+     changed = TRUE;
+   }
+ }
+ if (bMaxText && !found && MAXLine) {
+   insert_cfg_after(MAXLine,line);
+   MAXLine->next->ltype = ID_DEVICE;
+   changed = TRUE;
+ }
+ return changed;
+}
+
 /* MS-DOS 7 or later (Windows 9x DOS)?  The DR-DOS kernels (Enhanced
  * DR-DOS, SvarDOS) and FreeDOS report version 7 too, but know no NOAUTO and
  * load no HIMEM.SYS by themselves.  DR-DOS: INT 21h AX=4452h answers 10xxh;
@@ -1476,6 +1509,7 @@ MB_ReadII:
 
 	// DOS=HIGH without UMB (see fix_dos_line)
 	if (fix_dos_line(szWindowsDir)) bConfigChanged = TRUE;
+    if (configure_maxtext()) bConfigChanged = TRUE;
 
 	// Report the state of change.
     *bChanged = bConfigChanged;

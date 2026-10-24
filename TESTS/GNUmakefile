@@ -29,3 +29,10 @@ $(OUT)/RUNTESTS.BAT: MAX.LST $(ROOT)/linux/tools/mkruntests.py | $(OUT)
 
 $(OUT)/README.TXT: README.md | $(OUT)
 	sed 's/$$/\r/' $< > $@
+
+# Component-specific C and assembly regressions use the shared DOS build.
+.PHONY: maxtext
+all: maxtext
+maxtext:
+	$(MAKE) -C $(ROOT) QUILIB
+	$(MAKE) -C MAXTEXT

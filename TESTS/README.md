@@ -145,3 +145,7 @@ own tests above:
 ## Results
 
 See `RESULTS.md` (matrix of all profiles, updated with the suite runs).
+
+MAXTEXT's driver-specific API, mode, UI and installation regressions are in
+[MAXTEXT](MAXTEXT/README.md). `make TESTS` builds them into
+`build/TESTS/MAXTEXT/bin`; their shell runners are under `linux/test` and remain separate from RUNTESTS.BAT.

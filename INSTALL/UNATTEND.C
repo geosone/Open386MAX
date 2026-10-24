@@ -26,6 +26,9 @@
 #include "ui.h"
 #include "screen.h"
 #include "setupinf.h"
+#ifdef STACKER
+#include "stacker.h"
+#endif
 
 void copy_file (char *srcpath, char *dstpath);
 enum boolean locate_winfles (char *sysini_path);
@@ -66,6 +69,8 @@ static KEYCODE inst_hook (DIALOGPARM *parm, char *title, char *message,
 		return (yesno (parm, "386MAX", "MDA"));
 	if (!strcmp (message, "M.QMT"))
 		return (yesno (parm, "386MAX", "MemoryTester"));
+	if (!strcmp (message, "M.MaxText"))
+        return (yesno (parm, "386MAX", "MaxText"));
 	if (!strcmp (message, "M.RamDisk"))
 		return (inf_bool ("386MAX", "RamDisk", 0) ? RESP_YES : RESP_NO);
 	if (!strcmp (message, "M.Maximize") || !strcmp (message, "M.MaxBack") ||
@@ -91,6 +96,8 @@ void unattend_init (void)
 	else sprintf (path, "%s" SETUPINF_NAME, source_subdir);
 	if (inf_load (path)) return;
 	strcpy (InfPath, path);
+ if ((v = inf_get ("Setup", "Mode")) != NULL && !stricmp (v, "Expert"))
+   AdvancedOpts = TRUE;
 
 	sprintf (path, "%c:\\SETUPMAX.LOG", boot_drive);
 	inf_logfile (path);

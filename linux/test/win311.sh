@@ -17,6 +17,7 @@
 #   SHOTS       further screenshot times in seconds (space separated, before
 #               KEYS)
 #   KEYSHOTS=1  screenshot key-<n>.png before each key of KEYS
+#   SETUPDIR    package directory (default build/package)
 #   SETUPPKG=1  copy build/package (linux/tools/mkpkg.py) to C:\INSTALL and
 #               run C:\INSTALL\SETUP.EXE; the image is kept as
 #               build/win311test/test.img (KEEP=1: start from it again)
@@ -78,7 +79,7 @@ P="$OUT/test.img@@32256"
 mcopy -o -s -i "$P" "$OUT"/c/* ::/
 if [ "${SETUPPKG:-0}" = 1 ]; then
     mmd -i "$P" ::/INSTALL 2>/dev/null
-    for f in "$ROOT"/build/package/*; do [ -f "$f" ] && mcopy -o -i "$P" "$f" ::/INSTALL/; done
+    for f in "${SETUPDIR:-$ROOT/build/package}"/*; do [ -f "$f" ] && mcopy -o -i "$P" "$f" ::/INSTALL/; done
 fi
 # what SETUP puts into WINDOWS\SYSTEM: our CTL3DV2.DLL / SFTTABS.DLL, or
 # the originals from ORIGDLL=<directory> (Windows takes a DLL from the

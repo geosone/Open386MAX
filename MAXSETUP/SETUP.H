@@ -80,6 +80,7 @@
 #define IDC_MAXMETER	504
 #define IDC_GOAHEAD	505
 #define IDC_EMS		506
+#define IDC_MAXTEXT      508
 #define IDC_CLEAN	507
 
 #define IDC_FILESLB     601

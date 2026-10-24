@@ -2,6 +2,7 @@
 /******************************************************************************
  *									      *
  * (C) Copyright 1991-95 Qualitas, Inc.  GNU General Public License version 3.		      *
+ * Copyright 2026 Open 386MAX contributors (MAXTEXT setup).
  *									      *
  * FILES.C								      *
  *									      *
@@ -1919,6 +1920,42 @@ void install_qmt (KEYCODE key)
  } // No AUTOEXEC.BAT
 
 } // install_qmt ()
+
+/* MAXTEXT is enabled by default. MBPARSE has expanded shared device
+ * sections before this edit; touch only the selected installation owner.
+ * Normalize existing entries and suppress duplicates, including 386LOAD.
+ * Use 386LOAD instead of DEVICEHIGH so this also works on DR-DOS and when
+ * the installer leaves DOS UMB management to 386MAX. */
+void install_maxtext (int enabled)
+{
+ CFGTEXT *p, *entry = NULL;
+ char line[2*MAXPATH+80], path[MAXPATH+1], *name;
+
+ strcpy (path, dest_subdir);
+ sprintf (line, "%sMAXTEXT.SYS", path);
+ if (enabled && access (line, 0)) return; /* reconfigure an older install */
+#ifdef STACKER
+ if (SwappedDrive > 0 && MaxConfig) path[0] = MaxConfig;
+#endif
+ sprintf (line, "Device=%s386LOAD.SYS PROG=%sMAXTEXT.SYS\n", path, path);
+ for (p = CfgSys; p; p = p->next) {
+   if (MultiBoot && p->Owner != ActiveOwner && p->Owner != CommonOwner) continue;
+   name = fname_part (p);
+   if (!name || stricmp (name, "MAXTEXT.SYS")) continue;
+   if (enabled && !entry) {
+     entry = p;
+     p->text = str_mem (line);
+     p->ltype = ID_DEVICE;
+   } else {
+     p->text = str_mem ("REM MAXTEXT disabled by setup\n");
+     p->ltype = ID_REM;
+   }
+ }
+ if (!enabled || entry) return;
+ p = add2cfg (MAXLine, MAXLine ? MAXLine->next : CfgSys, ActiveOwner);
+ p->text = str_mem (line);
+ p->ltype = ID_DEVICE;
+} // install_maxtext ()
 
 /************************** find_ramdisk () **************************/
 // Look for DEVICE=386DISK.SYS (also loaded high) and the last line

@@ -26,7 +26,7 @@ mkdir -p "$REL"
 rm -f "$base"-disk*.img "$base"-usb.img "$base".iso "$base".zip
 
 # installer files (disk 1) and archive extents
-inst=(SETUPDOS.EXE SETUPDOS.OVL SETUPDOS.CFG SETUPDOS.HLP QLOGO.OVL SETUP.EXE SETUP.HLP LICENSE.TXT)
+inst=(SETUPDOS.EXE SETUPDOS.OVL SETUPDOS.CFG SETUPDOS.HLP QLOGO.OVL SETUP.EXE SETUP.HLP SETUP.INF MAXCFG.EXE LICENSE.TXT)
 ext=$(cd "$PKG" && ls 386MAX.[0-9]* | sort -t. -k2 -n)
 all=("${inst[@]}" $ext)
 

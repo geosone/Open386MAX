@@ -2,6 +2,7 @@
 //
 // SETUP.C - Windows installation routine for Open 386MAX
 //  Copyright (C) 1995-7 Qualitas Inc.
+// Copyright 2026 Open 386MAX contributors (MAXTEXT setup).
 
 #include "setup.h"
 
@@ -235,6 +236,7 @@ BOOL bGoAhead = 1;		// 1 to load GoAhead in startup group
 BOOL bMaxMeter = 1;		// 1 to load MAX Meter in startup group
 BOOL bMDA = 1;			// 1 to use MDA
 BOOL bQMT = 0;			// 1 to load QMT in AUTOEXEC.BAT
+BOOL bMaxText = 1;             // default-on CONFIG.SYS text driver
 BOOL bEMS = 0;			// 1 to enable EMS
 
 BOOL bUpdateFiles = 1;		// 1 to update .INI, .SYS, .BAT; 0 to put the
@@ -2081,6 +2083,7 @@ BOOL CALLBACK __export ConfigureDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPA
 
 		CheckDlgButton( hDlg, IDC_MDA, bMDA );
 		CheckDlgButton( hDlg, IDC_EMS, bEMS );
+        CheckDlgButton( hDlg, IDC_MAXTEXT, bMaxText );
 		return TRUE;
 
 	case WM_COMMAND:
@@ -2093,6 +2096,7 @@ BOOL CALLBACK __export ConfigureDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPA
 			bMaxMeter = IsDlgButtonChecked(hDlg, IDC_MAXMETER);
 			bGoAhead = IsDlgButtonChecked(hDlg, IDC_GOAHEAD);
 			bEMS = IsDlgButtonChecked(hDlg, IDC_EMS);
+            bMaxText = IsDlgButtonChecked(hDlg, IDC_MAXTEXT);
 
 	    if( !bGoAhead ) {
 		bStayBack = TRUE;

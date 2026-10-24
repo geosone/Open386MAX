@@ -242,4 +242,9 @@ Qualitas MAX is a trademark and Qualitas is a registered trademark of
 Qualitas, Inc. All other product names are trademarks or registered trademarks
 of their respective owners.
 
-
+
+MAXTEXT.SYS             Standalone VGA hardware text driver (opt-in).
+MAXTEXT.COM             List/status and 80x25, 80x43, 80x50 selection.
+MAXTEXT.TXT             UMB loading, limitations and public API.
+MAXTEXT.H / MAXTEXT.INC  Public DOS IOCTL definitions.
+MTEXAPI.C               Standalone 16-bit DOS C API example.

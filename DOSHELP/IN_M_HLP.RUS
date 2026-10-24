@@ -22,7 +22,7 @@ Outdent13;}{\s18\li288 \f11 \sbasedon0\snext18 Indent2;}}{\info{\title install m
 \par For indented lines or to get desired wrapping, use hard returns
 \par Text highlighting:
 \par  use }{\b\cf2 BOLD}{\cf2  for accenting= yellow text
-\par 
+\par
 \par }\pard\plain \s16\keepn \f11\fs28\cf6 >>M.BadDOSSubdir
 \par \pard\plain \f11 #PROGNAME# did not detect DOS 5.x help files in:
 \par   #ARG1#
@@ -171,4 +171,7 @@ e available regions in your monochrome display adapter area, you may not want to
 \par 
 \par {\b Would you like #PROGNAME# to add a RAM disk for TEMP?}
 \par 
+\par \pard\plain \s16\keepn \f11\fs28\cf6 >>M.MaxText
+\par \pard\plain \f11 MAXTEXT provides hardware VGA text modes and a public DOS API. Setup normally loads MAXTEXT.SYS through 386LOAD.SYS in CONFIG.SYS. Loading keeps the current video mode. You can select a supported mode after boot with MAXTEXT.COM.\par \par {\b Load MAXTEXT at boot?}
+\par
 \par }
