@@ -35,3 +35,9 @@ VERSION.OBJ_SRC  := VERSRET.ASM
 include $(ROOT)/linux/mk/dos.mk
 SHDTAB_USERS := QMAX_MEM.OBJ
 include $(ROOT)/linux/mk/shdtab.mk
+
+# UMBTAB.INC, the chipsets of 386MAX/UMBCHIP.TXT (linux/tools/umbtab.py)
+# whose shadow RAM SHADOWUMB switches on (QMAX_MEM)
+$(OUT)/UMBTAB.INC: $(ROOT)/386MAX/UMBCHIP.TXT $(LX)/tools/umbtab.py | $(OUT)
+	$(PYTHON) $(LX)/tools/umbtab.py $< $@
+$(OUT)/QMAX_MEM.OBJ: $(OUT)/UMBTAB.INC

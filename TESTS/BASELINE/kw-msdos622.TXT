@@ -42,6 +42,7 @@ NODPMI           PASS
 NOEISADMA        PASS
 NOFLEX           PASS
 NOFRAME          PASS
+SHADOWUMB        PASS
 NOGATE           PASS
 NOHIGH           PASS
 NOHIGHUMB        PASS

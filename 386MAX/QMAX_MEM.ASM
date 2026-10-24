@@ -31,6 +31,7 @@ Modifications by:  None.
 .xlist
 	 include MASM.INC
 	 include SHDTAB.INC	; Host bridges (made of SHADOWRAM.TXT)
+	 include UMBTAB.INC	; Chipsets of SHADOWUMB (made of UMBCHIP.TXT)
 	 include CSMROM.INC	; Option ROM space of a UEFI CSM
 	 include DOSCALL.INC
 	 include ASCII.INC
@@ -132,6 +133,8 @@ if @OEM_SYS eq @OEMSYS_RET
 	 extrn	 MSG_NOPSMEM:byte
 endif				; IF @OEM_SYS eq @OEMSYS_RET
 
+	 UMBTAB_DATA		; Chipsets and their shadow RAM registers
+
 YDATA	 ends			; End YDATA segment
 
 
@@ -175,6 +178,9 @@ SHDMAP	 dw	 0		; Bit n = 1 if C0000+n*16KB is free shadow DRAM
 	 public  SHDRD
 SHDRD	 dw	 0		; Bit n = 1 if C0000+n*16KB is read from DRAM
 SHDMAP_STAT db	 0		; 0 = not yet checked, 1 = checked
+	 public  SHDUMB
+SHDUMB	 dw	 0		; Bit n = 1 if C0000+n*16KB is high DOS in the
+				; chipset's own shadow RAM (SHADOWUMB, SHD_UMB)
 
 	 public  INCSIZE
 INCSIZE  dw	 0		; Auto INCLUDE size
@@ -400,7 +406,9 @@ endif				; IF @OEM_FLEXROM
 COMMENT|
 
 Calculate the value of OVRSIZE by counting the number
-of @XLAT_OVR entries.
+of @XLAT_OVR entries.  Those in the chipset's own shadow
+RAM (SHDUMB) are high DOS without extended memory:  they
+count for @CMD_XHI only.
 
 |
 
@@ -420,6 +428,17 @@ CALC_OVRSIZE_NEXT:
    repne scasb			; Search for it
 	 jne	 short CALC_OVRSIZE_EXIT ; No more entries
 
+	 mov	 ax,di		; Get offset past the entry
+	 sub	 ax,offset PGROUP:MEM_MAP+1+(0C0000h/512) ; Entry # from C0000
+	 cmp	 ax,(0F0000h-0C0000h)/512 ; Izit within C0000-EFFFF?
+	 jae	 short CALC_OVRSIZE_CNT ; Jump if not
+
+	 shr	 ax,14-9	; Convert from 512 bytes to 16KB block #
+	 bt	 SHDUMB,ax	; Izit the chipset's shadow RAM?
+	 mov	 al,@XLAT_OVR	; Restore the value to search for
+	 jc	 short CALC_OVRSIZE_NEXT ; Jump if so (not counted)
+CALC_OVRSIZE_CNT:
+	 mov	 al,@XLAT_OVR	; Restore the value to search for
 	 inc	 bx		; Count in another entry
 
 	 jmp	 CALC_OVRSIZE_NEXT ; Go around again
@@ -430,6 +449,9 @@ CALC_OVRSIZE_EXIT:
 	 shr	 bx,10-9	; Convert from 512 to 1KB
 	 mov	 OVRSIZE,bx	; Save for later use
 	 jnz	 short CALC_OVRSIZE_EXIT1 ; Jump if there's something there
+
+	 cmp	 SHDUMB,0	; Any high DOS in the chipset's shadow RAM?
+	 jne	 short CALC_OVRSIZE_EXIT1 ; Jump if so
 
 	 or	 CMD_FLAG,@CMD_XHI ; Mark as not present
 CALC_OVRSIZE_EXIT1:
@@ -2961,6 +2983,10 @@ endif				; IF @OEM_EMS
 
 	 call	 CALC_PPMTAB	; Clean up PPMTAB
 
+; SHADOWUMB:  high DOS in the chipset's shadow RAM where it can be
+
+	 call	 SHD_UMB	; Switch it on
+
 ; Calculate the OVRSIZE value
 
 	 call	 CALC_OVRSIZE	; Count @XLAT_OVR entries
@@ -2981,6 +3007,262 @@ CALC_ALLMEM_EXIT:
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 
 CALC_ALLMEM endp		; End CALC_ALLMEM procedure
+	 NPPROC  SHD_UMB -- High DOS In The Chipset's Shadow RAM
+	 assume  ds:PGROUP,es:nothing,fs:nothing,gs:nothing,ss:nothing
+COMMENT|
+
+SHADOWUMB:  switch each 16KB block of C0000-EFFFF which is high DOS
+(@XLAT_OVR) in full to the chipset's shadow RAM, read/write, as UMBPCI
+does, and mark it in SHDUMB:  its pages stay as they are (linear =
+physical), FILL_OVRBASE puts no extended memory there and CALC_OVRSIZE
+doesn't count it.
+
+The chipset and its registers per block are those of UMBPCI (UMBTAB of
+386MAX\UMBCHIP.TXT):  the host bridge (and the south bridge, if the
+entry has one) found with PCI BIOS function B102h, the first entry
+whose devices are there counts.  For a block, each register in turn
+gets the bits of its mask set to those of its value; if the block isn't
+RAM then, the registers get their old values back.  A block that is
+RAM is zeroed.  Chipsets UMBPCI hasn't tested are left alone, and so
+is the cache type of the blocks (the fixed range MTRRs).
+
+The stack frame (BP):  [BP+0] the host bridge's bus/device/function,
+[BP+2] the south bridge's, [BP+4] the # registers of the block.
+
+|
+
+	 pushad 		; Save all EGP registers
+	 REGSAVE <es,fs>	; Save registers
+
+	 test	 CM4_FLAG,@CM4_SHDUMB ; SHADOWUMB specified?
+	 jz	 near ptr SHD_UMB_EXIT ; Jump if not
+
+	 test	 CMD_FLAG,@CMD_XHI ; High filling allowed?
+	 jnz	 near ptr SHD_UMB_EXIT ; Jump if not
+
+	 test	 SYS_FLAG,@SYS_PCIBIOS ; PCI BIOS present?
+	 jz	 near ptr SHD_UMB_EXIT ; Jump if not
+
+	 push	 seg YGROUP	; Get segment of the chipset table
+	 pop	 es		; Address it
+	 assume  es:YGROUP	; Tell the assembler about it
+
+	 lea	 di,UMBTAB	; ES:DI ==> chipset table
+SHD_UMB_CHIP:
+	 mov	 dx,es:[di].UMBC_VEN ; Get the vendor ID
+	 and	 dx,dx		; Izit the end of the table?
+	 jz	 near ptr SHD_UMB_EXIT ; Jump if so (unknown chipset)
+
+	 test	 es:[di].UMBC_FLAG,@UMBC_UNT ; Izit untested?
+	 jnz	 short SHD_UMB_NEXT ; Jump if so
+
+	 mov	 cx,es:[di].UMBC_HOST ; Get the host bridge's device ID
+	 call	 SHD_FIND	; Return BX = its bus/device/function
+	 jc	 short SHD_UMB_NEXT ; Jump if it's not there
+
+	 mov	 bp,bx		; Save the host bridge's
+
+	 mov	 cx,es:[di].UMBC_SOUTH ; Get the south bridge's device ID
+	 jcxz	 SHD_UMB_FOUND	; Jump if the entry has none (BX = host)
+
+	 call	 SHD_FIND	; Return BX = its bus/device/function
+	 jnc	 short SHD_UMB_FOUND ; Jump if it's there
+SHD_UMB_NEXT:
+	 add	 di,size UMBC_STR ; Skip to the next entry
+
+	 jmp	 SHD_UMB_CHIP	; Go around again
+
+SHD_UMB_FOUND:
+	 mov	 si,es:[di].UMBC_LIST ; ES:SI ==> its register list
+
+	 push	 0		; [BP+4] # registers of the block
+	 push	 bx		; [BP+2] the south bridge's
+	 push	 bp		; [BP+0] the host bridge's
+	 mov	 bp,sp		; Address the frame
+
+; ES:SI ==> the next block of the list:  the high byte of its segment,
+; the # registers, then 4 bytes per register
+
+SHD_UMB_BLK:
+	 movzx	 ax,byte ptr es:[si] ; Get the high byte of its segment
+	 and	 al,al		; Izit the end of the list?
+	 jz	 near ptr SHD_UMB_DONE ; Jump if so
+
+	 movzx	 cx,byte ptr es:[si+1] ; Get # registers
+	 mov	 [bp+4],cx	; Save for later use
+	 add	 si,2		; ES:SI ==> its first register
+
+	 mov	 bx,ax		; Copy the high byte of the segment
+	 shl	 bx,(8+4)-9	; Convert to MEM_MAP entry (512 bytes)
+	 mov	 dx,16*1024/512 ; # entries in the block
+@@:
+	 cmp	 MEM_MAP[bx],@XLAT_OVR ; Izit high DOS?
+	 jne	 near ptr SHD_UMB_SKIP ; Jump if not (not the whole block)
+
+	 inc	 bx		; Skip to the next entry
+	 dec	 dx		; One fewer entry
+	 jnz	 short @B	; Jump if more entries to check
+
+	 shl	 ax,8		; Convert to the block's segment
+	 mov	 fs,ax		; Address it
+	 assume  fs:nothing	; Tell the assembler about it
+
+; Switch the block on, register by register; the old values on the stack
+
+	 mov	 dx,cx		; DX = # registers
+	 jcxz	 SHD_UMB_TEST	; Jump if none (nothing to switch)
+
+	 pushf			; Save interrupt flag
+	 cli			; No interrupts while the chipset changes
+SHD_UMB_SET:
+	 mov	 bx,[bp+0]	; Get the host bridge's bus/device/function
+	 test	 byte ptr es:[si+1],@UMBL_SOUTH ; Izit a south bridge register?
+	 jz	 short @F	; Jump if not
+
+	 mov	 bx,[bp+2]	; Get the south bridge's
+@@:
+	 movzx	 di,byte ptr es:[si] ; Get the register #
+	 mov	 ax,0B108h	; PCI BIOS:  read configuration byte
+	 int	 1Ah		; Return CL = the register's value
+
+	 pop	 ax		; Get the flags back
+	 push	 bx		; Save the device
+	 push	 di		; ... the register #
+	 push	 cx		; ... its old value
+	 push	 ax		; ... the flags again
+
+	 mov	 al,es:[si+2]	; Get the mask
+	 mov	 ah,es:[si+3]	; ...	 value
+	 and	 ah,al		; Only the bits of the mask
+	 not	 al		; Clear them
+	 and	 cl,al		; ...
+	 or	 cl,ah		; Set them as the value has them
+
+	 mov	 ax,0B10Bh	; PCI BIOS:  write configuration byte
+	 int	 1Ah		; Write CL
+
+	 add	 si,4		; Skip to the next register
+	 dec	 dx		; One fewer register
+	 jnz	 short SHD_UMB_SET ; Jump if more registers
+
+	 popf			; Restore interrupt flag
+
+; Is the block RAM now?  Three words, read after all are written (a
+; floating bus may return what was written last)
+
+SHD_UMB_TEST:
+	 mov	 word ptr fs:[0000h],0A55Ah ; Write the patterns
+	 mov	 word ptr fs:[2000h],05AA5h ; ...
+	 mov	 word ptr fs:[3FFEh],0C33Ch ; ...
+
+	 cmp	 word ptr fs:[0000h],0A55Ah ; Izit RAM?
+	 jne	 short SHD_UMB_UNDO ; Jump if not
+	 cmp	 word ptr fs:[2000h],05AA5h ; ...
+	 jne	 short SHD_UMB_UNDO ; Jump if not
+	 cmp	 word ptr fs:[3FFEh],0C33Ch ; ...
+	 jne	 short SHD_UMB_UNDO ; Jump if not
+
+	 push	 es		; Save for a moment
+	 push	 fs		; Get the block's segment
+	 pop	 es		; Address it
+	 assume  es:nothing	; Tell the assembler about it
+	 xor	 di,di		; ES:DI ==> the block
+	 mov	 cx,16*1024/2	; # words in the block
+	 xor	 ax,ax		; A convenient zero
+	 cld			; String ops forwards
+     rep stosw			; Zero it
+	 pop	 es		; Restore
+	 assume  es:YGROUP	; Tell the assembler about it
+
+	 mov	 ax,fs		; Get the block's segment
+	 sub	 ax,0C000h	; Less the first
+	 shr	 ax,14-4	; Convert to 16KB block #
+	 bts	 SHDUMB,ax	; Mark as the chipset's shadow RAM
+
+	 mov	 ax,[bp+4]	; Get # registers
+	 imul	 ax,ax,6	; Times the bytes of their old values
+	 add	 sp,ax		; Discard them
+
+	 jmp	 SHD_UMB_BLK	; Go around again
+
+; Not RAM:  the registers back as they were, the last one first
+
+SHD_UMB_UNDO:
+	 mov	 dx,[bp+4]	; Get # registers
+	 and	 dx,dx		; Any?
+	 jz	 near ptr SHD_UMB_BLK ; Jump if not
+
+	 pushf			; Save interrupt flag
+	 cli			; No interrupts while the chipset changes
+	 pop	 ax		; Get the flags
+@@:
+	 pop	 cx		; Get the old value
+	 pop	 di		; ... the register #
+	 pop	 bx		; ... the device
+	 push	 ax		; Save the flags
+	 mov	 ax,0B10Bh	; PCI BIOS:  write configuration byte
+	 int	 1Ah		; Write CL
+	 pop	 ax		; Restore the flags
+
+	 dec	 dx		; One fewer register
+	 jnz	 short @B	; Jump if more registers
+
+	 push	 ax		; Restore the interrupt flag
+	 popf			; ...
+
+	 jmp	 SHD_UMB_BLK	; Go around again
+
+SHD_UMB_SKIP:
+	 mov	 ax,[bp+4]	; Get # registers
+	 shl	 ax,2		; Times 4 bytes each
+	 add	 si,ax		; ES:SI ==> the next block
+
+	 jmp	 SHD_UMB_BLK	; Go around again
+
+SHD_UMB_DONE:
+	 add	 sp,3*2 	; Discard the frame
+SHD_UMB_EXIT:
+	 REGREST <fs,es>	; Restore
+	 assume  es:nothing,fs:nothing ; Tell the assembler about it
+	 popad			; Restore all EGP registers
+
+	 ret			; Return to caller
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+SHD_UMB  endp			; End SHD_UMB procedure
+	 NPPROC  SHD_FIND -- Find A PCI Device Of The Chipset
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+COMMENT|
+
+Find the first PCI device with vendor ID DX and device ID CX (PCI BIOS
+function B102h).
+
+On exit:
+
+CF	 =	 0 if found
+	 =	 1 if not
+BX	 =	 its bus (BH), device and function (BL)
+
+|
+
+	 REGSAVE <ax,si>	; Save registers
+
+	 xor	 si,si		; The first device
+	 mov	 ax,0B102h	; PCI BIOS:  find PCI device
+	 int	 1Ah		; Return BX, CF and AH = 0 if found
+	 jc	 short SHD_FIND_EXIT ; Jump if not found
+
+	 cmp	 ah,1		; Izit found (AH = 0)?
+	 cmc			; CF = 1 if not
+SHD_FIND_EXIT:
+	 REGREST <si,ax>	; Restore
+
+	 ret			; Return to caller
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+SHD_FIND endp			; End SHD_FIND procedure
 if @OEM_FLEXROM
 	 NPPROC  VGASWAP -- Prepare to Swap flexible ROMs
 	 assume  ds:PGROUP,es:nothing,fs:XGROUP,gs:nothing,ss:nothing

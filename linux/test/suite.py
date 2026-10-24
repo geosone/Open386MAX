@@ -27,7 +27,7 @@ Suites (TESTS/<SUITE>.LST, one test per line:
     jemm   the test programs of Jemm (directory JEMM_TEST, local only)
     hx     the HDPMI regression tests of HX (directory HX_REG, local only)
 
-Profiles: max (386MAX), emm386 (MS HIMEM + EMM386 of the DOS image: the
+Profiles: max (386MAX), maxshd (386MAX SHADOWUMB), emm386 (MS HIMEM + EMM386 of the DOS image: the
 reference most programs were tested with), himem (MS HIMEM only), and,
 with REFDIR pointing to a directory with the reference programs, jemmex,
 jemm386 (HIMEMX + JEMM386), himemx (XMS only), hdpmi (HimemX + HDPMI16/32:
@@ -65,6 +65,8 @@ SHELLS = {'svardos': 'SHELL=C:\\COMMAND.COM /P'}   # SvarCOM: no path argument
 # profile: (CONFIG.SYS lines, files from REFDIR, what it provides)
 PROFILES = {
     'max':     (['DEVICE=C:\\MAX\\386MAX.SYS'], [], 'xms ems vcpi dpmi dpmi32 dpmi1 xlat vds qpi'),
+    # 386MAX with high DOS in the chipset's shadow RAM (UMBCHIP.TXT)
+    'maxshd':  (['DEVICE=C:\\MAX\\386MAX.SYS SHADOWUMB'], [], 'xms ems vcpi dpmi dpmi32 dpmi1 xlat vds qpi'),
     'emm386':  (['DEVICE=C:\\DOS\\HIMEM.SYS', 'DEVICE=C:\\DOS\\EMM386.EXE RAM FRAME=D000 X=E000-EFFF'], [],
                 'xms ems vcpi vds'),
     'himem':   (['DEVICE=C:\\DOS\\HIMEM.SYS'], [], 'xms'),

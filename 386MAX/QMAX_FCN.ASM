@@ -5022,6 +5022,24 @@ endif				; IF @OEM_EMS and @OEM_SYS eq @OEMSYS_HPRS
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 
 FCN_MCE  endp			; End FCN_MCE procedure
+	 FPPROC  FCN_SHADOWUMB -- SHADOWUMB Function
+	 assume  ds:nothing,es:PGROUP,fs:XGROUP,gs:nothing,ss:nothing
+COMMENT|
+
+SHADOWUMB:  use the chipset's shadow RAM in C0000-EFFFF for high DOS
+where it can be switched to read/write (SHD_UMB in QMAX_MEM).
+
+|
+
+	 or	 CM4_FLAG,@CM4_SHDUMB ; Mark as enabled
+
+	 clc			; Indicate all went well
+
+	 ret			; Return to caller
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+FCN_SHADOWUMB endp		; End FCN_SHADOWUMB procedure
 if @OEM_LOFILL
 	 FPPROC  FCN_MONO -- MONO Function
 	 assume  ds:nothing,es:PGROUP,fs:XGROUP,gs:nothing,ss:nothing

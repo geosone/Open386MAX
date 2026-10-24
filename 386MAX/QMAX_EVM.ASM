@@ -190,6 +190,7 @@ CODE	 segment use16 byte public 'prog' ; Start CODE segment
 	 include QMAX_CM3.INC
 
 	extrn	CM4_FLAG:word
+	extrn	SHDUMB:word
 	include QMAX_CM4.INC
 
 	 extrn	 DBG_FLAG:word
@@ -3932,13 +3933,23 @@ FILL_OVRBASE1:
 	 shr	 di,12-4	; Convert from paras to 4KB
 	 shl	 di,2		; Times four to index table of dwords
 FILL_OVRBASE4:
+	 mov	 ax,di		; Get offset of the low PTE
+	 sub	 ax,0C0000h shr (12-2) ; Less that of C0000
+	 cmp	 ax,(0F0000h-0C0000h) shr (12-2) ; Izit within C0000-EFFFF?
+	 jae	 short FILL_OVRBASE4A ; Jump if not
+
+	 shr	 ax,(14-12)+2	; Convert to 16KB block #
+	 bt	 SHDUMB,ax	; Izit the chipset's shadow RAM (SHADOWUMB)?
+	 jc	 short FILL_OVRBASE4B ; Jump if so (it stays as it is)
+FILL_OVRBASE4A:
 	 mov	 eax,OFFPDT[esi] ; Get high memory entry
 	 xchg	 eax,OFFPDT[di] ; Swap with low memory entry
 	 or	 ax,mask $PTE_AV1 ; Mark as absent in memory
 	 mov	 OFFPDT[esi],eax ; Save back into high memory
 
-	 add	 di,4		; Skip to next entry
 	 add	 esi,4		; Skip to next entry
+FILL_OVRBASE4B:
+	 add	 di,4		; Skip to next entry
 
 	 loop	 FILL_OVRBASE4	; Jump if more pages in rest of extended memory
 FILL_OVRBASE5:

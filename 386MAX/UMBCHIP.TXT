@@ -1,0 +1,775 @@
+; UMBCHIP.TXT -- chipsets whose shadow RAM in C0000-EFFFF 386MAX can
+; switch to DRAM read/write and use for high DOS (see docs/shadowram.md);
+; linux/tools/shdtab.py makes UMBTAB.INC of it.
+;
+; The chipset detect and the register lists are those of UMBPCI
+; V3.91beta4 (public domain; original (c) Peter Siering, c't 8/91,
+; extended by Arne Schaepers, Andreas Stiller (c't 11/95) and
+; Uwe Sieber since 04/1996, https://www.uwe-sieber.de/umbpci_e.html),
+; converted to this form; status and names as UMBPCI has them.
+;
+;   chip  vendor  host  south  list  mtrr  status  name
+;
+; host:  the device ID of the host bridge (found with PCI BIOS function
+; B102h, the first of that vendor and device), south:  the device ID of
+; the south bridge of the same vendor (0:  none needed); the first line
+; whose devices are both there counts.  mtrr:  1 = the block's fixed
+; range MTRR to write-back afterwards (P6), 0 not.  status:  ok,
+; untested (UMBPCI asks), nodoc, noshadow, config, wrongdoc, nohost
+; (not supported:  only ok and untested are used).
+;
+;   list  name
+;   seg   register:mask:value ...
+;
+; One line per 16KB block (seg C000-FC00) of a list:  for each register
+; (hex; s... = of the south bridge) the bits of mask set to those of
+; value, in this order.
+
+chip  8086  0483  0484  SIOList               0  ok        Intel Saturn
+chip  8086  04A3  0484  SIOList               0  ok        Intel Mercury/Neptun
+chip  8086  04A3  0000  IntelUniList          0  ok        Intel Mercury/Neptun
+chip  8086  122D  122E  PIIXList              0  ok        Intel 430FX
+chip  8086  1235  0000  IntelUniList          0  ok        Intel 430MX
+chip  8086  1250  7000  PIIXList              0  ok        Intel 430HX
+chip  8086  1250  0000  IntelUniList          0  ok        Intel 430HX virtual
+chip  8086  7030  122E  PIIXList              0  ok        Intel 430VX
+chip  8086  7030  7000  PIIXList              0  ok        Intel 430VX
+chip  8086  7030  0000  IntelUniList          0  ok        Intel 430VX virtual
+chip  8086  7100  7110  PIIXList              0  ok        Intel 430TX
+chip  8086  7180  7110  PIIXList              1  ok        Intel 440LX/EX
+chip  8086  7190  7110  PIIXList              1  ok        Intel 440BX/ZX
+chip  8086  7194  0000  IntelUniList          1  ok        Intel i440MX
+chip  8086  71A0  7110  PIIXList              1  ok        Intel 440GX
+chip  8086  71A2  7110  PIIXList              1  ok        Intel 440GX w/o AGP
+chip  8086  7120  0000  Intel810List          1  ok        Intel 810
+chip  8086  7122  0000  Intel810List          1  ok        Intel 810-DC100
+chip  8086  7124  0000  Intel810List          1  ok        Intel 810E
+chip  8086  7128  0000  Intel810List          1  untested  Intel 810-M DC100
+chip  8086  712A  0000  Intel810List          1  untested  Intel 810-M DC133
+chip  8086  1100  0000  IntelUniList          1  ok        Intel 815
+chip  8086  1110  0000  IntelUniList          1  ok        Intel 815
+chip  8086  1120  0000  IntelUniList          1  ok        Intel 815
+chip  8086  1130  0000  IntelUniList          1  ok        Intel 815
+chip  8086  2500  0000  IntelUniList          1  ok        Intel 820
+chip  8086  2501  0000  IntelUniList          1  ok        Intel 820
+chip  8086  3575  0000  IntelUniList          1  ok        Intel 830MP
+chip  8086  1A21  0000  IntelUniList          1  untested  Intel 840
+chip  8086  1A30  0000  Intel845List          1  ok        Intel 845
+chip  8086  2560  0000  Intel845List          1  ok        Intel 845G
+chip  8086  2570  0000  Intel845List          1  ok        Intel 848P/865G/P/PE
+chip  8086  2530  0000  IntelUniList          1  ok        Intel 850
+chip  8086  3580  0000  IntelUniList          1  ok        Intel 852GM/855GM
+chip  8086  3340  0000  Intel845List          1  ok        Intel 855PM
+chip  8086  2531  0000  Intel845List          1  ok        Intel 860
+chip  8086  2578  0000  Intel845List          1  ok        Intel 875P
+chip  8086  2580  0000  Intel845List          1  ok        Intel 915G
+chip  8086  2584  0000  Intel845List          1  ok        Intel 925X
+chip  8086  2590  0000  Intel845List          1  ok        Intel 915GM
+chip  8086  2770  0000  Intel845List          1  ok        Intel 945
+chip  8086  2970  0000  Intel845List          1  ok        Intel 946
+chip  8086  2774  0000  Intel845List          1  ok        Intel 955
+chip  8086  277C  0000  Intel845List          1  ok        Intel 975
+chip  8086  27A0  0000  Intel845List          1  ok        Intel 945GM
+chip  8086  27AC  0000  Intel845List          1  ok        Intel 945GME
+chip  8086  2980  0000  Intel845List          1  ok        Intel 965
+chip  8086  2990  0000  Intel845List          1  ok        Intel 965
+chip  8086  29A0  0000  Intel845List          1  ok        Intel 965P
+chip  8086  2A00  0000  Intel845List          1  ok        Intel 965M
+chip  8086  2A10  0000  Intel845List          1  ok        Intel 965M
+chip  8086  2A40  0000  Intel845List          1  ok        Intel 4 Mobile
+chip  8086  35B0  0000  IntelUniList          1  ok        Intel 3100
+chip  8086  29F0  0000  Intel845List          1  ok        Intel 3200
+chip  8086  4030  0000  IntelUniList          1  untested  Intel 5400
+chip  8086  360C  0000  IntelUniList          1  untested  Intel 7300
+chip  8086  29B0  0000  Intel845List          1  ok        Intel Q35
+chip  8086  29C0  0000  Intel845List          1  ok        Intel G33/G35/P35
+chip  8086  29D0  0000  Intel845List          1  ok        Intel Q33
+chip  8086  2E10  0000  Intel845List          1  ok        Intel Q4 Series
+chip  8086  2E20  0000  Intel845List          1  ok        Intel 4 Series
+chip  8086  2E30  0000  Intel845List          1  ok        Intel G41
+chip  8086  2E40  0000  Intel845List          1  ok        Intel B43
+chip  8086  29E0  0000  Intel845List          1  ok        Intel X38/X48
+chip  8086  0040  0000  Intel845List          1  ok        Intel Core i3/i5 CPU
+chip  8086  2C01  0000  Intel845List          1  ok        Intel Core i7 CPU
+chip  8086  2C70  0000  Intel845List          1  ok        Intel Core i7 CPU
+chip  8086  2C50  0000  Intel845List          1  ok        Intel Core i7 CPU
+chip  8086  2C51  0000  Intel845List          1  ok        Intel Core i7 CPU
+chip  8086  2C52  0000  Intel845List          1  ok        Intel Core i7 CPU
+chip  8086  2C53  0000  Intel845List          1  ok        Intel Core i7 CPU
+chip  8086  2C54  0000  Intel845List          1  ok        Intel Core i7 CPU
+chip  8086  2C55  0000  Intel845List          1  ok        Intel Core i7 CPU
+chip  8086  2C56  0000  Intel845List          1  ok        Intel Core i7 CPU
+chip  8086  2C57  0000  Intel845List          1  ok        Intel Core i7 CPU
+chip  8086  0044  0000  Intel845List          1  ok        Intel Core i3/i5 CPU
+chip  8086  0048  0000  Intel845List          1  ok        Intel Core i3/i5 CPU
+chip  8086  D131  0000  Intel845List          1  ok        Intel Core i5/i7 CPU
+chip  8086  D132  0000  Intel845List          1  ok        Intel Core i7 CPU
+chip  8086  0100  0000  IntelCore2ndGenList   1  ok        Intel Core 2nd Gen
+chip  8086  0104  0000  IntelCore2ndGenList   1  ok        Intel Core 2nd Gen
+chip  8086  0108  0000  IntelCore2ndGenList   1  ok        Intel Core 2nd Gen
+chip  8086  010C  0000  IntelCore2ndGenList   1  ok        Intel Core 2nd Gen
+chip  8086  0150  0000  IntelCore2ndGenList   1  ok        Intel Core 3rd Gen
+chip  8086  0154  0000  IntelCore2ndGenList   1  ok        Intel Core 3rd Gen
+chip  8086  0158  0000  IntelCore2ndGenList   1  ok        Intel Core 3rd Gen
+chip  8086  015C  0000  IntelCore2ndGenList   1  ok        Intel Core 3rd Gen
+chip  8086  0C00  0000  IntelCore2ndGenList   1  ok        Intel Core 4th Gen
+chip  8086  0C04  0000  IntelCore2ndGenList   1  ok        Intel Core 4th Gen
+chip  8086  0D04  0000  IntelCore2ndGenList   1  ok        Intel Core 4th Gen
+chip  8086  0A04  0000  IntelCore2ndGenList   1  ok        Intel Core 4th Gen
+chip  8086  0D00  0000  IntelCore2ndGenList   1  ok        Intel Core 4th Gen
+chip  8086  0A04  0000  IntelCore2ndGenList   1  ok        Intel Core 4th Gen
+chip  8086  1900  0000  IntelCore2ndGenList   1  ok        Intel Core 6th Gen
+chip  8086  190F  0000  IntelCore2ndGenList   1  ok        Intel Core 6th Gen
+chip  8086  191F  0000  IntelCore2ndGenList   1  ok        Intel Core 6th Gen
+chip  8086  5900  0000  IntelCore7thGenList   1  ok        Intel Core 7th Gen
+chip  8086  5904  0000  IntelCore7thGenList   1  ok        Intel Core 7th Gen
+chip  8086  590C  0000  IntelCore7thGenList   1  ok        Intel Core 7th Gen
+chip  8086  590F  0000  IntelCore7thGenList   1  ok        Intel Core 7th Gen
+chip  8086  5910  0000  IntelCore7thGenList   1  ok        Intel Core 7th Gen
+chip  8086  5914  0000  IntelCore7thGenList   1  ok        Intel Core 7th Gen
+chip  8086  5918  0000  IntelCore7thGenList   1  ok        Intel Core 7th Gen
+chip  8086  591F  0000  IntelCore7thGenList   1  ok        Intel Core 7th Gen
+chip  8086  3E10  0000  IntelCore7thGenList   1  ok        Intel Core 8th Gen
+chip  8086  3E18  0000  IntelCore7thGenList   1  ok        Intel Core 8th Gen
+chip  8086  3E1F  0000  IntelCore7thGenList   1  ok        Intel Core 8th Gen
+chip  8086  3E30  0000  IntelCore7thGenList   1  ok        Intel Core 8th Gen
+chip  8086  3E33  0000  IntelCore7thGenList   1  ok        Intel Core 8th Gen
+chip  8086  3E34  0000  IntelCore7thGenList   1  ok        Intel Core 8th Gen
+chip  8086  3EC2  0000  IntelCore7thGenList   1  ok        Intel Core 8th Gen
+chip  8086  3EC4  0000  IntelCore7thGenList   1  ok        Intel Core 8th Gen
+chip  8086  3EC6  0000  IntelCore7thGenList   1  ok        Intel Core 8th Gen
+chip  8086  3ECA  0000  IntelCore7thGenList   1  ok        Intel Core 8th Gen
+chip  8086  3ED0  0000  IntelCore7thGenList   1  ok        Intel Core 8th Gen
+chip  8086  8A00  0000  IntelCore7thGenList   1  untested  Intel Core 10th Gen
+chip  8086  8A02  0000  IntelCore7thGenList   1  untested  Intel Core 10th Gen
+chip  8086  8A10  0000  IntelCore7thGenList   1  untested  Intel Core 10th Gen
+chip  8086  8A12  0000  IntelCore7thGenList   1  untested  Intel Core 10th Gen
+chip  8086  9B53  0000  IntelCore7thGenList   1  untested  Intel Core 10th Gen
+chip  8086  4C43  0000  IntelCore7thGenList   1  untested  Intel Core 11th Gen
+chip  8086  4C53  0000  IntelCore7thGenList   1  untested  Intel Core 11th Gen
+chip  8086  4660  0000  IntelCore7thGenList   1  untested  Intel Core 12th Gen
+chip  8086  4668  0000  IntelCore7thGenList   1  untested  Intel Core 12th Gen
+chip  8086  4648  0000  IntelCore7thGenList   1  untested  Intel Core 12th Gen
+chip  8086  1604  0000  IntelCore2ndGenList   1  ok        Intel Broadwell-U
+chip  8086  0C08  0000  IntelCore2ndGenList   1  ok        Intel XEON E3 1200v3
+chip  8086  000B  0000  IntelCore2ndGenList   1  ok        Intel XEON E3 1200v4
+chip  8086  3C00  0000  -                     1  noshadow  Intel XEON E5
+chip  8086  2D81  0000  IntelCore2011List     1  ok        Intel XEON 5600
+chip  8086  3CF4  0000  IntelCore2011List     1  ok        Intel Core CPU
+chip  8086  1FA4  0000  IntelAtomList         1  untested  Intel US15W/X
+chip  8086  1FA5  0000  IntelAtomList         1  untested  Intel US11L/15L
+chip  8086  A000  0000  Intel845List          1  ok        Intel Atom D4xx/D5xx
+chip  8086  A010  0000  Intel845List          1  ok        Intel Atom N4xx
+chip  8086  4114  0000  Intel845List          1  untested  Intel Atom E6xx
+chip  8086  4114  0000  Intel845List          1  untested  Intel Atom E6xx
+chip  8086  22C8  0000  -                     1  nohost    Intel Pentium Nxxxx
+chip  8086  2540  0000  IntelUniList          1  ok        Intel E7500
+chip  8086  254C  0000  IntelUniList          1  ok        Intel E7501
+chip  8086  2550  0000  IntelUniList          1  ok        Intel E7505
+chip  8086  255D  0000  IntelUniList          1  ok        Intel E7205
+chip  8086  2578  0000  IntelUniList          1  ok        Intel E7210
+chip  8086  2588  0000  Intel845List          1  ok        Intel E7221
+chip  8086  2778  0000  Intel845List          1  ok        Intel E7230
+chip  8086  3590  0000  IntelUniList          1  ok        Intel E7520
+chip  8086  359E  0000  IntelUniList          1  ok        Intel E7525
+chip  8086  3592  0000  IntelUniList          1  ok        Intel E7350
+chip  8086  3600  0000  IntelUniList          1  ok        Intel E7300
+chip  8086  25C0  0000  IntelUniList          1  config    Intel 5000X
+chip  8086  25C8  0000  IntelUniList          1  config    Intel 5000P
+chip  8086  25D0  0000  IntelUniList          1  config    Intel 5000Z
+chip  8086  25D4  0000  IntelUniList          1  config    Intel 5000V
+chip  8086  25D8  0000  IntelUniList          1  config    Intel 5000P
+chip  8086  65C0  0000  IntelUniList          1  config    Intel 5100
+chip  8086  4000  0000  IntelUniList          1  config    Intel 5400
+chip  8086  4003  0000  IntelUniList          1  config    Intel 5400
+chip  8086  84C5  122E  PIIXList              1  untested  Intel 450KX/GX+PIIX2
+chip  8086  84C5  7000  PIIXList              1  untested  Intel 450KX/GX+PIIX3
+chip  8086  84CA  0000  IntelUniList          1  untested  Intel 440NX
+chip  8086  0486  0000  IntelUniList          0  untested  Intel Aries
+chip  1002  CBB2  0000  -                     0  nodoc     ATI RS200
+chip  1002  5830  0000  -                     0  nodoc     ATI RS300
+chip  1002  5831  0000  -                     0  nodoc     ATI RS300
+chip  1002  5832  0000  -                     0  nodoc     ATI RS300
+chip  1002  5833  0000  -                     0  nodoc     ATI IGP9100
+chip  1002  5835  0000  -                     0  nodoc     ATI RS300M
+chip  1002  5A30  0000  -                     0  nodoc     ATI RS400/100
+chip  1002  5A31  0000  -                     0  nodoc     ATI RS400/133
+chip  1002  5A32  0000  -                     0  nodoc     ATI RS400/166
+chip  1002  5A33  0000  -                     0  nodoc     ATI RS400/200
+chip  1022  3000  0000  -                     0  nodoc     AMD Elan SC520
+chip  10DE  0071  0000  -                     0  nodoc     nVidia nForce4
+chip  10DE  03A1  0000  -                     0  nodoc     nVidia unknown
+chip  1106  0691  0586  VIAList               1  ok        VIA Apollo Pro
+chip  1106  0691  0596  VIAList               1  ok        VIA Apollo Pro
+chip  1106  0691  0686  VIAList               1  ok        VIA Apollo Pro
+chip  1106  0693  0596  VIAList               1  ok        VIA Apollo Pro Plus
+chip  1106  0693  0686  VIAList               1  ok        VIA Apollo Pro Plus
+chip  1106  0601  0686  VIAList               1  ok        VIA Apollo PM601
+chip  1106  0601  8231  VIAList               1  ok        VIA Apollo PLE133
+chip  1106  0605  0686  VIAList               1  ok        VIA Apollo PM133
+chip  1106  0605  0000  VIAList               1  ok        VIA Apollo PM133
+chip  1106  3091  0686  -                     1  nodoc     VIA Apollo Pro 266
+chip  1106  3091  0000  VIAUniList            1  ok        VIA Apollo Pro 266
+chip  1106  3101  0000  -                     1  nodoc     VIA VT8653
+chip  1106  3103  0000  -                     1  nodoc     VIA VT8615
+chip  1106  3123  0000  VIAUniList            1  ok        VIA EPIA-M
+chip  1106  3128  0000  VIAUniList            1  ok        VIA P4X266
+chip  1106  3148  0000  VIAUniList            1  ok        VIA P4M266
+chip  1106  3158  0000  VIAUniList            1  ok        VIA P4N266
+chip  1106  3168  0000  VIAUniList            1  ok        VIA P4X333
+chip  1106  3178  0000  VIAUniList            1  ok        VIA P4N333
+chip  1106  3198  0000  VIAUniList            1  ok        VIA P4X600
+chip  1106  0258  0000  VIAUniList            1  ok        VIA PT880
+chip  1106  0259  0000  VIAUniList            1  ok        VIA PM880
+chip  1106  0296  0000  VIAUniList            1  ok        VIA P4M800
+chip  1106  0290  0000  VIAUniList            1  untested  VIA P4 chipset
+chip  1106  0308  0000  -                     1  nodoc     VIA PT880
+chip  1106  0336  0000  -                     1  nodoc     VIA K8M890CE
+chip  1106  0340  0000  -                     1  nodoc     VIA PT900
+chip  1106  0351  0000  -                     1  nodoc     VIA P4 chipset
+chip  1106  0353  0000  -                     1  nodoc     VIA chipset
+chip  1106  0364  0000  -                     1  nodoc     VIA P4M900
+chip  1106  3133  0000  VIAUniList            1  untested  VIA VT3133
+chip  1106  3158  0000  VIAUniList            1  untested  VIA P4 ??? Dev=3158
+chip  1106  3156  0000  VIAUniList            1  untested  VIA P/KN266
+chip  1106  0576  0000  -                     0  config    VIA Apollo
+chip  1106  0585  0586  VIAList               0  ok        VIA Apollo VP/VPX
+chip  1106  0595  0586  VIAList               0  ok        VIA Apollo VP2
+chip  1106  1595  0586  VIAList               0  ok        VIA Apollo VP2/97
+chip  1106  0598  0586  VIAList               0  ok        VIA Apollo MVP3
+chip  1106  0598  0596  VIAList               0  ok        VIA Apollo MVP3+
+chip  1106  0598  0686  VIAList               0  ok        VIA Apollo MVP3++
+chip  1106  0597  0586  VIAList               0  ok        VIA Apollo VP3
+chip  1106  0598  0586  VIAList               0  ok        VIA Apollo MVP3
+chip  1106  0597  0596  VIAList               0  ok        VIA Apollo VP3+
+chip  1106  0597  0686  VIAList               0  ok        VIA Apollo MVP3++
+chip  1106  0501  0686  VIAList               0  ok        VIA Apollo MVP4
+chip  1106  3324  0000  VIA_CX700_list        0  ok        VIA CX700
+chip  1106  3353  0000  VIA_CX700_list        0  ok        VIA VX800/VX820
+chip  1106  3409  0000  VIA_CX700_list        0  ok        VIA VX855/VX875
+chip  1106  3410  0000  VIA_CX700_list        0  ok        VIA VX900
+chip  1039  0496  0000  SIS496list            0  untested  SiS 496
+chip  1039  0406  0000  SIS501list            0  ok        SiS 501
+chip  1039  5511  0008  SIS511list            0  ok        SiS 5511
+chip  1039  5571  0008  SIS571List            0  ok        SiS 5571
+chip  1039  5596  0008  SIS59xList            0  ok        SiS 5596
+chip  1039  5597  0008  SIS597List            0  ok        SiS 5581/82/97/98
+chip  1039  5591  0008  SIS59xList            0  ok        SiS 5591/92
+chip  1039  0530  0008  SIS59xList            0  ok        SiS 530
+chip  1039  0540  0008  SIS59xList            0  ok        SiS 540
+chip  1039  0550  0008  SIS59xList            0  ok        SiS 550
+chip  1039  5600  0008  SIS600List            1  ok        SiS 600
+chip  1039  0620  0008  SIS600List            1  ok        SiS 620
+chip  1039  5630  0008  SIS600List            1  ok        SiS 630
+chip  1039  0630  0008  SIS600List            1  ok        SiS 630
+chip  1039  0635  0000  SIS600List            1  ok        SiS 635
+chip  1039  0640  0000  SIS600List            1  ok        SiS 640
+chip  1039  0645  0000  SIS600List            1  ok        SiS 645
+chip  1039  0648  0000  SIS600List            1  ok        SiS 648
+chip  1039  0646  0000  SIS600List            1  ok        SiS 645DX
+chip  1039  0650  0000  SIS600List            1  ok        SiS 650
+chip  1039  0651  0000  SIS600List            1  ok        SiS 651
+chip  1039  0655  0000  SIS600List            1  ok        SiS 655
+chip  1039  0656  0000  SIS600List            1  ok        SiS 656
+chip  1039  0660  0000  SIS600List            1  ok        SiS 660
+chip  1039  0661  0000  SIS600List            1  ok        SiS 661
+chip  1039  0662  0000  SIS600List            1  ok        SiS 662
+chip  1039  0663  0000  SIS600List            1  ok        SiS 663
+chip  1039  0671  0000  SIS600List            1  ok        SiS 671
+chip  1039  0735  0000  SIS600List            1  untested  SiS 735
+chip  1039  0740  0000  SIS600List            1  untested  SiS 740
+chip  1039  0741  0000  SIS600List            1  ok        SiS 741
+chip  1039  0745  0000  SIS600List            1  untested  SiS 745
+chip  1039  0750  0000  SIS600List            1  untested  SiS 750
+chip  10B9  1451  0000  ALI486List            0  untested  ALi M1451
+chip  10B9  1489  0000  ALI486List            0  untested  ALi M1489
+chip  10B9  1541  0000  ALI5List              0  ok        ALi Aladdin V
+chip  10B9  1531  0000  ALI3List              0  ok        ALi Aladdin IV
+chip  10B9  1521  0000  ALI3List              0  ok        ALi Aladdin III
+chip  10B9  1511  0000  ALI2List              0  ok        ALi Aladdin II
+chip  10B9  1621  0000  ALIP2List             1  ok        ALi Aladdin Pro II
+chip  10B9  1631  0000  ALIP2List             1  ok        ALi Aladdin Pro III
+chip  10B9  1632  0000  ALIP2List             1  ok        ALi i1 CyberBlade
+chip  10B9  1641  0000  ALIP2List             1  ok        ALi Aladdin Pro IV
+chip  10B9  1651  0000  ALIK7List             1  ok        ALi Aladdin Pro V
+chip  10B9  1644  0000  ALIK7List             1  ok        ALi M1644
+chip  1045  C556  0000  -                     0  nodoc     OPTi 82C556 Viper
+chip  1045  C557  0000  -                     0  nodoc     OPTi 82C557 Viper
+chip  1045  C567  0000  -                     0  nodoc     OPTi 82C750 Vendetta
+chip  1045  C701  0000  -                     0  nodoc     OPTi 82C701 Firestar
+chip  1060  0001  0000  -                     0  nodoc     UMC 8881
+chip  1060  E881  0000  -                     0  nodoc     UMC 8881 Mobile
+chip  1060  0891  0000  -                     0  nodoc     UMC 8890
+chip  1060  8891  0000  -                     0  nodoc     UMC 8891
+chip  1060  E891  0000  -                     0  nodoc     UMC 8891 Mobile
+chip  1279  0395  0000  IntelUniList          0  ok        Transmeta CPU
+chip  3388  8011  8012  -                     0  nodoc     Hint VXPro II
+chip  1004  0005  0000  -                     0  nodoc     VLSI 82C591/2
+chip  1004  0007  0000  -                     0  nodoc     VLSI 82C594
+chip  1004  0100  0000  -                     0  nodoc     VLSI Mobile Chipset
+chip  1004  0104  0000  -                     0  nodoc     VLSI 82C535
+chip  1014  0017  0000  -                     0  nodoc     IBM Chipset
+chip  1014  003A  0000  -                     0  nodoc     IBM Chipset
+chip  1014  0302  0000  -                     0  nodoc     IBM Chipset
+chip  1066  0001  0000  -                     0  config    PicoPower 521
+chip  1166  0005  0000  -                     0  nodoc     ServerWorks Chipset
+chip  1166  0006  0000  -                     0  nodoc     ServerWorks Chipset
+chip  1166  0007  0000  -                     0  nodoc     ServerWorks Chipset
+chip  1166  0008  0000  -                     0  nodoc     ServerWorks Chipset
+chip  1166  0009  0000  -                     0  nodoc     ServerWorks Chipset
+chip  1166  0010  0000  -                     0  nodoc     ServerWorks Chipset
+chip  1166  0011  0000  -                     0  nodoc     ServerWorks Chipset
+chip  1166  0012  0000  -                     0  nodoc     ServerWorks Chipset
+chip  1166  0013  0000  -                     0  nodoc     ServerWorks Chipset
+chip  1166  0014  0000  -                     0  nodoc     ServerWorks Chipset
+chip  1166  0015  0000  -                     0  nodoc     ServerWorks Chipset
+chip  1166  0016  0000  -                     0  nodoc     ServerWorks Chipset
+chip  1166  0017  0000  -                     0  nodoc     ServerWorks Chipset
+chip  1166  0018  0000  -                     0  nodoc     ServerWorks Chipset
+chip  0E11  AE6D  0000  -                     0  nodoc     Compaq NorthStar
+chip  0E11  AE6C  0000  -                     0  nodoc     Compaq DRACO
+chip  0E11  AE2A  0000  -                     0  nodoc     Compaq MPC
+chip  0E11  4000  0000  -                     0  nodoc     Compaq Triflex
+chip  1179  0601  0000  -                     0  nodoc     Toshiba Notebook
+chip  1179  0618  0000  -                     0  nodoc     Toshiba Notebook
+chip  1078  0001  0000  -                     0  nodoc     Cyrix MediaGX
+chip  FFFF  FFFF  0000  -                     0  nohost    No valid PCI chipset
+chip  17F3  6020  0000  -                     0  nodoc     RDC R6020
+chip  17F3  6022  0000  -                     0  nodoc     RDC R6022
+chip  8086  7192  7110  PIIXList              1  ok        Intel 440ZX w/o AGP
+chip  8086  1237  7000  PIIXList              1  ok        Intel 440FX
+chip  8086  1237  0000  IntelUniList          1  ok        Intel 440FX virtual
+
+list  SIOList
+      C000  s44:FF:17 5A:0F:0F s54:03:03 s49:01:01
+      C400  s44:FF:17 5A:F0:F0 s54:0C:0C s49:02:02
+      C800  s44:FF:17 5B:0F:0F s54:30:30 s49:04:04
+      CC00  s44:FF:17 5B:F0:F0 s54:C0:C0 s49:08:08
+      D000  s44:FF:17 5C:0F:0F s55:03:03 s49:10:10
+      D400  s44:FF:17 5C:F0:F0 s55:0C:0C s49:20:20
+      D800  s44:FF:17 5D:0F:0F s55:30:30 s49:40:40
+      DC00  s44:FF:17 5D:F0:F0 s55:C0:C0 s49:80:80
+      E000  s44:FF:17 5E:0F:0F s56:03:03 s48:08:08 s4E:40:00
+      E400  s44:FF:17 5E:F0:F0 s56:0C:0C s48:08:08 s4E:40:00
+      E800  s44:FF:17 5F:0F:0F s56:30:30 s48:08:08 s4E:40:00
+      EC00  s44:FF:17 5F:F0:F0 s56:C0:C0 s48:08:08 s4E:40:00
+      F000  s44:FF:17 59:F0:F0
+      F400  s44:FF:17 59:F0:F0
+      F800  s44:FF:17 59:F0:F0
+      FC00  s44:FF:17 59:F0:F0
+
+list  IntelUniList
+      C000  5A:0F:0F
+      C400  5A:F0:F0
+      C800  5B:0F:0F
+      CC00  5B:F0:F0
+      D000  5C:0F:0F
+      D400  5C:F0:F0
+      D800  5D:0F:0F
+      DC00  5D:F0:F0
+      E000  5E:0F:0F
+      E400  5E:F0:F0
+      E800  5F:0F:0F
+      EC00  5F:F0:F0
+      F000  59:F0:F0
+      F400  59:F0:F0
+      F800  59:F0:F0
+      FC00  59:F0:F0
+
+list  PIIXList
+      C000  5A:0F:0F
+      C400  5A:F0:F0
+      C800  5B:0F:0F
+      CC00  5B:F0:F0
+      D000  5C:0F:0F
+      D400  5C:F0:F0
+      D800  5D:0F:0F
+      DC00  5D:F0:F0
+      E000  5E:0F:0F s69:08:08 s4E:40:00
+      E400  5E:F0:F0 s69:08:08 s4E:40:00
+      E800  5F:0F:0F s69:08:08 s4E:40:00
+      EC00  5F:F0:F0 s69:08:08 s4E:40:00
+      F000  59:F0:F0
+      F400  59:F0:F0
+      F800  59:F0:F0
+      FC00  59:F0:F0
+
+list  Intel810List
+      C000  51:03:03
+      C400  51:03:03
+      C800  51:03:03
+      CC00  51:03:03
+      D000  51:0C:0C
+      D400  51:0C:0C
+      D800  51:0C:0C
+      DC00  51:0C:0C
+      E000  51:30:30
+      E400  51:30:30
+      E800  51:30:30
+      EC00  51:30:30
+      F000  51:C0:C0
+      F400  51:C0:C0
+      F800  51:C0:C0
+      FC00  51:C0:C0
+
+list  Intel845List
+      C000  91:03:03
+      C400  91:30:30
+      C800  92:03:03
+      CC00  92:30:30
+      D000  93:03:03
+      D400  93:30:30
+      D800  94:03:03
+      DC00  94:30:30
+      E000  95:03:03
+      E400  95:30:30
+      E800  96:03:03
+      EC00  96:30:30
+      F000  90:30:30
+      F400  90:30:30
+      F800  90:30:30
+      FC00  90:30:30
+
+list  IntelCore2ndGenList
+      C000  81:03:03
+      C400  81:30:30
+      C800  82:03:03
+      CC00  82:30:30
+      D000  83:03:03
+      D400  83:30:30
+      D800  84:03:03
+      DC00  84:30:30
+      E000  85:03:03
+      E400  85:30:30
+      E800  86:03:03
+      EC00  86:30:30
+      F000  80:30:30
+      F400  80:30:30
+      F800  80:30:30
+      FC00  80:30:30
+
+list  IntelCore7thGenList
+      C000  80:01:00 81:03:03
+      C400  80:01:00 81:30:30
+      C800  80:01:00 82:03:03
+      CC00  80:01:00 82:30:30
+      D000  80:01:00 83:03:03
+      D400  80:01:00 83:30:30
+      D800  80:01:00 84:03:03
+      DC00  80:01:00 84:30:30
+      E000  80:01:00 85:03:03
+      E400  80:01:00 85:30:30
+      E800  80:01:00 86:03:03
+      EC00  80:01:00 86:30:30
+      F000  80:01:00 80:30:30
+      F400  80:01:00 80:30:30
+      F800  80:01:00 80:30:30
+      FC00  80:01:00 80:30:30
+
+list  IntelCore2011List
+      C000  41:03:03
+      C400  41:30:30
+      C800  42:03:03
+      CC00  42:30:30
+      D000  43:03:03
+      D400  43:30:30
+      D800  44:03:03
+      DC00  44:30:30
+      E000  45:03:03
+      E400  45:30:30
+      E800  46:03:03
+      EC00  46:30:30
+      F000  40:30:30
+      F400  40:30:30
+      F800  40:30:30
+      FC00  40:30:30
+
+list  IntelAtomList
+      C000  D8:01:00
+      C400  D8:01:00
+      C800  D8:01:00
+      CC00  D8:01:00
+      D000  D8:01:00
+      D400  D8:01:00
+      D800  D8:01:00
+      DC00  D8:01:00
+      E000  D8:01:00
+      E400  D8:01:00
+      E800  D8:01:00
+      EC00  D8:01:00
+      F000  D8:01:00
+      F400  D8:01:00
+      F800  D8:01:00
+      FC00  D8:01:00
+
+list  VIAList
+      C000  61:03:03 s4E:01:01 52:80:00
+      C400  61:0C:0C s4E:02:02 52:80:00
+      C800  61:30:30 s4E:04:04
+      CC00  61:C0:C0 s4E:08:08
+      D000  62:03:03 s4E:10:10 52:40:00
+      D400  62:0C:0C s4E:20:20 52:40:00
+      D800  62:30:30 s4E:40:40 52:40:00
+      DC00  62:C0:C0 s4E:80:80 52:40:00
+      E000  63:C0:C0 s4F:08:08 52:20:00
+      E400  63:C0:C0 s4F:08:08 52:20:00
+      E800  63:C0:C0 s4F:08:08 52:20:00
+      EC00  63:C0:C0 s4F:08:08 52:20:00
+      F000  63:30:30 52:10:00
+      F400  63:30:30 52:10:00
+      F800  63:30:30 52:10:00
+      FC00  63:30:30 52:10:00
+
+list  VIAUniList
+      C000  61:03:03
+      C400  61:0C:0C
+      C800  61:30:30
+      CC00  61:C0:C0
+      D000  62:03:03
+      D400  62:0C:0C
+      D800  62:30:30
+      DC00  62:C0:C0
+      E000  63:C0:C0
+      E400  63:C0:C0
+      E800  63:C0:C0
+      EC00  63:C0:C0
+      F000  63:30:30
+      F400  63:30:30
+      F800  63:30:30
+      FC00  63:30:30
+
+list  VIA_CX700_list
+      C000  80:03:03
+      C400  80:0C:0C
+      C800  80:30:30
+      CC00  80:C0:C0
+      D000  81:03:03
+      D400  81:0C:0C
+      D800  81:30:30
+      DC00  81:C0:C0
+      E000  82:03:03
+      E400  82:0C:0C
+      E800  82:30:30
+      EC00  82:C0:C0
+      F000  83:30:30
+      F400  83:30:30
+      F800  83:30:30
+      FC00  83:30:30
+
+list  SIS496list
+      C000  44:01:01 45:06:07 46:01:01
+      C400  44:01:01 45:06:07 46:01:01
+      C800  44:02:02 45:06:07 46:02:02
+      CC00  44:02:02 45:06:07 46:02:02
+      D000  44:04:04 45:06:07 46:04:04
+      D400  44:04:04 45:06:07 46:04:04
+      D800  44:08:08 45:06:07 46:08:08
+      DC00  44:08:08 45:06:07 46:08:08
+      E000  44:10:10 45:06:07 46:10:10
+      E400  44:10:10 45:06:07 46:10:10
+      E800  44:20:20 45:06:07 46:20:20
+      EC00  44:20:20 45:06:07 46:20:20
+      F000  44:40:40 45:06:07 46:40:40
+      F400  44:40:40 45:06:07 46:40:40
+      F800  44:80:80 45:06:07 46:80:80
+      FC00  44:80:80 45:06:07 46:80:80
+
+list  SIS501list
+      C000  56:88:88 53:00:20
+      C400  56:44:44 53:00:20
+      C800  56:22:22 53:00:20
+      CC00  56:11:11 53:00:20
+      D000  55:88:88 53:00:20
+      D400  55:44:44 53:00:20
+      D800  55:22:22 53:00:20
+      DC00  55:11:11 53:00:20
+      E000  54:88:88 53:00:20
+      E400  54:44:44 53:00:20
+      E800  54:22:22 53:00:20
+      EC00  54:11:11 53:00:20
+      F000  53:40:60
+      F400  53:40:60
+      F800  53:40:60
+      FC00  53:40:60
+
+list  SIS511list
+      C000  80:A0:A0 s49:01:01
+      C400  80:0A:0A s49:02:02
+      C800  81:A0:A0 s49:04:04
+      CC00  81:0A:0A s49:08:08
+      D000  82:A0:A0 s49:10:10
+      D400  82:0A:0A s49:20:20
+      D800  83:A0:A0 s49:40:40
+      DC00  83:0A:0A s49:80:80
+      E000  84:A0:A0 s48:08:08
+      E400  84:0A:0A s48:08:08
+      E800  85:A0:A0 s48:08:08
+      EC00  85:0A:0A s48:08:08
+      F000  86:A0:A0
+      F400  86:A0:A0
+      F800  86:A0:A0
+      FC00  86:A0:A0
+
+list  SIS571List
+      C000  70:A0:A0 s49:01:01
+      C400  70:0A:0A s49:02:02
+      C800  71:A0:A0 s49:04:04
+      CC00  71:0A:0A s49:08:08
+      D000  72:A0:A0 s49:10:10
+      D400  72:0A:0A s49:20:20
+      D800  73:A0:A0 s49:40:40
+      DC00  73:0A:0A s49:80:80
+      E000  74:A0:A0 s48:08:08
+      E400  74:0A:0A s48:08:08
+      E800  75:A0:A0 s48:08:08
+      EC00  75:0A:0A s48:08:08
+      F000  76:A0:A0
+      F400  76:A0:A0
+      F800  76:A0:A0
+      FC00  76:A0:A0
+
+list  SIS59xList
+      C000  70:A0:A0 s49:01:01
+      C400  70:0A:0A s49:02:02
+      C800  71:A0:A0 s49:04:04
+      CC00  71:0A:0A s49:08:08
+      D000  72:A0:A0 s49:10:10
+      D400  72:0A:0A s49:20:20
+      D800  73:A0:A0 s49:40:40
+      DC00  73:0A:0A s49:80:80
+      E000  74:A0:A0 s48:08:08
+      E400  74:0A:0A s48:08:08
+      E800  75:A0:A0 s48:08:08
+      EC00  75:0A:0A s48:08:08
+      F000  76:A0:A0
+      F400  76:A0:A0
+      F800  76:A0:A0
+      FC00  76:A0:A0
+
+list  SIS597List
+      C000  70:A0:A0 s49:01:01
+      C400  70:0A:0A s49:02:02
+      C800  71:A0:A0 s49:04:04
+      CC00  71:0A:0A s49:08:08
+      D000  72:A0:A0 s49:10:10
+      D400  72:0A:0A s49:20:20
+      D800  73:A0:A0 s49:40:40
+      DC00  73:0A:0A s49:80:80
+      E000  74:A0:A0 s48:08:08
+      E400  74:0A:0A s48:08:08
+      E800  75:A0:A0 s48:08:08
+      EC00  75:0A:0A s48:08:08
+      F000  76:A0:A0
+      F400  76:A0:A0
+      F800  76:A0:A0
+      FC00  76:A0:A0
+
+list  SIS600List
+      C000  70:01:01 72:01:01
+      C400  70:02:02 72:02:02
+      C800  70:04:04 72:04:04
+      CC00  70:08:08 72:08:08
+      D000  70:10:10 72:10:10
+      D400  70:20:20 72:20:20
+      D800  70:40:40 72:40:40
+      DC00  70:80:80 72:80:80
+      E000  71:01:01 73:01:01
+      E400  71:02:02 73:02:02
+      E800  71:04:04 73:04:04
+      EC00  71:08:08 73:08:08
+      F000  71:10:10 73:10:10
+      F400  71:10:10 73:10:10
+      F800  71:10:10 73:10:10
+      FC00  71:10:10 73:10:10
+
+list  ALI486List
+      C000  13:01:01 14:30:30 17:C0:80
+      C400  13:02:02 14:30:30 17:C0:80
+      C800  13:04:04 14:30:30 17:C0:80
+      CC00  13:08:08 14:30:30 17:C0:80
+      D000  13:10:10 14:30:30 17:C0:80
+      D400  13:20:20 14:30:30 17:C0:80
+      D800  13:40:40 14:30:30 17:C0:80
+      DC00  13:80:80 14:30:30 17:C0:80
+      E000  14:01:01 14:30:30 17:C0:80
+      E400  14:01:01 14:30:30 17:C0:80
+      E800  14:02:02 14:30:30 17:C0:80
+      EC00  14:02:02 14:30:30 17:C0:80
+
+list  ALI5List
+      C000  56:01:01 58:01:01 5A:01:00
+      C400  56:02:02 58:02:02 5A:02:00
+      C800  56:04:04 58:04:04 5A:04:00
+      CC00  56:08:08 58:08:08 5A:08:00
+      D000  56:10:10 58:10:10 5A:10:00
+      D400  56:20:20 58:20:20 5A:20:00
+      D800  56:40:40 58:40:40 5A:40:00
+      DC00  56:80:80 58:80:80 5A:80:00
+      E000  57:01:01 59:01:01 5B:01:00
+      E400  57:02:02 59:02:02 5B:02:00
+      E800  57:04:04 59:04:04 5B:04:00
+      EC00  57:08:08 59:08:08 5B:08:00
+
+list  ALI3List
+      C000  4C:01:01 4E:01:01 50:01:00
+      C400  4C:02:02 4E:02:02 50:02:00
+      C800  4C:04:04 4E:04:04 50:04:00
+      CC00  4C:08:08 4E:08:08 50:08:00
+      D000  4C:10:10 4E:10:10 50:10:00
+      D400  4C:20:20 4E:20:20 50:20:00
+      D800  4C:40:40 4E:40:40 50:40:00
+      DC00  4C:80:80 4E:80:80 50:80:00
+      E000  4D:01:01 4F:01:01 51:01:00
+      E400  4D:02:02 4F:02:02 51:02:00
+      E800  4D:04:04 4F:04:04 51:04:00
+      EC00  4D:08:08 4F:08:08 51:08:00
+
+list  ALI2List
+      C000  4A:06:06 4C:01:01 4E:01:00
+      C400  4A:06:06 4C:02:02 4E:01:00
+      C800  4A:06:06 4C:04:04 4E:02:00
+      CC00  4A:06:06 4C:08:08 4E:02:00
+      D000  4A:06:06 4C:10:10 4E:04:00
+      D400  4A:06:06 4C:20:20 4E:04:00
+      D800  4A:06:06 4C:40:40 4E:08:00
+      DC00  4A:06:06 4C:80:80 4E:08:00
+      E000  4A:06:06 4D:01:01 4E:10:00
+      E400  4A:06:06 4D:02:02 4E:10:00
+      E800  4A:06:06 4D:04:04 4E:20:00
+      EC00  4A:06:06 4D:08:08 4E:20:00
+      F000  4A:06:06 4D:10:10 4E:40:00
+      F400  4A:06:06 4D:20:20 4E:40:00
+      F800  4A:06:06 4D:40:40 4E:80:00
+      FC00  4A:06:06 4D:80:80 4E:80:00
+
+list  ALIP2List
+      C000  84:30:30
+      C400  84:C0:C0
+      C800  85:03:03
+      CC00  85:0C:0C
+      D000  85:30:30
+      D400  85:C0:C0
+      D800  86:03:03
+      DC00  86:0C:0C
+      E000  86:30:30
+      E400  86:C0:C0
+      E800  87:03:03
+      EC00  87:0C:0C
+
+list  ALIK7List
+      C000  90:03:03
+      C400  90:0C:0C
+      C800  90:30:30
+      CC00  90:C0:C0
+      D000  91:03:03
+      D400  91:0C:0C
+      D800  91:30:30
+      DC00  91:C0:C0
+      E000  92:03:03
+      E400  92:0C:0C
+      E800  92:30:30
+      EC00  92:C0:C0
+      F000  93:03:03
+      F400  93:03:03
+      F800  93:03:03
+      FC00  93:03:03

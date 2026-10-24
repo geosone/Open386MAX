@@ -19,7 +19,7 @@ end.
 386MAX (GET_SHDMAP in QMAX_MEM.ASM), MAXIMIZE (CHKRAM.C) and ASQ
 (Equipment, PCI devices) read which 16KB blocks of C0000-FFFFF the
 chipset maps to DRAM, and which of them are write-protected; they don't
-change the registers.  386MAX keeps shadow DRAM the BIOS doesn't use
+change the registers (only SHADOWUMB does, see below).  386MAX keeps shadow DRAM the BIOS doesn't use
 apart from adapter RAM, MAXIMIZE doesn't protect it with RAM= when the
 chipset ignores the write protection (QEMU/KVM), ASQ shows the host
 bridge, the registers, LOCK and the map.
@@ -40,6 +40,35 @@ memory manager (V86 mode) don't get them, 386MAX reads them before it
 switches.
 
 Tested in QEMU:  pc (440FX, PAM at 59h) and q35 (Q35, PAM at 90h).
+
+## SHADOWUMB:  high DOS in the chipset's shadow RAM
+
+With the keyword `SHADOWUMB` 386MAX switches the shadow RAM of the
+chipset on, as UMBPCI does, and uses it for high DOS instead of
+extended memory:  each 16KB block of C0000-EFFFF that is high DOS in
+full (after the EMS frame, NOHIGH, INCLUDE= and alignment) gets the
+chipset's registers for read/write DRAM; if the block is RAM then, it
+is zeroed and its pages stay as they are (linear = physical), else the
+registers get their old values back.  The UMBs are the same as without
+the keyword, the extended memory they would have taken stays free (QEMU
+pc and q35, NOFRAME:  D0000-E3FFF, 80KB).  The cache type of the blocks
+(the fixed range MTRRs) is left as the BIOS set it.
+
+The chipsets and their registers are UMBPCI's (V3.91beta4, public
+domain:  original Peter Siering, c't 8/91, extended by Arne
+Schaepers, Andreas Stiller and since 1996 by Uwe Sieber), converted
+once into 386MAX/UMBCHIP.TXT:  the host bridge (and, for some, the
+south bridge) by device ID, found with PCI BIOS function B102h, and per
+16KB block the registers with the bits to set.  linux/tools/umbtab.py
+makes UMBTAB.INC of it (SHD_UMB in QMAX_MEM.ASM).  Chipsets UMBPCI
+marks untested, without a datasheet or without shadow RAM are left
+alone; UMBPCI's MTRR handling (write-back for the P6 entries, AMD K7/K8
+through the MTRRs alone) is not taken over.
+
+Tested in QEMU:  pc (440FX + PIIX3) and q35 with MS-DOS 7.1
+(linux/test/run.sh), the regression suite with MS-DOS 6.22 (profile
+`maxshd`), the keyword test `SHADOWUMB` and Windows for Workgroups 3.11
+in enhanced mode.
 
 ## Intel, 8th Core generation to Core Ultra
 
