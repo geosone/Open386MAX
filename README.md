@@ -13,6 +13,9 @@ that existed only as binaries, and develops 386MAX further:
 - runs on modern hardware: chipset shadow RAM (PAM/MTRR), E820/E801
   reserved areas (AHCI, EBDA, ACPI) stay untouched, more than 256 MB RAM,
   ISA DMA above 16 MB
+- SHADOWUMB: high DOS in the chipset's own shadow RAM instead of extended
+  memory, with UMBPCI's chipset table (Intel, VIA, SiS, ALi; see
+  docs/shadowram.md)
 - QEMM programming interface (QPI):  port trapping for SBEMU and VSBHDA,
   the multitasking functions DESQview 2.80 uses on QEMM (DESQview runs on
   386MAX in its QEMM mode)
@@ -24,7 +27,7 @@ that existed only as binaries, and develops 386MAX further:
 - no serial numbers or registration; English and German
 
 Branches:  `main` is the development line (9.x, test releases such as
-9.00-beta3), `8.x` the maintenance line of 8.58 (bug fixes only).
+9.00-beta3), `8.x` the maintenance line of 8.59 (bug fixes only).
 
 Tested in QEMU with complete installation and MAXIMIZE runs (DOS and
 Windows SETUP, all three MAXIMIZE passes): MS-DOS 6.22, MS-DOS 7.1,
