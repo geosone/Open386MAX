@@ -1345,6 +1345,16 @@ VERT_WAIT endp			; End VERT_WAIT procedure
 	 cmp	 al,7		; Check for monochrome screen
 	 je	 SET_MODE_MONO	; It's mono
 
+ ; Preserve a positively identified extended hardware text mode.
+ cmp al,2
+ je SET_MODE_LEGACY
+ cmp al,3
+ je SET_MODE_LEGACY
+ push ax
+ call VBE_TEXT_MODE
+ pop ax
+ jnc SET_MODE_COLR
+SET_MODE_LEGACY:
 	 mov	 ah,al		; Save for a moment
 
 	 cmp	 al,MODE_TABLE_LEN ; Compare against maximum mode known
@@ -1418,6 +1428,125 @@ RESET_MODE_COM:
 
 reset_mode endp 		; End RESET_MODE procedure
 ; Refresh the legacy text geometry after selecting/changing a page.
+ ; Optional VBE validation, independent of MAXTEXT installation.
+ ; Uses only BIOS queries and an on-stack mode-info block.
+ PPROC is_vbe_text_mode
+ call VBE_TEXT_MODE
+ mov ax,0
+ jc VBE_TEXT_RESULT
+ inc ax
+VBE_TEXT_RESULT:
+ ret
+is_vbe_text_mode endp
+
+VBE_TEXT_MODE proc near
+ push ax
+ push bx
+ push cx
+ push dx
+ push si
+ push di
+ push bp
+ push ds
+ push es
+ sub sp,256
+ push ss
+ pop es
+ mov bp,sp
+ mov di,bp
+ xor ax,ax
+ mov cx,128
+ cld
+ rep stosw
+ mov ax,4F03h
+ call VBE_QUERY
+ cmp ax,004Fh
+ jne VBE_TEXT_BAD
+ mov cx,bx
+ and cx,3FFFh
+ mov di,bp
+ mov ax,4F01h
+ call VBE_QUERY
+ cmp ax,004Fh
+ jne VBE_TEXT_BAD
+ mov ax,es:[bp]
+ and ax,007Dh
+ cmp ax,000Dh
+ jne VBE_TEXT_BAD
+ cmp byte ptr es:[bp+27],0
+ jne VBE_TEXT_BAD
+ mov al,es:[bp+2]
+ and al,7
+ cmp al,6
+ jne VBE_TEXT_BAD
+ cmp word ptr es:[bp+8],0B800h
+ jne VBE_TEXT_BAD
+ cmp word ptr es:[bp+6],32
+ jne VBE_TEXT_BAD
+ mov ax,es:[bp+18]
+ cmp ax,40
+ jb VBE_TEXT_BAD
+ cmp ax,160
+ ja VBE_TEXT_BAD
+ mov bx,40h
+ mov ds,bx
+ cmp ax,ds:[4Ah]
+ jne VBE_TEXT_BAD
+ shl ax,1
+ cmp ax,es:[bp+16]
+ jne VBE_TEXT_BAD
+ xor bx,bx
+ mov bl,ds:[84h]
+ inc bx
+ cmp bx,25
+ jb VBE_TEXT_BAD
+ cmp bx,100
+ ja VBE_TEXT_BAD
+ cmp bx,es:[bp+20]
+ jne VBE_TEXT_BAD
+ mul bx
+ or dx,dx
+ jne VBE_TEXT_BAD
+ cmp ax,8000h
+ ja VBE_TEXT_BAD
+ clc
+ jmp short VBE_TEXT_END
+VBE_TEXT_BAD:
+ stc
+VBE_TEXT_END:
+ ; LEA cannot address SP on 8086; preserve carry across ADD.
+ pushf
+ pop dx
+ add sp,256
+ push dx
+ popf
+ pop es
+ pop ds
+ pop bp
+ pop di
+ pop si
+ pop dx
+ pop cx
+ pop bx
+ pop ax
+ ret
+VBE_TEXT_MODE endp
+VBE_QUERY proc near
+ push bp
+ push si
+ push di
+ push ds
+ push es
+ int 10h
+ pop es
+ pop ds
+ pop di
+ pop si
+ pop bp
+ cld
+ ret
+VBE_QUERY endp
+
 SYNC_GEOMETRY proc near
  push ax
  push dx

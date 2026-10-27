@@ -24,13 +24,11 @@ that existed only as binaries, and develops 386MAX further:
   root-context status; multi-VM services remain disabled until their
   contracts are implemented)
 - ASQ for Windows (WINASQ)
-- MAXTEXT: standalone VGA hardware text modes (80x25, 80x43, 80x50),
-  UMB loading and a public DOS API; shared DOS UI routines honor the
-  current geometry, font height and screen-page stride
+- MAXTEXT: optional DOS hardware text-mode driver and public API
 - no serial numbers or registration; English and German
 
 Branches:  `main` is the development line (9.x, test releases such as
-9.00-beta4), `8.x` the maintenance line of 8.59 (bug fixes only).
+9.00-beta5), `8.x` the maintenance line of 8.59 (bug fixes only).
 
 Tested in QEMU with complete installation and MAXIMIZE runs (DOS and
 Windows SETUP, all three MAXIMIZE passes): MS-DOS 6.22, MS-DOS 7.1,
@@ -73,42 +71,11 @@ linux/scripts/buildlang.sh US    # release/US/tree, release/US/package
 linux/scripts/mkmedia.sh US      # floppy set, USB image, ISO, ZIP in release/US
 ```
 
-## MAXTEXT hardware text modes
+## MAXTEXT
 
-`make MAXTEXT` builds `MAXTEXT.SYS` and `MAXTEXT.COM` into `build/bin`.
-The installation package includes the driver, control program, loading
-instructions and public C/assembler API definitions. Standard installation
-adds `DEVICE=...386LOAD.SYS PROG=...MAXTEXT.SYS` after the memory manager
-in CONFIG.SYS. It preserves the boot video mode. Expert setup can disable
-MAXTEXT (`SETUPDOS /EXPERT`, or `Setup/Mode=Expert` and `386MAX/MaxText=0`
-in SETUP.INF); Windows setup exposes the same checked-by-default option.
-For manual installation on DOS with DEVICEHIGH support:
-
-```ini
-DEVICE=C:\386MAX\386MAX.SYS
-DOS=HIGH,UMB
-DEVICEHIGH=C:\386MAX\MAXTEXT.SYS
-```
-
-After boot, `MAXTEXT /LIST` reports supported modes, `/MODE:80x50` selects
-one and `/STATUS` reports the current geometry and resident location.
-`/RESTORE` returns to the boot geometry and clears the screen. The tested
-Enhanced DR-DOS configuration uses `386LOAD.SYS PROG=...` for UMB loading;
-see the [architecture, public API and loading guide](docs/maxtext.md).
-
-API 1.1 lets DOS applications detect `MAXTEXT$`, query capabilities and
-request a supported text mode through handle IOCTL. Unknown hardware,
-unsupported contexts and unimplemented VBE/SVGA modes are rejected.
-132-column and 60-row modes are not enabled in this version.
-
-QUILIB and the DOS programs also work without MAXTEXT. Their screen
-geometry comes from the BIOS/BDA, including ordinary 80x25 and BIOS-set
-80x50 modes; using MAXTEXT's mode-selection API is optional.
-
-`make TESTS` builds the [MAXTEXT regression tests](TESTS/MAXTEXT/README.md)
-into `build/TESTS/MAXTEXT/bin`. Test sources are in `TESTS/MAXTEXT`; shell
-runners are under `linux/test`. The DOS/UMB matrix, rollback checks, installation at 80x50, MAX editor and ASQ checks passed
-in QEMU; see the [results and remaining coverage](TESTS/MAXTEXT/RESULTS.md).
+MAXTEXT provides hardware text modes and an optional public API for DOS
+programs. Installation, commands, supported hardware, compatibility and tests
+are documented in the [MAXTEXT guide](docs/maxtext.md).
 
 ## Layout
 

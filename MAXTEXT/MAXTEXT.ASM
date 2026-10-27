@@ -16,17 +16,17 @@ Program derived from:  None.
 Original code by:  Open 386MAX contributors, October 2026.
 
 Description:
-Standalone DOS 3+ character device for VGA 80x25, 80x43 and
-80x50 text modes. Public handle IOCTL API 1.1; no CON replacement.
+Standalone DOS 3+ character device for VGA and validated VBE hardware
+text modes. Public handle IOCTL API 1.2; no CON replacement.
 DOS or 386LOAD may place the complete resident image in a UMB.
 Architecture, API and loading: docs/maxtext.md.
 
 |
 
-; MAXTEXT: standalone DOS 3+ VGA hardware text device, ABI 1.1.
+; MAXTEXT: standalone DOS 3+ VGA/VBE hardware text device, ABI 1.2.
 .286
 include MAXTEXT.INC
-TEXT segment word public 'CODE'
+TEXT segment para public 'CODE'
 assume cs:TEXT, ds:TEXT
 org 0
 header dd -1
@@ -36,7 +36,9 @@ header dd -1
 request dd 0
 old_sp dw 0
 old_ss dw 0
+selected_font db 0
 initialized db 0
+init_limit dd 0
 info db 'MXT1'
      dw MT_VERSION, MT_SIZE, 0
      db 0, 0
@@ -155,50 +157,59 @@ snapshot_end:
 snapshot endp
 
 include MTVGA.INC
+include MTVBE.INC
+include MTSVGA.INC
 
 ; BIOS implementations can use substantial stack space, including V86 hosts.
-even
+align 16
 private_stack db 2048 dup (0)
 stack_top label word
+resident_base_end label byte
+include MTFONT.INC
 resident_end label byte
 
 ; Everything below this point is discarded after successful initialization.
 initialize proc near
+    mov ax,es:[bx+14]
+    mov word ptr init_limit,ax
+    mov ax,es:[bx+16]
+    mov word ptr init_limit+2,ax
     mov byte ptr es:[bx+13],0
     mov word ptr es:[bx+14],0  ; fail safely: keep no driver memory
     mov ax,cs
     mov es:[bx+16],ax
     ; DOS 3+ supplies the complete CONFIG.SYS device command line.
     lds si,es:[bx+18]
-    mov cx,256                ; bounded, fail closed on malformed lines
+    mov cx,256
 skip_filename:
+    jcxz init_fail
     lodsb
+    dec cx
     cmp al,0
-    je short init_detect
+    je init_parse_empty
     cmp al,13
-    je short init_detect
+    je init_parse_empty
     cmp al,10
-    je short init_detect
+    je init_parse_empty
     cmp al,' '
-    je short skip_space
+    je skip_space
     cmp al,9
-    je short skip_space
-    loop skip_filename
-    jmp short init_fail
+    je skip_space
+    jmp skip_filename
 skip_space:
+    jcxz init_fail
     lodsb
-    cmp al,0
-    je short init_detect
-    cmp al,13
-    je short init_detect
-    cmp al,10
-    je short init_detect
+    dec cx
     cmp al,' '
-    je short more_space
+    je skip_space
     cmp al,9
-    jne short init_fail
-more_space:
-    loop skip_space
+    je skip_space
+init_parse_empty:
+    dec si
+    inc cx
+    call parse_init
+    jc init_fail
+    jmp init_detect
 init_fail:
     push cs
     pop ds
@@ -225,18 +236,53 @@ vga_hint:
     or word ptr info+MT_FLAGS,MT_VGA_HINT
 detected:
     call discover_modes
+    call discover_vbe
+    call discover_native
+    cmp word ptr info+MT_MODES,0
+    je init_boot_unknown       ; no native I/O without positive backend discovery
+    call validate_current
+    jc init_boot_unknown
+    mov ax,word ptr info+MT_COLS
+    mov boot_cols,ax
+    mov ax,word ptr info+MT_ROWS
+    mov boot_rows,ax
+init_boot_unknown:
+    call apply_init_mode
+    jc init_mode_fail
     mov ax,cs
     mov word ptr info+MT_SEG,ax
     mov initialized,1
+    cmp selected_font,0
+    jne init_keep_font
+    mov word ptr info+MT_BYTES,offset resident_base_end
+init_keep_font:
     les bx,request
-    mov word ptr es:[bx+14],offset resident_end
+    mov ax,word ptr info+MT_BYTES
+    mov es:[bx+14],ax
     mov ax,cs
     mov es:[bx+16],ax
     mov word ptr es:[bx+18],0 ; character device: no returned BPB array
     mov word ptr es:[bx+20],0
     mov ax,0100h
     ret
+init_mode_fail:
+    mov al,init_failure
+    add al,'0'
+    mov bad_mode_code,al
+    mov dx,offset bad_mode
+    mov ah,9
+    int 21h
+    mov ax,810Ch
+    ret
 initialize endp
-bad_args db 'MAXTEXT: no device options supported in this MVP.',13,10,'$'
+include MTINIT.INC
+include MTNINIT.INC
+bad_mode db 'MAXTEXT: requested boot mode unavailable or unsafe; reason '
+bad_mode_code db '?'
+    db '. Driver not loaded.',13,10,'$'
+bad_args db 'MAXTEXT: invalid device option. Use /MODE=COLSxROWS.',13,10,'$'
+; Paragraph alignment makes the workspace CS-relative without relocations.
+align 16
+init_image_end label byte
 TEXT ends
 end

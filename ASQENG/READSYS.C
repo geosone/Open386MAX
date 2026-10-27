@@ -2,6 +2,7 @@
 /******************************************************************************
  *									      *
  * (C) Copyright 1991-93 Qualitas, Inc.  GNU General Public License version 3.		      *
+ * (C) Copyright 2026 Open386MAX contributors (optional MAXTEXT status).    *
  *									      *
  * READSYS.C								      *
  *									      *
@@ -272,6 +273,19 @@ int sysinfo_read(char *buf,WORD nbuf)
 		case K_VIDEO:
 			rtn = scn_VIDEO(SysInfo->video,&SysInfo->nvideo);
 			break;
+		case K_MAXTEXT: {
+			unsigned i;
+			WORD *words=(WORD *)&SysInfo->MaxText;
+			for (i=0;i<sizeof(MAXTEXT_STATUS)/2;i++) {
+				rtn=scn_HEXWORD(&words[i]);
+				if (rtn) break;
+			}
+			if (memcmp(SysInfo->MaxText.signature,"MXT1",4) ||
+			    SysInfo->MaxText.size!=sizeof(MAXTEXT_STATUS) ||
+			    (SysInfo->MaxText.version>>8)!=1)
+				memset(&SysInfo->MaxText,0,sizeof(MAXTEXT_STATUS));
+			break;
+		}
 		case K_SVVENDOR:
 			rtn = scn_string(SysInfo->sv_vendor,sizeof(SysInfo->sv_vendor));
 			break;

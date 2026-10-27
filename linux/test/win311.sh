@@ -23,6 +23,7 @@
 #               build/win311test/test.img (KEEP=1: start from it again)
 #   FAULTLOG=1  start the program through linux/test/faultlog: faults with
 #               module and segment -> fault.log
+#   EXTRA_CONFIG extra CONFIG.SYS lines, separated by | (optional)
 #   PRE         AUTOEXEC.BAT commands before Windows (| separated, output
 #               > AUX), e.g. a TSR to test under Windows
 #   FILES       more files to copy to C:\MAX (space separated)
@@ -60,6 +61,7 @@ crlf() { tr '|' '\n' | sed 's/$/\r/'; }
             echo 'DOS=HIGH,UMB' ;;
     *) echo "unknown MM=$MM" >&2; exit 1 ;;
     esac
+    [ -z "${EXTRA_CONFIG:-}" ] || echo "$EXTRA_CONFIG"
     echo 'FILES=40|BUFFERS=20|LASTDRIVE=Z|SHELL=C:\COMMAND.COM C:\ /P'
 } | crlf > "$OUT/c/CONFIG.SYS"
 {

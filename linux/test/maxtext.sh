@@ -68,7 +68,7 @@ for dos in "${@:-msdos622}"; do
     check_installed "$dos" umb
     boot "$dos" rejected 'DEVICE=C:\MAXTEXT.SYS /MODE=132x60' 'C:\MAXTEXT /STATUS > C:\MT.TXT|IF ERRORLEVEL 1 ECHO REJECT-PASS >> C:\MT.TXT'
     rg -q 'REJECT-PASS' "$ROOT/build/test-maxtext/$dos-rejected/result.txt"
-    rg -q 'no device options supported' "$ROOT/build/test-maxtext/$dos-rejected/end.txt"
+    rg -q 'requested boot mode unavailable' "$ROOT/build/test-maxtext/$dos-rejected/end.txt"
     echo PASS
 done
 boot msdos622 loader 'DEVICE=C:\MAX\386MAX.SYS|DEVICE=C:\MAX\386LOAD.SYS PROG=C:\MAXTEXT.SYS' "$AUTO_TEST"

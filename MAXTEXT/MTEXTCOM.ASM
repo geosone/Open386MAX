@@ -90,23 +90,23 @@ skip_space:
     mov word ptr command+4,MT_RESTORE
     jmp change_mode
 try_mode25:
-    mov di,offset arg_mode25
+    mov di,offset arg_select
     call equal
-    jne try_mode43
-    mov word ptr command+8,25
-    jmp change_mode
-try_mode43:
-    mov di,offset arg_mode43
+    je select_mode
+    mov bp,offset client_modes
+try_modes:
+    mov di,ds:[bp]
     call equal
-    jne try_mode50
-    mov word ptr command+8,43
+    jne try_next_mode
+    mov ax,ds:[bp+4]
+    mov word ptr command+6,ax
+    mov ax,ds:[bp+6]
+    mov word ptr command+8,ax
     jmp change_mode
-try_mode50:
-    mov di,offset arg_mode50
-    call equal
-    jne try_unsupported
-    mov word ptr command+8,50
-    jmp change_mode
+try_next_mode:
+    add bp,8
+    cmp bp,offset client_modes_end
+    jb try_modes
 try_unsupported:
     mov dx,offset unsupported
     call puts
@@ -122,27 +122,102 @@ list_modes:
     call close_device
     mov dx,offset modes_header
     call puts
-    mov bx,word ptr buffer+MT_MODES
-    test bx,MT_25
-    jz list_43
-    mov dx,offset mode25
+    mov bp,offset client_modes
+list_next:
+    mov ax,ds:[bp+2]
+    test word ptr buffer+MT_MODES,ax
+    jz list_skip
+    mov dx,ds:[bp]
+    add dx,6                 ; skip /MODE: in the display string
+    call print_z
+    mov dx,offset newline
     call puts
-list_43:
-    test bx,MT_43
-    jz list_50
-    mov dx,offset mode43
-    call puts
-list_50:
-    test bx,MT_50
-    jz list_done
-    mov dx,offset mode50
-    call puts
-list_done:
-    or bx,bx
-    jnz success
+list_skip:
+    add bp,8
+    cmp bp,offset client_modes_end
+    jb list_next
+    cmp word ptr buffer+MT_MODES,0
+    jne success
     mov dx,offset no_modes
     call puts
     jmp success
+select_mode:
+    call query
+    jc failed
+    call close_device
+    mov dx,offset select_header
+    call puts
+    mov bp,offset client_modes
+    mov si,offset selections
+    mov byte ptr selection_count,0
+select_list_next:
+    mov ax,ds:[bp+2]
+    test word ptr buffer+MT_MODES,ax
+    jz select_list_skip
+    mov [si],bp
+    add si,2
+    inc byte ptr selection_count
+    xor ax,ax
+    mov al,selection_count
+    call number
+    mov dx,offset select_sep
+    call puts
+    mov dx,ds:[bp]
+    add dx,6
+    call print_z
+    mov dx,offset newline
+    call puts
+select_list_skip:
+    add bp,8
+    cmp bp,offset client_modes_end
+    jb select_list_next
+    cmp selection_count,0
+    je select_empty
+    mov dx,offset select_prompt
+    call puts
+    mov ah,8                 ; one key, no TSR and no QUILIB dependency
+    int 21h
+    cmp al,27
+    je success
+    cmp al,'0'
+    je success
+    sub al,'1'
+    cmp al,selection_count
+    jae try_unsupported
+    xor ah,ah
+    shl ax,1
+    mov si,ax
+    mov bp,selections[si]
+    mov ax,ds:[bp+4]
+    mov word ptr command+6,ax
+    mov ax,ds:[bp+6]
+    mov word ptr command+8,ax
+    mov dx,offset newline
+    call puts
+    jmp change_mode
+select_empty:
+    mov dx,offset no_modes
+    call puts
+    jmp success
+print_z proc near
+    push si
+    mov si,dx
+print_z_next:
+    lodsb
+    or al,al
+    jz print_z_end
+    cmp al,'X'
+    jne print_z_char
+    mov al,'x'
+print_z_char:
+    mov dl,al
+    mov ah,2
+    int 21h
+    jmp print_z_next
+print_z_end:
+    pop si
+    ret
+print_z endp
 status:
     call query
     jc failed
@@ -168,6 +243,10 @@ status:
     call puts
     mov ax,word ptr buffer+MT_ROWS
     call number
+    mov dx,offset height_msg
+    call puts
+    mov ax,word ptr buffer+MT_HEIGHT
+    call number
     mov dx,offset flags_msg
     call puts
     mov ax,word ptr buffer+MT_FLAGS
@@ -185,8 +264,32 @@ failed:
 change_mode:
     call query
     jc failed
+    cmp word ptr command+4,MT_RESTORE
+    je change_available
+    mov si,offset client_modes
+change_find:
+    mov ax,[si+4]
+    cmp ax,word ptr command+6
+    jne change_skip
+    mov ax,[si+6]
+    cmp ax,word ptr command+8
+    jne change_skip
+    mov ax,[si+2]
+    test word ptr buffer+MT_MODES,ax
+    jnz change_available
+    call close_device
+    jmp try_unsupported
+change_skip:
+    add si,8
+    cmp si,offset client_modes_end
+    jb change_find
+    call close_device
+    jmp try_unsupported
+change_available:
     call allocate_work
     jc allocation_failed
+    cmp word ptr buffer+MT_VER,0101h
+    jb mode_api_old
     call send_command
     pushf
     call release_work
@@ -194,6 +297,10 @@ change_mode:
     popf
     jc mode_failed
     jmp success
+mode_api_old:
+    call release_work
+    call close_device
+    jmp failed
 allocation_failed:
     call close_device
     mov dx,offset no_memory
@@ -226,17 +333,38 @@ arg_restore db '/RESTORE',0
 arg_mode25 db '/MODE:80X25',0
 arg_mode43 db '/MODE:80X43',0
 arg_mode50 db '/MODE:80X50',0
-modes_header db 'Validated VGA text modes:',13,10,'$'
+modes_header db 'Available hardware text modes:',13,10,'$'
 mode25 db '80x25',13,10,'$'
 mode43 db '80x43',13,10,'$'
 mode50 db '80x50',13,10,'$'
 no_memory db 'MAXTEXT: cannot allocate transient video backup.',13,10,'$'
 mode_error db 'MAXTEXT: mode change failed, API result: $'
+arg_select db '/SELECT',0
+arg_mode60 db '/MODE:80X60',0
+arg_mode13225 db '/MODE:132X25',0
+arg_mode13243 db '/MODE:132X43',0
+arg_mode13250 db '/MODE:132X50',0
+arg_mode13260 db '/MODE:132X60',0
+client_modes dw offset arg_mode25,MT_25,80,25
+             dw offset arg_mode43,MT_43,80,43
+             dw offset arg_mode50,MT_50,80,50
+             dw offset arg_mode60,MT_60,80,60
+             dw offset arg_mode13225,MT_13225,132,25
+             dw offset arg_mode13243,MT_13243,132,43
+             dw offset arg_mode13250,MT_13250,132,50
+             dw offset arg_mode13260,MT_13260,132,60
+client_modes_end label word
+selection_count db 0
+selections dw 8 dup (0)
+select_header db 'Choose a hardware text mode:',13,10,'$'
+select_sep db ': $'
+select_prompt db 'Number (0 or Esc cancels): $'
 arg_help db '/HELP',0
 arg_status db '/STATUS',0
 arg_list db '/LIST',0
-usage db 'MAXTEXT /STATUS /LIST /MODE:80x25 /MODE:80x43 /MODE:80x50',13,10
-      db '/RESTORE (boot geometry, clears screen) /HELP',13,10,'$'
+usage db 'MAXTEXT /STATUS /LIST /SELECT /MODE:COLSxROWS',13,10
+      db '/RESTORE (boot geometry, clears screen) /HELP',13,10
+      db 'CONFIG.SYS: /MODE=COLSxROWS /FONT=ROM or /FONT=UNSCII',13,10,'$'
 unsupported db 'MAXTEXT: unsupported option or mode.',13,10,'$'
 no_modes db 'No validated selectable modes.',13,10,'$'
 installed db 'MAXTEXT ABI 1.x, resident segment (decimal): $'
@@ -244,7 +372,8 @@ bytes_msg db ', bytes: $'
 mode_msg db 13,10,'BDA mode: $'
 cols_msg db ', columns: $'
 rows_msg db ', VGA rows (0=unknown): $'
-flags_msg db ', VGA BIOS hint: $'
+height_msg db ', character height: $'
+flags_msg db ', backend flags: $'
 newline db 13,10,'$'
 missing db 'MAXTEXT: driver missing or incompatible IOCTL response.',13,10,'$'
 image_end label byte

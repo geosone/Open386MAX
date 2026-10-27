@@ -11,13 +11,20 @@
 control db MT_CONTROL_SIZE dup (0)
 control_ptr dd 0
 work_seg dw 0
+boot_cols dw 80
 boot_rows dw 0
+target_cols dw 80
 target_rows dw 0
+target_vbe dw 0
+target_height dw 0
+old_cols dw 0
+use_vbe_state db 0
 old_rows dw 0
 old_height dw 0
 old_stride dw 0
 old_cursor dw 0
 old_position dw 0
+old_misc db 0
 state_blocks dw 0
 function_info db 64 dup (0)
 font_action db 0
@@ -119,6 +126,40 @@ vga_read proc near
     ret
 vga_read endp
 
+; Read AC mode control without changing its data, PAS or selected index.
+; Leave the flip-flop in its documented index phase; BIOS accesses reset it.
+attribute_mode proc near
+    pushf
+    cli
+    push bx
+    push dx
+    mov dx,3C0h
+    in al,dx
+    mov bl,al
+    mov dx,3DAh
+    in al,dx
+    mov dx,3C0h
+    mov al,bl
+    and al,20h
+    or al,10h
+    out dx,al
+    inc dx
+    in al,dx
+    mov bh,al
+    mov dx,3DAh
+    in al,dx
+    mov dx,3C0h
+    mov al,bl
+    out dx,al
+    mov dx,3DAh
+    in al,dx
+    mov al,bh
+    pop dx
+    pop bx
+    popf
+    ret
+attribute_mode endp
+
 ; Refuse Windows, graphics modes, nonstandard memory layouts and pages.
 ; Positive BIOS capability checks happen before any native VGA I/O.
 validate_current proc near
@@ -131,10 +172,21 @@ validate_current proc near
     test al,7Fh
     jnz current_bad
     call snapshot
+    mov ax,word ptr info+MT_COLS
+    mov old_cols,ax
     cmp info+MT_MODE,3
-    jne current_bad
-    cmp word ptr info+MT_COLS,80
-    jne current_bad
+    jne current_extended
+    cmp ax,80
+    jne current_extended
+    cmp word ptr info+MT_ROWS,60
+    je current_extended
+    jmp short current_geometry
+current_extended:
+    call validate_vbe_current
+    jnc current_geometry
+    call validate_native_current
+    jc current_bad
+current_geometry:
     cmp info+MT_PAGE,0
     jne current_bad
     mov ax,word ptr info+MT_ROWS
@@ -143,16 +195,16 @@ validate_current proc near
     cmp ax,43
     je current_rows
     cmp ax,50
+    je current_rows
+    cmp ax,60
     jne current_bad
 current_rows:
     mov old_rows,ax
     mov ax,word ptr info+MT_HEIGHT
     cmp ax,8
-    je current_font
-    cmp ax,14
-    je current_font
-    cmp ax,16
-    jne current_bad
+    jb current_bad
+    cmp ax,32
+    ja current_bad
 current_font:
     mov old_height,ax
     mov ax,40h
@@ -162,14 +214,17 @@ current_font:
     cmp word ptr es:[63h],3D4h
     jne current_bad
     mov ax,old_rows
-    mov cx,160
-    mul cx
+    mul old_cols
+    shl ax,1
     cmp es:[4Ch],ax
     jb current_bad
     cmp word ptr es:[4Ch],8000h
     ja current_bad
     mov ax,es:[4Ch]
     mov old_stride,ax
+    call attribute_mode
+    test al,1                ; actual display decoder must be alphanumeric
+    jnz current_bad
     mov dx,3CEh
     mov ah,6
     call vga_read
@@ -187,9 +242,25 @@ current_font:
     test al,0Ch               ; no chain-4 or sequential font addressing
     jnz current_bad
     mov dx,3D4h
+    mov ah,14h
+    call vga_read
+    test al,60h              ; no doubleword/count-by-four addressing
+    jnz current_bad
+    mov ah,17h
+    call vga_read
+    test al,48h              ; standard word addressing, no count-by-two
+    jnz current_bad
     mov ah,13h
     call vga_read
-    cmp al,40                 ; 160 bytes per displayed row
+    xor ah,ah
+    shl ax,1
+    cmp ax,old_cols
+    jne current_bad
+    mov ah,1
+    call vga_read
+    xor ah,ah
+    inc ax
+    cmp ax,old_cols
     jne current_bad
     mov ah,0Ch
     call vga_read
@@ -261,6 +332,7 @@ vga_write endp
 ; the transport remains standard 400-line VGA, with a cropped text viewport.
 ; A real 350-line BIOS mode needs no register changes.
 prepare_43 proc near
+    push old_cols
     push old_rows
     push old_height
     push old_stride
@@ -268,6 +340,7 @@ prepare_43 proc near
     pop old_stride
     pop old_height
     pop old_rows
+    pop old_cols
     jc crop_bad
     mov dx,3D4h
     mov ah,12h
@@ -348,11 +421,26 @@ font_map:
     inc bx
     cmp bx,9
     jb font_map
+    cmp font_action,3
+    je font_custom_check
     mov ax,work_seg
+    cmp initialized,0
+    jne font_raw_buffer
+    add ax,0180h
+    jmp short font_buffer_ready
+font_raw_buffer:
     add ax,0800h
+font_buffer_ready:
     mov es,ax
     mov ax,0A000h
     mov ds,ax
+    cmp cs:initialized,0
+    jne font_runtime
+    call init_font_transfer
+    jnc font_unmap
+    mov cs:font_match,1
+    jmp font_unmap
+font_runtime:
     cmp cs:font_action,1
     jne font_direction
     push ds
@@ -366,6 +454,25 @@ font_direction:
     cmp cs:font_action,2
     je font_compare
     rep movsw
+    jmp font_unmap
+font_custom_check:
+    push cs
+    pop es
+    mov ax,0A000h
+    mov ds,ax
+    xor si,si
+    mov di,offset unscii_font
+    mov bp,256
+font_custom_char:
+    mov cx,8
+    repe cmpsb
+    jne font_custom_bad
+    add si,24
+    dec bp
+    jnz font_custom_char
+    jmp font_unmap
+font_custom_bad:
+    mov cs:font_match,1
     jmp font_unmap
 font_compare:
     repe cmpsw
@@ -437,39 +544,50 @@ control_request proc near
     jne control_set
     mov ax,boot_rows
     mov word ptr control+8,ax
-    mov word ptr control+6,80
+    mov ax,boot_cols
+    mov word ptr control+6,ax
     jmp control_dimensions
 control_set:
     cmp word ptr control+4,MT_SET
     jne control_error
 control_dimensions:
-    cmp word ptr control+6,80
-    jne control_error
-    mov ax,word ptr control+8
-    cmp ax,25
-    je control_target
-    cmp ax,43
-    je control_target
-    cmp ax,50
-    jne control_error
-control_target:
-    mov target_rows,ax
+    call select_target
+    jc control_error
     mov word ptr control+14,MT_BAD_BUFFER
-    cmp word ptr control+12,MT_WORK_PARAS
+    mov bx,MT_WORK_PARAS
+    cmp initialized,0
+    jne control_scratch_size
+    mov bx,init_work_paras
+control_scratch_size:
+    cmp word ptr control+12,bx
     jb control_error
     mov ax,word ptr control+10
     cmp ax,50h
     jb control_error
     mov dx,ax
-    add dx,MT_WORK_PARAS
+    add dx,bx
     jc control_error
     cmp dx,0A000h
+    jbe control_range_ok
+    ; During INIT only, apply_init_mode checked the loader-supplied limit.
+    cmp initialized,0
+    jne control_error
+    mov cx,offset init_image_end
+    shr cx,4
+    mov bp,cs
+    add cx,bp
+    cmp ax,cx
+    jne control_error
+    cmp ax,0C000h
+    jb control_error
+    cmp dx,0F000h
     ja control_error
+control_range_ok:
     ; Reject overlap with this driver's resident segment or the packet.
     mov cx,cs
     cmp dx,cx
     jbe control_packet_range
-    mov bx,offset resident_end
+    mov bx,word ptr info+MT_BYTES
     add bx,15
     shr bx,4
     add cx,bx
@@ -488,9 +606,23 @@ control_packet_range:
     ja control_error
 control_work_ok:
     mov work_seg,ax
+    mov native_clock_dirty,0
     mov word ptr control+14,MT_CONTEXT
     call validate_current
     jc control_error
+    cmp target_native,0
+    je control_context_ok
+    call native_context
+    jc control_error
+    cmp info+MT_MODE,3
+    jne control_error
+    cmp word ptr info+MT_COLS,80
+    jne control_error
+control_context_ok:
+    mov dx,3CCh
+    in al,dx
+    mov old_misc,al
+    call capture_native_clock
     mov ax,40h
     mov es,ax
     mov ax,es:[50h]
@@ -507,24 +639,47 @@ control_work_ok:
     xor si,si
     xor di,di
     mov cx,4000h
+    cmp cs:initialized,0
+    jne save_text_raw
+    xor al,al
+    call init_text_transfer
+    jmp short save_text_done
+save_text_raw:
     rep movsw
+    clc
+save_text_done:
     pop ds
+    jc boot_snapshot_full
     xor al,al
     call font_plane
-    mov ax,work_seg
-    add ax,1800h
-    mov es,ax
+    jc boot_snapshot_full
+    call state_buffer
     xor bx,bx
-    mov cx,7
-    mov ax,1C01h
-    call video_bios
+    call save_bios
+    cmp ax,1Ch
+    jne transaction_bad_state
     push ax
     call restore_bios
     pop dx
-    cmp dl,1Ch
+    cmp dx,1Ch
     jne transaction_bad_state
-    cmp al,1Ch
+    cmp ax,1Ch
     jne transaction_bad_state
+    cmp target_native,0
+    je set_bios_target
+    call set_native
+    jc rollback
+    jmp set_cursor
+set_bios_target:
+    cmp target_vbe,0
+    je set_standard
+    mov bx,target_vbe
+    mov ax,4F02h
+    call video_bios
+    cmp ax,004Fh
+    jne rollback
+    jmp set_cursor
+set_standard:
     ; BIOS timings only: 350 lines for 43 rows, 400 for 25/50.
     mov ax,1202h
     cmp target_rows,43
@@ -548,12 +703,30 @@ no_crop:
     xor bx,bx
     call video_bios
 set_cursor:
+    cmp selected_font,1
+    jne font_ready
+    cmp target_height,8
+    jne font_ready
+    push cs
+    pop es
+    mov bp,offset unscii_font
+    mov ax,1100h
+    mov bx,0800h
+    mov cx,256
+    xor dx,dx
+    call video_bios
+    mov ax,1103h
+    xor bx,bx
+    call video_bios
+font_ready:
     mov ax,0500h
     call video_bios
     mov cx,0607h
-    cmp target_rows,25
-    jne cursor_ready
-    mov cx,0E0Fh
+    mov ax,target_height
+    sub ax,2
+    mov ch,al
+    inc ax
+    mov cl,al
 cursor_ready:
     mov ah,1
     call video_bios
@@ -570,8 +743,10 @@ rollback:
     mov al,1
     call font_plane
     call restore_bios
-    cmp al,1Ch
+    cmp ax,1Ch
     jne transaction_bad_state
+    call restore_native_clock
+    jc transaction_bad_state
     mov ax,0B800h
     mov es,ax
     push ds
@@ -579,10 +754,27 @@ rollback:
     xor si,si
     xor di,di
     mov cx,4000h
-    rep movsw
+    cmp cs:initialized,0
+    jne restore_text_raw
+    ; init_text_transfer expects DS=video, ES=work on entry.
+    push ds
+    push es
     pop ds
+    pop es
+    mov al,1
+    call init_text_transfer
+    jmp short restore_text_done
+restore_text_raw:
+    rep movsw
+    clc
+restore_text_done:
+    pop ds
+    jc transaction_bad_state
     ; Validate rollback geometry and compare restored font bytes.
     call snapshot
+    mov ax,word ptr info+MT_COLS
+    cmp ax,old_cols
+    jne transaction_bad_state
     mov ax,word ptr info+MT_ROWS
     cmp ax,old_rows
     jne transaction_bad_state
@@ -607,13 +799,28 @@ rollback:
     xor si,si
     xor di,di
     mov cx,4000h
+    cmp cs:initialized,0
+    jne compare_text_raw
+    mov al,2
+    call init_text_transfer
+    jmp short compare_text_done
+compare_text_raw:
     repe cmpsw
+    je compare_text_equal
+    stc
+    jmp short compare_text_done
+compare_text_equal:
+    clc
+compare_text_done:
     pop ds
-    jne transaction_bad_state
+    jc transaction_bad_state
     mov al,2
     call font_plane
     jc transaction_bad_state
     mov word ptr control+14,MT_VERIFY
+    jmp control_error
+boot_snapshot_full:
+    mov word ptr control+14,MT_BAD_BUFFER
     jmp control_error
 transaction_bad_state:
     mov word ptr control+14,MT_ROLLBACK
@@ -634,14 +841,60 @@ control_success:
     ret
 control_request endp
 
-restore_bios proc near
+state_buffer proc near
     mov ax,work_seg
+    cmp initialized,0
+    je state_init_buffer
     add ax,1800h
+    jmp short state_buffer_ready
+state_init_buffer:
+    add ax,0380h
+state_buffer_ready:
     mov es,ax
+    ret
+state_buffer endp
+save_bios proc near
+    mov use_vbe_state,0
+    cmp vbe_state_blocks,0
+    je save_vga
+    mov use_vbe_state,1
+    mov dx,1
+    jmp vbe_state
+save_vga:
+    call state_buffer
+    xor bx,bx
+    mov cx,7
+    mov ax,1C01h
+    call video_bios
+    xor ah,ah
+    ret
+save_bios endp
+restore_bios proc near
+    cmp use_vbe_state,0
+    je restore_vga
+    mov dx,2
+    call vbe_state
+    jmp short restore_misc
+restore_vga:
+    call state_buffer
     xor bx,bx
     mov cx,7
     mov ax,1C02h
     call video_bios
+    xor ah,ah
+restore_misc:
+    cmp ax,1Ch
+    jne restore_bios_done
+    ; Some VGA BIOS hardware-state implementations restore only MISC bit 0.
+    ; Preserve the actual clock selection and H/V sync polarities ourselves.
+    push ax
+    push dx
+    mov dx,3C2h
+    mov al,old_misc
+    out dx,al
+    pop dx
+    pop ax
+restore_bios_done:
     ret
 restore_bios endp
 control_reply proc near
@@ -654,23 +907,34 @@ control_reply endp
 
 verify_target proc near
     call snapshot
+    mov ax,target_cols
+    cmp word ptr info+MT_COLS,ax
+    jne verify_bad
+    cmp target_vbe,0
+    jne verify_vbe
     cmp info+MT_MODE,3
     jne verify_bad
-    cmp word ptr info+MT_COLS,80
+    jmp short verify_geometry
+verify_vbe:
+    mov ax,4F03h
+    call video_bios
+    cmp ax,004Fh
     jne verify_bad
+    and bx,3FFFh
+    cmp bx,target_vbe
+    jne verify_bad
+verify_geometry:
     mov ax,word ptr info+MT_ROWS
     cmp ax,target_rows
     jne verify_bad
     cmp info+MT_PAGE,0
     jne verify_bad
-    mov ax,8
-    cmp target_rows,25
-    jne verify_height
-    mov ax,16
+    mov ax,target_height
 verify_height:
     cmp word ptr info+MT_HEIGHT,ax
     jne verify_bad
     ; Verify native text layout too (without replacing rollback metadata).
+    push old_cols
     push old_rows
     push old_height
     push old_stride
@@ -678,14 +942,33 @@ verify_height:
     pop old_stride
     pop old_height
     pop old_rows
+    pop old_cols
     jc verify_bad
     mov ax,40h
     mov es,ax
     cmp word ptr es:[50h],0
     jne verify_bad
+    mov ax,target_height
+    sub ax,2
+    mov ch,al
+    inc ax
+    mov cl,al
+    cmp es:[60h],cx
+    jne verify_bad
+    mov dx,3D4h
+    mov ah,0Ah
+    call vga_read
+    and al,3Fh              ; cursor enabled, start raster matches font
+    cmp al,ch
+    jne verify_bad
+    mov ah,0Bh
+    call vga_read
+    and al,1Fh
+    cmp al,cl
+    jne verify_bad
     mov ax,target_rows
-    mov cx,160
-    mul cx
+    mul target_cols
+    shl ax,1
     mov di,ax
     sub di,2
     mov ax,0B800h
@@ -701,6 +984,19 @@ verify_height:
     jne probe_bad
     mov es:[0],bx
     mov es:[di],cx
+    cmp selected_font,1
+    jne verify_complete
+    cmp target_height,8
+    jne verify_complete
+    mov dx,3C4h
+    mov ah,3
+    call vga_read
+    test al,3Fh              ; both displayed character maps must select bank 0
+    jnz verify_bad
+    mov al,3
+    call font_plane
+    jc verify_bad
+verify_complete:
     clc
     ret
 probe_bad:

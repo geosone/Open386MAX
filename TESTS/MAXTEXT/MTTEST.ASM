@@ -34,7 +34,9 @@ start:
     pop ds
     call query
     jc fail
-    cmp word ptr buffer+MT_MODES,7
+    mov ax,word ptr buffer+MT_MODES
+    and ax,7
+    cmp ax,7
     jne close_fail
     mov bx,handle
     mov dx,offset guard
@@ -64,11 +66,13 @@ start:
     call allocate_work
     jc close_fail
     ; Unsupported geometry and insufficient scratch must leave mode alone.
-    mov word ptr command+8,60
+    mov word ptr command+6,81
+    mov word ptr command+8,25
     call send_command
     jnc work_fail
     cmp word ptr command+14,MT_UNSUPPORTED
     jne work_fail
+    mov word ptr command+6,80
     mov word ptr command+8,50
     mov word ptr command+12,1
     call send_command
@@ -192,6 +196,103 @@ start:
     mov ax,1E51h
     repe scasw
     jne work_fail
+    test word ptr buffer+MT_FLAGS,MT_NATIVE_HINT
+    jz tests_complete
+    ; An external owner locking extensions must be refused before any
+    ; snapshot/font aperture changes. Restore the exact key and index.
+    mov test_stage,7
+    mov dx,3C4h
+    in al,dx
+    mov native_seq_index,al
+    mov ax,0F06h
+    out dx,ax
+    mov word ptr command+8,60
+    call send_command
+    pushf
+    mov dx,3C4h
+    mov ax,1206h
+    out dx,ax
+    mov al,native_seq_index
+    out dx,al
+    popf
+    jnc work_fail
+    cmp word ptr command+14,MT_CONTEXT
+    jne work_fail
+    ; Fail after native timing/PLL writes with a corrupt final BIOS reply.
+    ; Verify the explicit PLL supplement as well as BIOS/text.
+    mov test_stage,1
+    call read_native_clock
+    mov saved_clock,ax
+    mov native_fault,1
+    mov dx,offset intercept10
+    mov ax,2510h
+    int 21h
+    mov word ptr command+8,60
+    call send_command
+    pushf
+    push ds
+    lds dx,old10
+    mov ax,2510h
+    int 21h
+    pop ds
+    popf
+    jnc work_fail
+    cmp word ptr command+14,MT_VERIFY
+    jne work_fail
+    mov test_stage,2
+    call read_native_clock
+    cmp ax,saved_clock
+    jne work_fail
+    mov test_stage,3
+    mov ax,40h
+    mov es,ax
+    cmp byte ptr es:[84h],24
+    jne work_fail
+    cmp word ptr es:[50h],0304h
+    jne work_fail
+    cmp word ptr es:[60h],0308h
+    jne work_fail
+    mov ax,0B800h
+    mov es,ax
+    xor di,di
+    mov cx,4000h
+    mov ax,1E51h
+    repe scasw
+    jne work_fail
+    mov native_fault,0
+    mov test_stage,4
+    ; Then a real switch, and VGA failure rollback back into native 60 rows.
+    mov word ptr command+8,60
+    call send_command
+    jc work_fail
+    call dimensions
+    jc work_fail
+    mov test_stage,5
+    mov dx,offset intercept10
+    mov ax,2510h
+    int 21h
+    mov word ptr command+8,43
+    call send_command
+    pushf
+    push ds
+    lds dx,old10
+    mov ax,2510h
+    int 21h
+    pop ds
+    popf
+    jnc work_fail
+    cmp word ptr command+14,MT_VERIFY
+    jne work_fail
+    mov word ptr command+8,60
+    call dimensions
+    jc work_fail
+    mov word ptr command+8,25
+    mov test_stage,6
+    call send_command
+    jc work_fail
+    mov dx,offset native_passed
+    call puts
+tests_complete:
     call release_work
     call close_device
     mov dx,offset passed
@@ -205,6 +306,13 @@ close_fail:
 fail:
     mov dx,offset failed
     call puts
+    xor ax,ax
+    mov al,test_stage
+    call number
+    mov dx,offset result_msg
+    call puts
+    mov ax,word ptr command+14
+    call number
     mov ax,4C01h
     int 21h
 
@@ -218,12 +326,49 @@ chain2f:
 intercept2f endp
 
 intercept10 proc far
+    cmp cs:native_fault,1
+    jne font_fault
+    cmp ah,2
+    jne native_chain
+    push ax
+    push es
+    mov ax,40h
+    mov es,ax
+    mov byte ptr es:[84h],60 ; firmware corrupts geometry after timing writes
+    pop es
+    pop ax
+    iret
+native_chain:
+    jmp dword ptr cs:old10
+font_fault:
     cmp ax,1112h
     je short swallowed
     jmp dword ptr cs:old10
 swallowed:
     iret
 intercept10 endp
+
+read_native_clock proc near
+    mov dx,3C4h
+    in al,dx
+    mov bl,al
+    mov al,0Bh
+    out dx,al
+    inc dx
+    in al,dx
+    mov cl,al
+    dec dx
+    mov al,1Bh
+    out dx,al
+    inc dx
+    in al,dx
+    mov ah,al
+    dec dx
+    mov al,bl
+    out dx,al
+    mov al,cl
+    ret
+read_native_clock endp
 
 dimensions proc near
     mov ax,40h
@@ -246,9 +391,15 @@ dimensions endp
 include MTCLIENT.INC
 old10 dd 0
 old2f dd 0
+native_fault db 0
+test_stage db 0
+native_seq_index db 0
+saved_clock dw 0
 glyph db 16 dup (0AAh)
 passed db 'MTTEST PASS: ABI, bounds, 25/43/50, context checks, full rollback.',13,10,'$'
 failed db 'MTTEST FAIL: installation, mode API or rollback failure.',13,10,'$'
+result_msg db ' API result: $'
+native_passed db 'MTTEST PASS: native timing/PLL rollback in both directions.',13,10,'$'
 image_end label byte
 TEXT ends
 end start

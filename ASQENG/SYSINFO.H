@@ -2,6 +2,7 @@
 /******************************************************************************
  *									      *
  * (C) Copyright 1991-96 Qualitas, Inc.  GNU General Public License version 3.		      *
+ * (C) Copyright 2026 Open386MAX contributors (optional MAXTEXT status).    *
  *									      *
  * SYSINFO.H								      *
  *									      *
@@ -24,6 +25,7 @@
 #include "sysbuf.h"             /* SysInfo buffer definitions */
 #include "timer.h"              /* Memory / CPU timing structure */
 #include "xmsinfo.h"            /* XMS info structure */
+#include "maxtext.h"
 #include "modinfo.h"            /* Newer hardware */
 
 #pragma pack(1)
@@ -632,6 +634,7 @@ typedef struct _sysinfo {	/* Master system information structure */
 #define MAXPNP_DESC 80		/* Maximum PnP description length */
 	SYSBUFH ppszPnPDesc;	/* char [ MAXPNP_DESC ][ wNumNodes ] */
 
+	MAXTEXT_STATUS MaxText; /* Optional driver status captured with snapshot */
 	MODERNINFO Modern;	/* Newer hardware (modinfo.h) */
 
 } SYSINFO;

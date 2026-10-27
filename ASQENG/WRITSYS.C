@@ -2,6 +2,7 @@
 /******************************************************************************
  *									      *
  * (C) Copyright 1991-93 Qualitas, Inc.  GNU General Public License version 3.		      *
+ * (C) Copyright 2026 Open386MAX contributors (optional MAXTEXT status).    *
  *									      *
  * WRITSYS.C								      *
  *									      *
@@ -146,6 +147,13 @@ int sysinfo_write(char *name)
 	prt_DECWORD(K_ENVUSED,	SysInfo->envused);
 
 	prt_VIDEO(SysInfo->video,SysInfo->nvideo);
+	if (!memcmp(SysInfo->MaxText.signature,"MXT1",4)) {
+		unsigned i;
+		unsigned short *words=(unsigned short *)&SysInfo->MaxText;
+		lprintf("%-12s",RwKeyword[K_MAXTEXT].name);
+		for (i=0;i<sizeof(MAXTEXT_STATUS)/2;i++) lprintf(" %04X",words[i]);
+		lprintf("\n");
+	}
 	if (*SysInfo->sv_vendor) {
 		prt_string(K_SVVENDOR,SysInfo->sv_vendor);
 	}

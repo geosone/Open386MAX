@@ -1929,7 +1929,7 @@ void install_qmt (KEYCODE key)
 void install_maxtext (int enabled)
 {
  CFGTEXT *p, *entry = NULL;
- char line[2*MAXPATH+80], path[MAXPATH+1], *name;
+ char line[2*MAXPATH+256], path[MAXPATH+1], *name;
 
  strcpy (path, dest_subdir);
  sprintf (line, "%sMAXTEXT.SYS", path);
@@ -1943,6 +1943,23 @@ void install_maxtext (int enabled)
    name = fname_part (p);
    if (!name || stricmp (name, "MAXTEXT.SYS")) continue;
    if (enabled && !entry) {
+     /* Keep user-selected MODE/FONT options when normalizing the path. */
+     char *tail = p->text;
+     unsigned count, base;
+     while (*tail) {
+       if (!strnicmp(tail,"MAXTEXT.SYS",11) &&
+           (!tail[11] || tail[11]==' ' || tail[11]=='\t' ||
+            tail[11]=='\r' || tail[11]=='\n')) { tail += 11; break; }
+       tail++;
+     }
+     count = strcspn(tail,"\r\n");
+     base = strlen(line)-1; /* replace the generated newline */
+     if (count && base+count+2 >= sizeof(line)) { entry = p; continue; }
+     if (count) {
+       memcpy(line+base,tail,count);
+       line[base+count]='\n';
+       line[base+count+1]='\0';
+     }
      entry = p;
      p->text = str_mem (line);
      p->ltype = ID_DEVICE;

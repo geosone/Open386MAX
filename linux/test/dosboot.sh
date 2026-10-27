@@ -13,6 +13,7 @@
 #   KEEP=1   keep the disk copy (test.img) after the run
 #   XFILES   more files (blank separated) copied to C:\
 #   MACHINE  QEMU machine (pc, q35)
+#   VGA      QEMU display adapter (default std; e.g. cirrus)
 #   CSMWRAP  csmwrapx64.efi:  boot through UEFI (OVMF, directory OVMF=) and CSMWrap
 #
 # 386MAX.SYS, 386LOAD.*, 386UTIL.COM from build/bin are copied to C:\MAX.
@@ -53,7 +54,7 @@ if [ -n "${CSMWRAP:-}" ]; then
         -drive if=pflash,format=raw,unit=1,file="$OUT/vars.fd" -smp 2)
 fi
 SOCK=$OUT/monitor.sock
-$QEMU -machine "${MACHINE:-pc}" ${ACCEL:--accel kvm} -m "${MEMSIZE:-32}" -display none -vga std \
+$QEMU -machine "${MACHINE:-pc}" ${ACCEL:--accel kvm} -m "${MEMSIZE:-32}" -display none -vga "${VGA:-std}" \
     "${FW[@]}" \
     -monitor unix:"$SOCK",server,nowait -drive if=ide,index=0,format=raw,file="$OUT/test.img" \
     -boot c -nic none -device isa-debug-exit,iobase=0x501,iosize=0x02 ${QEMU_EXTRA:-} \

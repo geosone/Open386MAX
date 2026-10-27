@@ -2,6 +2,7 @@
 /******************************************************************************
  *									      *
  * (C) Copyright 1991-96 Qualitas, Inc.  GNU General Public License version 3.		      *
+ * (C) Copyright 2026 Open386MAX contributors (optional MAXTEXT status).    *
  *									      *
  * HDW_INFO.C								      *
  *									      *
@@ -431,6 +432,14 @@ void Hardware_Summary(HANDLE info)	  /* Control structure */
 			SysInfo->video[0].mode);
 		iprintf(info,HdwFmt1a,MSG3112,temp);
 	}
+	if (!memcmp(SysInfo->MaxText.signature,"MXT1",4)) {
+		char temp[80];
+		MAXTEXT_STATUS *m=&SysInfo->MaxText;
+		sprintf(temp,"API %u.%u, %ux%u, font %u, %u bytes %s",
+			m->version>>8,m->version&255,m->columns,m->rows,m->font_height,
+			m->resident_bytes,m->resident_segment>=0xA000 ? "UMB" : "DOS");
+		iprintf(info,HdwFmt1a,"MAXTEXT",temp);
+	}
 	{
 		char temp[32];
 		int count;
@@ -593,6 +602,19 @@ void Hardware_Video(HANDLE info)	/* Control structure */
 	info_format(info,HDWFMT3);
 	info_color(info,16);
 
+	if (!memcmp(SysInfo->MaxText.signature,"MXT1",4)) {
+		MAXTEXT_STATUS *m=&SysInfo->MaxText;
+		iprintf(info,"MAXTEXT API %u.%u: %ux%u, font %u",
+			m->version>>8,m->version&255,m->columns,m->rows,m->font_height);
+		iprintf(info,
+#ifdef LANG_GR
+			"Resident %04X:0000, %u Bytes; Modi %04Xh",
+#else
+			"Resident %04X:0000, %u bytes; modes %04Xh",
+#endif
+			m->resident_segment,m->resident_bytes,m->modes);
+		iprintf(info,"");
+	}
 	for (k = 0; k < SysInfo->nvideo; k++) {
 		char temp[32];
 

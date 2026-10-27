@@ -87,7 +87,7 @@ void get_video_parm(		/* Get video hardware parameters */
 		}
 		VideoParm.mode = mode & 0x7f;
 		page = bda[0x62];
-		if ((VideoParm.mode == 2 || VideoParm.mode == 3 || VideoParm.mode == 7)
+		if ((VideoParm.mode == 2 || VideoParm.mode == 3 || VideoParm.mode == 7 || is_vbe_text_mode())
 		    && cols >= 40 && cols <= 160 && rows >= 25 && rows <= 100
 		    && (unsigned long)cols * rows <= 16384UL)
 			VideoParm.cols = cols;

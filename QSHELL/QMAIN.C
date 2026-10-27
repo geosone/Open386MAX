@@ -2,6 +2,8 @@
  *									      *
  * (C) Copyright 1991-96 Qualitas, Inc.  GNU General Public License version 3. *
  *									      *
+ * (C) Copyright 2026 Open386MAX contributors (MAXTEXT status).             *
+ *
  * QMAIN.C								      *
  *									      *
  * Main program module for MAX.EXE (the MAX shell): menus, the editors of     *
@@ -47,6 +49,7 @@
 #include "ui.h"
 #include "asqshare.h"
 #include "bioscrc.h"
+#include "maxtext.h"
 
 #define OWNER
 #include "qshtext.h"
@@ -62,6 +65,18 @@
 static char *CfgSect;
 
 static int _cdecl _far QCallBack(CONFIGLINE _far *cfg);
+
+static void show_maxtext_status(void)
+{
+	MAXTEXT_STATUS state;
+	WINDESC win;
+	char text[32];
+	if (!maxtext_query(&state)) return;
+	sprintf(text,"MAXTEXT %ux%u API %u.%u",state.columns,state.rows,
+		state.version>>8,state.version&255);
+	SETWINDOW(&win,0,30,1,32);
+	wput_csa(&win,text,ProgramNameAttr);
+}
 
 /*	Program Code */
 /**
@@ -140,6 +155,7 @@ int main(int argc, char *argv[])
 		if (sayHello(GraphicsLogo)) goto done;
 	}
 	wput_csa(&programNameWin, ProgramName, ProgramNameAttr);
+	show_maxtext_status();
 	halfShadow(&programNameWin);
 
 	if (!doEdit || !doCmdThenExit) {
@@ -468,6 +484,7 @@ void paintback(void)
 {
 	paintBackgroundScreen();
 	wput_csa(&programNameWin, ProgramName, ProgramNameAttr);
+	show_maxtext_status();
 	halfShadow(&programNameWin);
 }
 

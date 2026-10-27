@@ -3,6 +3,8 @@
  *									      *
  * (C) Copyright 1991-92 Qualitas, Inc.  GNU General Public License version 3.		      *
  *									      *
+ * (C) Copyright 2026 Open386MAX contributors (VBE text validation).       *
+ *
  * VIDEO.H								      *
  *									      *
  * Video support functions						      *
@@ -61,6 +63,8 @@ typedef struct _videoparm {	/* Video system parameters */
 	int cols;		/* Screen columns */
 	VIDEOID id[2];		/* Adapter / display codes for pri / sec displays */
 } VIDEOPARM;
+
+int is_vbe_text_mode(void); /* validated B800 hardware text, no driver required */
 
 typedef unsigned short CURSOR;
 

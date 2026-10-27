@@ -2,6 +2,7 @@
 /******************************************************************************
  *									      *
  * (C) Copyright 1991-93 Qualitas, Inc.  GNU General Public License version 3.		      *
+ * (C) Copyright 2026 Open386MAX contributors (optional MAXTEXT status).    *
  *									      *
  * SYSINFO.C								      *
  *									      *
@@ -176,6 +177,9 @@ int sysinfo_preinit(void)
 	_fmemcpy(&SysInfo->biosdata,FAR_PTR(0x40,0),sizeof(SysInfo->biosdata));
 
 	get_video_info();
+#ifdef DOS_VERSION
+	maxtext_query(&SysInfo->MaxText);
+#endif
 
 	return (0);
 }
@@ -1082,7 +1086,13 @@ int get_video_info(void)
 		case ADAPTERID_VGA:		/* Video Graphics Array */
 			strcpy(vp->name,MSG4136);
 
-			if (!NoTestVGA) {
+			/* Legacy SVGA probes reset the BIOS mode and only restore
+			 * 25/43/50 rows. Preserve wider/custom text modes independently
+			 * of MAXTEXT; unknown video RAM is preferable to losing them. */
+			if (!NoTestVGA && SysInfo->biosdata.crt_cols == 80 &&
+			    (SysInfo->biosdata.scrn_rows == 24 ||
+			     SysInfo->biosdata.scrn_rows == 42 ||
+			     SysInfo->biosdata.scrn_rows == 49)) {
 			 pp = SVGA_VENDORID(-1);
 			 /* While not strictly necessary for the vendor, */
 			 /* we may need to truncate the model name as the */
@@ -1160,6 +1170,11 @@ int get_video_info(void)
 			break;
 		}
 	}
+#ifdef DOS_VERSION
+	if ((currmode==2 || currmode==3 || currmode==7 || is_vbe_text_mode()) &&
+	    SysInfo->biosdata.crt_cols>=40 && SysInfo->biosdata.crt_cols<=160)
+		SysInfo->video[0].cols=SysInfo->biosdata.crt_cols;
+#endif
 	if (SysInfo->video[0].cols > SysInfo->biosdata.crt_cols) {
 		SysInfo->video[0].cols = SysInfo->biosdata.crt_cols;
 	}

@@ -1,62 +1,91 @@
-MAXTEXT - DOS hardware text mode driver (public API 1.1)
-Copyright: Open 386MAX contributors 2026.
-GNU General Public License version 3; see LICENSE.TXT.
-Source and full architecture: docs/maxtext.md.
+MAXTEXT.SYS / MAXTEXT.COM - VGA/VBE hardware text modes
 
-The installer copies MAXTEXT.SYS, MAXTEXT.COM and these instructions.
-Standard setup adds DEVICE=...386LOAD.SYS PROG=...MAXTEXT.SYS after 386MAX
-in CONFIG.SYS. Loading preserves the current video mode.
+Copyright: Open386MAX contributors 2026.
+Driver/client code: GNU General Public License version 3; LICENSE.TXT.
+Architecture, complete API and test details: docs/maxtext.md in the source.
 
-Expert DOS setup (SETUPDOS /EXPERT) asks whether to load MAXTEXT. SETUP.INF
-supports [Setup] Mode=Expert and [386MAX] MaxText=0 to disable it. MaxText
-is 1 by default. MAXCFG edits these settings. Windows setup provides a
-checked-by-default MAXTEXT option on the Configure page.
+Standard setup enables MAXTEXT after 386MAX in CONFIG.SYS through 386LOAD.
+Expert DOS setup (SETUPDOS /EXPERT) can disable it. SETUP.INF supports
+[Setup] Mode=Expert and [386MAX] MaxText=0; the default is MaxText=1.
+Windows setup exposes the same checked-by-default option.
 
-With DOS UMB support and 386MAX, add after the memory manager:
-  DOS=HIGH,UMB
-  DEVICEHIGH=C:\386MAX\MAXTEXT.SYS
+Loading without options preserves the current video mode. Choose a boot
+mode directly, without an AUTOEXEC.BAT helper:
+  DEVICE=C:\386MAX\386LOAD.SYS PROG=C:\386MAX\MAXTEXT.SYS /MODE=80x50
 
-Alternatively, including the tested Enhanced DR-DOS configuration:
-  DEVICE=C:\386MAX\386LOAD.SYS PROG=C:\386MAX\MAXTEXT.SYS
+Optional free CP437 8x8 font:
+  DEVICE=C:\386MAX\386LOAD.SYS PROG=C:\386MAX\MAXTEXT.SYS /MODE=80x50 /FONT=UNSCII
 
-Use only one loading method. Ordinary DEVICE=MAXTEXT.SYS works without
-386MAX. DEVICEHIGH may fall back to low memory: inspect /STATUS.
-No device arguments are accepted. Do not specify /MODE in CONFIG.SYS.
+DEVICEHIGH=C:\386MAX\MAXTEXT.SYS /MODE=80x50 is another route on DOS
+with working UMB linkage. Ordinary DEVICE also works without 386MAX.
+The tested Enhanced DR-DOS image uses 386LOAD for UMB loading.
+Use only one load line. DEVICEHIGH may fall back to conventional memory;
+inspect /STATUS. Setup preserves existing MODE/FONT switches on reload.
 
-After boot, or from AUTOEXEC.BAT before starting Windows:
+SYS options: /MODE=COLSxROWS, /FONT=ROM (default), /FONT=UNSCII.
+A colon instead of '=' is accepted; case and option order are ignored.
+Unknown, duplicate or malformed options reject loading. Boot selection
+uses only loader-provided temporary space, checked before writing to it.
+Incompressible screen/font data or insufficient space can reject a boot
+change safely; no DOS memory allocator is called during initialization.
+
+Commands after boot:
   MAXTEXT /LIST
+  MAXTEXT /SELECT
   MAXTEXT /STATUS
   MAXTEXT /MODE:80x25
   MAXTEXT /MODE:80x43
   MAXTEXT /MODE:80x50
+  MAXTEXT /MODE:80x60
+  MAXTEXT /MODE:132x60
   MAXTEXT /RESTORE
+  MAXTEXT /HELP
 
-/RESTORE sets the boot geometry and clears the screen. Mode changes are
-restricted to validated VGA color text mode 3, page zero, outside Windows.
-They clear the display on success. An error rolls back text, fonts and
-video state. Keep an application out of its interactive UI while changing
-modes; applications must re-read the geometry afterwards.
+SELECT offers only discovered modes; type a number, or 0/Esc to cancel.
+RESTORE returns to boot geometry and clears the screen. Mode changes also
+clear the display. Exit codes: 0 success, 1 missing/incompatible driver,
+2 unsupported syntax/mode, 3 temporary allocation failure, 4 transaction
+failure (the printed API result distinguishes causes).
 
-80x43 uses BIOS 350-line text when available. If BIOS mode 3 ignores the
-350-line selection, a verified standard 400-line VGA mode can use a
-344-line text viewport; clocks, totals and sync are unchanged.
-No VBE/SVGA/132-column/60-row modes are enabled in this version. Unknown
-hardware and unsupported contexts fail; MAXTEXT does not emulate text
-with graphics. CON and applications hardcoded to 80x25 are not replaced.
+VGA supports 80x25/43/50. VBE IDs 108h-10Ch cover 80x60 and 132x25/43/50/60,
+but appear only after mode-list, text/TTY/layout/window and full-state
+checks. Graphics, non-VGA, banked, non-B800h and unsupported modes fail.
+Successful VBE calls alone do not prove directly usable text memory.
+An identified PCI Cirrus GD5446 also supports native 80x60 with fixed
+640x480 timing and saved PLL state. QEMU-tested; physical cards untested.
+Native 132-column modes, 100x60, 160x100 and dynamic loading remain future work.
 
-The driver is about 4 KiB resident, including its BIOS stack. Clients use
-104 KiB of temporary conventional memory for complete screen/font/BIOS
-backup during changes. MAXTEXT.COM frees this before exiting.
+Changes require page zero and a verified text layout outside Windows.
+Failures roll back video state, all text pages and all font banks, with
+rollback failure reported separately. No graphics text emulation, CON
+replacement or guaranteed support for hardcoded 80x25 applications.
 
-Public API: open MAXTEXT$ with INT 21h/3D02h, verify a character device
-using 4400h, read the 24-byte MAXTEXT_STATUS with 4402h, check MXT1,
-version/size and the available mode bitmap. Then use 4403h with a 16-byte
-MAXTEXT_CONTROL (MXTC, command, columns, rows, DOS scratch segment,
-scratch paragraphs, result). Check carry, returned byte count and result.
-MAXTEXT.H and MAXTEXT.INC define structures/constants. MTEXAPI.C is a
-standalone 16-bit DOS C example that discovers the driver, lists its
-capabilities and optionally sets 25, 43 or 50 rows. It is nonresident.
+Windows 3.11 starts with plain WIN from 80x50 in QEMU/386MAX. Stock VGA and
+vbesvga.drv v1.0-beta4 at 800x600x8 were tested, including return to DOS and
+another text-mode change. The external VBE VDD replaces a custom font
+with the BIOS font on exit; another MAXTEXT mode request reapplies Unscii.
+On QEMU Cirrus, WIN also starts from native 80x60, but that VDD returns at
+80x50. MAXTEXT /MODE:80x60 restores native geometry and optional Unscii;
+there is no automatic Windows-exit hook.
+No physical GPU or complete windowed/full-screen DOS-box claim is made.
 
-Tested in QEMU/SeaBIOS with MS-DOS 6.22, FreeDOS and Enhanced DR-DOS,
-with ordinary loading and UMB loading via 386MAX. This is not a claim of
-physical GPU or Windows VDD compatibility. No dynamic loader/unloader.
+Unscii font data: Public Domain/CC0, https://github.com/viznut/unscii
+Revision 257b4dfeb50651510fe8b9cf4f151a148a4490e4, unscii-8.hex only.
+Four missing CP437 symbols are original CC0 Open386MAX additions. Original
+source, attribution and reproducible conversion are in MAXTEXT/FONTS.
+The optional 8-pixel font applies to 8-pixel modes; other sizes retain the
+BIOS font. It is CP437, not a DOS code-page replacement; keep an appropriate
+ROM/DOS font for other code pages. Its data costs an extra 2 KiB resident.
+
+Resident usage is approximately 5.2 KiB with the ROM font, including the
+private BIOS stack. Runtime clients temporarily allocate 104 KiB for full
+screen/font/BIOS backup and free it before exit. Actual size is in STATUS.
+
+Public API 1.2: open MAXTEXT$ with INT 21h/3D02h, check device via 4400h,
+then read the 24-byte MXT1 status via 4402h. Check signature/version/size
+and the mode bitmap. 4403h takes the 16-byte MXTC command packet; check
+carry, count and result. The packet layout remains compatible with 1.1.
+MAXTEXT.H/MAXTEXT.INC define fields; MTEXAPI.C demonstrates detection and
+supported geometry requests without QUILIB or resident client code.
+ASQ records optional status in snapshots; MAX shows an optional status line.
+Both tools and QUILIB still work with MAXTEXT absent.

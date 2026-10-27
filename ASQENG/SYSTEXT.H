@@ -2,6 +2,7 @@
 /******************************************************************************
  *									      *
  * (C) Copyright 1991-92 Qualitas, Inc.  GNU General Public License version 3.		      *
+ * (C) Copyright 2026 Open386MAX contributors (optional MAXTEXT status).    *
  *									      *
  * SYSTEXT.H								      *
  *									      *
@@ -143,6 +144,7 @@ typedef enum _rwkey {
 	K_SMBIOS,
 	K_SMBSTR,
 	K_SMBMEM,
+	K_MAXTEXT,
 	K_END
 } RWKEY;
 
@@ -358,6 +360,7 @@ GLOBAL struct _rwkeyword {
 	"SmBios",       K_SMBIOS,	/* SMBIOS entry point */
 	"SmbStr",       K_SMBSTR,	/* SMBIOS string */
 	"SmbMem",       K_SMBMEM,	/* SMBIOS memory device */
+	"MaxText",      K_MAXTEXT,
 	"End",          K_END,
 	NULL,		0
 }

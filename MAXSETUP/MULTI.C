@@ -950,7 +950,7 @@ extern BOOL bMaxText;
 static int configure_maxtext (void)
 {
  CFGTEXT *p;
- char line[2*MAXPATH+80], *name;
+ char line[2*MAXPATH+256], *name;
  int found = FALSE, changed = FALSE;
  sprintf (line, "%sMAXTEXT.SYS", dest_subdir);
  if (bMaxText && access(line,0)) return FALSE; /* program files not installed */
@@ -960,6 +960,23 @@ static int configure_maxtext (void)
    name = MBfname_part (p);
    if (!name || stricmp(name, "MAXTEXT.SYS")) continue;
    if (bMaxText && !found) {
+     /* Keep user-selected MODE/FONT options when normalizing the path. */
+     char *tail = p->text;
+     unsigned count, base;
+     while (*tail) {
+       if (!strnicmp(tail,"MAXTEXT.SYS",11) &&
+           (!tail[11] || tail[11]==' ' || tail[11]=='\t' ||
+            tail[11]=='\r' || tail[11]=='\n')) { tail += 11; break; }
+       tail++;
+     }
+     count = strcspn(tail,"\r\n");
+     base = strlen(line)-1; /* replace the generated newline */
+     if (count && base+count+2 >= sizeof(line)) { found = TRUE; continue; }
+     if (count) {
+       memcpy(line+base,tail,count);
+       line[base+count]='\n';
+       line[base+count+1]='\0';
+     }
      found = TRUE;
      if (stricmp(p->text,line)) { p->text = str_mem(line); changed = TRUE; }
    } else {
