@@ -24,7 +24,7 @@ that existed only as binaries, and develops 386MAX further:
   root-context status; multi-VM services remain disabled until their
   contracts are implemented)
 - ASQ for Windows (WINASQ)
-- MAXTEXT: optional DOS hardware text-mode driver and public API
+- [MAXTEXT](docs/maxtext.md): optional DOS hardware text-mode driver and public API
 - no serial numbers or registration; English and German
 
 Branches:  `main` is the development line (9.x, test releases such as
@@ -71,25 +71,18 @@ linux/scripts/buildlang.sh US    # release/US/tree, release/US/package
 linux/scripts/mkmedia.sh US      # floppy set, USB image, ISO, ZIP in release/US
 ```
 
-## MAXTEXT
-
-MAXTEXT provides hardware text modes and an optional public API for DOS
-programs. Installation, commands, supported hardware, compatibility and tests
-are documented in the [MAXTEXT guide](docs/maxtext.md).
-
 ## Layout
 
 | Path | Content |
 |---|---|
 | `386MAX`, `386LOAD`, `386DISK`, `EXTRADOS`, `VXD`, ... | the DOS and VxD parts (assembler) |
-| `MAXTEXT` | standalone VGA hardware text driver, control program and public API example |
 | `ASQ`, `ASQENG`, `MAXIMIZE`, `INSTALL`, `QSHELL`, `QUILIB`, ... | the DOS programs in C |
 | `MAXEDIT`, `MAXMETER`, `QPIFEDIT`, `MAXCTRL`, `MAXSETUP`, `WINMXMZ`, ... | the Windows programs |
 | `CTL3D`, `SFTTABS`, `HELPENG`, `VERLIB`, `HHELP`, `RDOSMAX` | new GPL code for parts that were only binaries |
 | `DOSHELP`, `MAXHELP` | DOS and Windows help |
 | `PACKAGE` | data files and file list of the installation package |
 | `INC`, `INCLUDE` | shared include files |
-| `TESTS` | DOS regression sources and component tests, including `TESTS/MAXTEXT` |
+| `TESTS` | DOS regression sources and component tests |
 | `linux/mk` | build rules (`dos.mk`, `win.mk`) |
 | `linux/tools` | help compilers, package tools, logo generator, build helpers |
 | `linux/test` | tests in QEMU (DOS, Windows for Workgroups 3.11, installation) |
@@ -100,7 +93,6 @@ The tests need a DOS boot image and, for Windows, a Windows for Workgroups
 
 ## License
 
-GNU General Public License version 3, see [LICENSE](LICENSE). The MAXTEXT
-driver, SDK and regression tests use the same license.
+GNU General Public License version 3, see [LICENSE](LICENSE).
 
 (C) Copyright 1987-97 Qualitas, Inc.; Open 386MAX contributors 2022-2026.
