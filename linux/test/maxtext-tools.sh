@@ -54,7 +54,7 @@ record=any(line.startswith('MaxText ') for line in snapshot.read_text(encoding='
 report=(p/'REPORT.TXT').read_text(encoding='cp437')
 assert record==(sys.argv[2]=='0'),record
 import re
-assert bool(re.search(r'MAXTEXT:\s+API 1\.2',report))==(sys.argv[2]=='0'),report
+assert bool(re.search(r'MAXTEXT:\s+API 1\.\d+',report))==(sys.argv[2]=='0'),report
 if sys.argv[2]=='0': assert '80x'+rows+', font 8' in report,report
 print('PASS: MAX editor file change, ASQ snapshot, retained 80x'+rows+' geometry' + (' without MAXTEXT' if sys.argv[2]=='1' else ''))
 PY

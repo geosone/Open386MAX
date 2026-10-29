@@ -1,12 +1,12 @@
 ;' Open 386MAX
-; MAXTEXT.INC - Public DOS MAXTEXT API 1.2 constants and packet offsets.
+; MAXTEXT.INC - Public DOS MAXTEXT API 1.3 constants and packet offsets.
 ;
 ; Copyright: Open 386MAX contributors 2026.
 ; GNU General Public License version 3; see LICENSE.
 ; SPDX-License-Identifier: GPL-3.0-only
 ;
-; IOCTL input (INT 21h AX=4402h), little endian, ABI 1.2.
-MT_VERSION equ 0102h
+; IOCTL input (INT 21h AX=4402h), little endian, ABI 1.3.
+MT_VERSION equ 0103h
 MT_SIZE equ 24
 MT_VGA_HINT equ 1              ; INT 10h/1A00 reports active VGA (7 or 8)
 MT_SIG equ 0                  ; 4 bytes: MXT1
@@ -35,6 +35,9 @@ MT_NATIVE_HINT equ 4           ; whitelisted native hardware text backend
 MT_CONTROL_SIZE equ 16
 MT_SET equ 1
 MT_RESTORE equ 2              ; return to boot geometry, clears screen
+MT_PUSH equ 3                 ; 1.3:  remember the current geometry (no change)
+MT_POP equ 4                  ; 1.3:  back to the last remembered one
+MT_STACK equ 4                ; remembered geometries (full:  the oldest goes)
 MT_INIT_PARAS equ 0580h       ; up to 22 KiB bounded RLE boot workspace
 MT_WORK_PARAS equ 1A00h       ; 104 KiB transient, conventional DOS allocation
 ; Control packet: "MXTC", command, columns, rows, scratch segment,
@@ -45,3 +48,4 @@ MT_BAD_BUFFER equ 2
 MT_CONTEXT equ 3
 MT_VERIFY equ 4
 MT_ROLLBACK equ 5
+MT_EMPTY equ 6                ; 1.3:  POP with nothing remembered

@@ -18,10 +18,17 @@ boot() {
     TESTDIR="$out" KEEP=1 XFILES="$BIN/MAXTEXT.SYS $BIN/MAXTEXT.COM $TBIN/MTTEST.COM $TBIN/MTUITEST.EXE $TBIN/MTEXAPI.EXE" \
         CONFIG="$config|FILES=40|SHELL=C:\COMMAND.COM C:\ /E:1024 /P" \
         AUTO="@ECHO OFF|$auto|ECHO MAXTEXT-END|TYPE C:\MT.TXT" \
-        STEPS="wait:MAXTEXT-END:45 text:end mon:memsave+0+0x100000+\"$out/memory.bin\"" \
+        STEPS="wait:MAXTEXT-END:45 text:end mon:i+/b+0x3da>ff mon:i+/b+0x3c0>pas mon:memsave+0+0x100000+\"$out/memory.bin\"" \
         bash "$ROOT/linux/test/dosboot.sh" "$dos" > "$ROOT/build/maxtext-boot.log" 2>&1
     mcopy -o -i "$out/test.img@@32256" ::/MT.TXT "$out/MT.TXT"
     tr -d '\r' < "$out/MT.TXT" > "$out/result.txt"
+    # the display left on:  the attribute controller's palette address source
+    # (3C0h bit 5, read in the index phase); cleared, VGA shows nothing
+    local pas
+    pas=$(tr -d '\r' < "$out/pas.txt" | grep -a -o 'portb\[0x03c0\] = 0x[0-9a-f]*' | tail -1 | sed 's/.*= //')
+    if [ -z "$pas" ] || [ $((pas & 0x20)) -eq 0 ]; then
+        echo "$dos $name: display off (3C0h index ${pas:-unread})"; return 1
+    fi
     printf '%s %s: ' "$dos" "$name"
 }
 check_installed() {
@@ -73,6 +80,12 @@ for dos in "${@:-msdos622}"; do
 done
 boot msdos622 loader 'DEVICE=C:\MAX\386MAX.SYS|DEVICE=C:\MAX\386LOAD.SYS PROG=C:\MAXTEXT.SYS' "$AUTO_TEST"
 check_installed msdos622 loader
+# PUSH/POP (API 1.3):  43 remembered, 25 set, POP gives 43 back; POP on the
+# active geometry changes nothing; POP with nothing remembered is refused
+boot msdos622 pushpop 'DEVICE=C:\MAXTEXT.SYS' 'C:\MAXTEXT /MODE:80x43 > C:\MT.TXT|C:\MAXTEXT /PUSH >> C:\MT.TXT|IF NOT ERRORLEVEL 1 ECHO PUSH-OK >> C:\MT.TXT|C:\MAXTEXT /MODE:80x25 >> C:\MT.TXT|C:\MAXTEXT /POP >> C:\MT.TXT|IF NOT ERRORLEVEL 1 ECHO POP-OK >> C:\MT.TXT|C:\MAXTEXT /STATUS >> C:\MT.TXT|C:\MAXTEXT /PUSH >> C:\MT.TXT|C:\MAXTEXT /POP >> C:\MT.TXT|IF NOT ERRORLEVEL 1 ECHO POP-SAME-OK >> C:\MT.TXT|C:\MAXTEXT /POP >> C:\MT.TXT|IF ERRORLEVEL 4 ECHO POP-EMPTY-OK >> C:\MT.TXT'
+r=$ROOT/build/test-maxtext/msdos622-pushpop/result.txt
+rg -q 'PUSH-OK' "$r" && rg -q 'POP-OK' "$r" && rg -q 'VGA rows .*: 43' "$r" && rg -q 'POP-SAME-OK' "$r" && rg -q 'API result: 6' "$r" && rg -q 'POP-EMPTY-OK' "$r" || { cat "$r"; exit 1; }
+echo PASS
 boot msdos622 missing '' 'C:\MAXTEXT /STATUS > C:\MT.TXT|IF ERRORLEVEL 1 ECHO MISSING-PASS >> C:\MT.TXT'
 rg -q 'MISSING-PASS' "$ROOT/build/test-maxtext/msdos622-missing/result.txt"
 echo PASS

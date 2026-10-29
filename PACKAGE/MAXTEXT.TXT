@@ -39,11 +39,15 @@ Commands after boot:
   MAXTEXT /MODE:80x60
   MAXTEXT /MODE:132x60
   MAXTEXT /RESTORE
+  MAXTEXT /PUSH
+  MAXTEXT /POP
   MAXTEXT /HELP
 
 SELECT offers only discovered modes; type a number, or 0/Esc to cancel.
-RESTORE returns to boot geometry and clears the screen. Mode changes also
-clear the display. Exit codes: 0 success, 1 missing/incompatible driver,
+RESTORE returns to boot geometry and clears the screen. PUSH remembers the
+current geometry (set by MAXTEXT, MODE or a program) without a change; POP
+returns to the last remembered one, e.g. after a program that left 80x25
+(still active:  no change). Mode changes also clear the display. Exit codes: 0 success, 1 missing/incompatible driver,
 2 unsupported syntax/mode, 3 temporary allocation failure, 4 transaction
 failure (the printed API result distinguishes causes).
 

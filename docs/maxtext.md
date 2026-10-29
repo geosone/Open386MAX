@@ -110,6 +110,8 @@ MAXTEXT /MODE:80x50
 MAXTEXT /MODE:80x60
 MAXTEXT /MODE:132x60
 MAXTEXT /RESTORE
+MAXTEXT /PUSH
+MAXTEXT /POP
 ```
 
 `/SELECT` numbers the available modes; press the number to switch or
@@ -118,7 +120,11 @@ capability bitmap before requesting a transaction.
 
 Mode changes clear the screen on success. `/RESTORE` selects the supported
 **boot geometry**, also clearing the screen; it does not restore the boot
-screen's contents. `/HELP` lists commands. Exit codes are 0 success,
+screen's contents. `/PUSH` remembers the current geometry, whoever set it
+(MAXTEXT, MODE or a program), without changing anything; `/POP` returns to
+the last remembered one, so a batch file or shell can bring back the mode
+that was active before a program that left 80x25. `/POP` on a geometry
+that is still active changes nothing and keeps the screen. `/HELP` lists commands. Exit codes are 0 success,
 1 missing/incompatible device, 2 unsupported syntax/mode, 3 scratch
 allocation failure, and 4 a rejected/failed mode transaction.
 
@@ -137,7 +143,10 @@ Initialization requires an active VGA indication from INT 10h/1A00h,
 INT 10h/1B00h functionality information advertising mode 3, 350/400 scan
 lines and font loading, and a bounded INT 10h/1C00h state size. The VGA
 hint alone never grants mode capabilities. Unknown hardware has an empty
-mode bitmap. A separately identified PCI Cirrus GD5446 can additionally
+mode bitmap. The attribute controller is only read, and its index is read in
+the index phase (3DAh first):  some adapters, QEMU's standard VGA among
+them, read 3C0h as 0 in the data phase a BIOS mode set leaves, and writing
+that back would clear the palette address source and blank the display. A separately identified PCI Cirrus GD5446 can additionally
 provide native 80x60. Native 132-column, 100-column and 160x100 modes remain
 unsupported; see the [native backend notes](maxtext-native-svga.md).
 
@@ -234,7 +243,7 @@ the mode change (reason 2); insufficient loader-provided space fails with
 reason 6. Runtime IOCTLs always use the full uncompressed 104 KiB buffer.
 Other reason numbers are the public transaction results below.
 
-## Public API 1.2
+## Public API 1.3
 
 Open the eight-character device name `MAXTEXT$` with INT 21h/3D02h.
 Use 4400h to verify the handle refers to a device, then 4402h to retrieve
@@ -248,7 +257,7 @@ All words are unsigned little endian; structures are byte packed:
 | Status offset | Size | Meaning |
 | --- | --- | --- |
 | 00h | 4 | ASCII MXT1 |
-| 04h | 2 | ABI version 0102h; accept known major and supported minor |
+| 04h | 2 | ABI version 0103h; accept known major and supported minor |
 | 06h | 2 | Size 24 |
 | 08h | 2 | Bit 0: VGA BIOS hint; bit 1: validated VBE text backend; bit 2: native GD5446 backend |
 | 0Ah | 1 | Current raw BDA mode |
@@ -265,7 +274,7 @@ buffers retain their trailing bytes. BDA fields are read on every query;
 they are diagnostic BIOS metadata and can be stale in graphics modes.
 The bitmap reports discovered backend capabilities, not permission to
 switch inside an unsupported current context. The 24-byte prefix remains
-compatible with ABI 1.1 and 1.0 (the latter had a zero bitmap). Bits 0..7
+compatible with ABI 1.2, 1.1 and 1.0 (the latter had a zero bitmap). Bits 0..7
 select 80x25, 80x43, 80x50, 80x60, 132x25, 132x43, 132x50 and 132x60,
 respectively. Older clients should ignore unknown capability bits.
 `MTEXAPI 80x60` demonstrates a geometry request without linking QUILIB.
@@ -275,7 +284,7 @@ Use INT 21h/4403h, BX=handle, CX=16, DS:DX=control packet:
 | Control offset | Size | Meaning |
 | --- | --- | --- |
 | 00h | 4 | ASCII MXTC |
-| 04h | 2 | Command 1=set requested geometry; 2=restore boot geometry |
+| 04h | 2 | Command 1=set requested geometry; 2=restore boot geometry; 3=PUSH; 4=POP (ABI 1.3) |
 | 06h | 2 | Columns (80 or 132 for supported SET) |
 | 08h | 2 | Rows (25, 43, 50 or 60 for supported SET) |
 | 0Ah | 2 | Scratch DOS segment, offset zero |
@@ -283,10 +292,23 @@ Use INT 21h/4403h, BX=handle, CX=16, DS:DX=control packet:
 | 0Eh | 2 | Returned operation result |
 
 For RESTORE, input columns/rows are ignored and the selected boot geometry
-is returned. Require ABI >=1.1 before sending control requests. A success
+is returned.
+
+PUSH (ABI 1.3) validates the current context and geometry like SET does
+before a transaction and stores its columns and rows on a four-entry stack;
+it needs no scratch, changes nothing and returns the geometry. A full stack
+drops its oldest entry, so an abandoned entry cannot block later clients.
+A geometry MAXTEXT could not set again is refused (result 1, or 3 for an
+unsupported context). POP takes the top entry and returns it: if it is the
+current geometry, nothing is changed and the screen kept; otherwise it is a
+SET of that geometry with the same scratch rules. POP with nothing
+remembered returns result 6. The entry is removed even when the SET fails,
+so pushes and pops stay paired. Shells push at start and pop on exit;
+nested clients (a shell starting MaxView) each push and pop their own. Require ABI >=1.1 before sending control requests. A success
 returns carry clear, AX=16 and result 0. A validated packet reports result
 1=unsupported, 2=bad scratch buffer, 3=unsupported context, 4=target failed
-verification with rollback completed, 5=state/rollback failure. On failure,
+verification with rollback completed, 5=state/rollback failure, 6=POP
+with nothing remembered. On failure,
 carry is set and the transferred count is zero. Malformed signatures or
 packet sizes need not have a result: rely on the DOS error first.
 Never use any scratch data after freeing the block.

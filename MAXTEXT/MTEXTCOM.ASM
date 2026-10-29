@@ -86,8 +86,20 @@ skip_space:
     je list_modes
     mov di,offset arg_restore
     call equal
-    jne try_mode25
+    jne try_push
     mov word ptr command+4,MT_RESTORE
+    jmp change_mode
+try_push:
+    mov di,offset arg_push
+    call equal
+    jne try_pop
+    mov word ptr command+4,MT_PUSH
+    jmp change_mode
+try_pop:
+    mov di,offset arg_pop
+    call equal
+    jne try_mode25
+    mov word ptr command+4,MT_POP
     jmp change_mode
 try_mode25:
     mov di,offset arg_select
@@ -265,7 +277,7 @@ change_mode:
     call query
     jc failed
     cmp word ptr command+4,MT_RESTORE
-    je change_available
+    jae change_available       ; (RESTORE, PUSH, POP:  no mode table)
     mov si,offset client_modes
 change_find:
     mov ax,[si+4]
@@ -290,6 +302,11 @@ change_available:
     jc allocation_failed
     cmp word ptr buffer+MT_VER,0101h
     jb mode_api_old
+    cmp word ptr command+4,MT_PUSH
+    jb change_send
+    cmp word ptr buffer+MT_VER,0103h
+    jb mode_api_old
+change_send:
     call send_command
     pushf
     call release_work
@@ -330,6 +347,8 @@ compare_end:
 equal endp
 include MTCLIENT.INC
 arg_restore db '/RESTORE',0
+arg_push db '/PUSH',0
+arg_pop db '/POP',0
 arg_mode25 db '/MODE:80X25',0
 arg_mode43 db '/MODE:80X43',0
 arg_mode50 db '/MODE:80X50',0
@@ -364,6 +383,7 @@ arg_status db '/STATUS',0
 arg_list db '/LIST',0
 usage db 'MAXTEXT /STATUS /LIST /SELECT /MODE:COLSxROWS',13,10
       db '/RESTORE (boot geometry, clears screen) /HELP',13,10
+      db '/PUSH (remember the current geometry) /POP (back to it)',13,10
       db 'CONFIG.SYS: /MODE=COLSxROWS /FONT=ROM or /FONT=UNSCII',13,10,'$'
 unsupported db 'MAXTEXT: unsupported option or mode.',13,10,'$'
 no_modes db 'No validated selectable modes.',13,10,'$'

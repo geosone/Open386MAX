@@ -1,6 +1,6 @@
-/* MAXTEXT.H - Public DOS MAXTEXT API 1.2 packet definitions
+/* MAXTEXT.H - Public DOS MAXTEXT API 1.3 packet definitions
  *
- * Public DOS MAXTEXT ABI 1.2. Use INT 21h handle IOCTL, never a private
+ * Public DOS MAXTEXT ABI 1.3. Use INT 21h handle IOCTL, never a private
  * interrupt number or DOS device-chain offsets. See docs/maxtext.md.
  *
  * Copyright: Open 386MAX contributors 2026.
@@ -10,7 +10,7 @@
 
 #ifndef OPEN386MAX_MAXTEXT_H
 #define OPEN386MAX_MAXTEXT_H
-#define MT_API_VERSION 0x0102
+#define MT_API_VERSION 0x0103
 #define MT_MODE_80X25 1
 #define MT_MODE_80X43 2
 #define MT_MODE_80X50 4
@@ -24,6 +24,8 @@
 #define MT_FLAG_NATIVE 4
 #define MT_CMD_SET 1
 #define MT_CMD_RESTORE 2
+#define MT_CMD_PUSH 3      /* 1.3:  remember the current geometry */
+#define MT_CMD_POP 4       /* 1.3:  back to the last remembered one */
 #define MT_SCRATCH_PARAS 0x1a00
 #define MT_RESULT_OK 0
 #define MT_RESULT_UNSUPPORTED 1
@@ -31,6 +33,7 @@
 #define MT_RESULT_CONTEXT 3
 #define MT_RESULT_VERIFY 4
 #define MT_RESULT_ROLLBACK 5
+#define MT_RESULT_EMPTY 6
 #pragma pack(push,1)
 typedef struct {
     char signature[4];             /* MXT1 */

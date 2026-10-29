@@ -13,6 +13,8 @@ control_ptr dd 0
 work_seg dw 0
 boot_cols dw 80
 boot_rows dw 0
+geo_depth dw 0                ; PUSH/POP:  remembered columns, rows
+geo_stack dw MT_STACK*2 dup (0)
 target_cols dw 80
 target_rows dw 0
 target_vbe dw 0
@@ -128,11 +130,17 @@ vga_read endp
 
 ; Read AC mode control without changing its data, PAS or selected index.
 ; Leave the flip-flop in its documented index phase; BIOS accesses reset it.
+; The index is read in the index phase:  a BIOS mode set leaves the data
+; phase (its last write is the index with PAS), where some adapters (QEMU's
+; standard VGA) read 3C0h as 0; written back, that would clear PAS and
+; blank the display.
 attribute_mode proc near
     pushf
     cli
     push bx
     push dx
+    mov dx,3DAh
+    in al,dx
     mov dx,3C0h
     in al,dx
     mov bl,al
@@ -540,6 +548,10 @@ control_request proc near
     mov word ptr control+14,MT_UNSUPPORTED
     cmp word ptr info+MT_MODES,0
     je control_error
+    cmp word ptr control+4,MT_PUSH
+    je control_push
+    cmp word ptr control+4,MT_POP
+    je control_pop
     cmp word ptr control+4,MT_RESTORE
     jne control_set
     mov ax,boot_rows
@@ -549,7 +561,66 @@ control_request proc near
     jmp control_dimensions
 control_set:
     cmp word ptr control+4,MT_SET
-    jne control_error
+    je control_dimensions
+    jmp control_error
+; PUSH:  the current geometry, if MAXTEXT can set it again (whoever set
+; it:  MAXTEXT, MODE, a program), onto the stack; nothing changes
+control_push:
+    mov word ptr control+14,MT_CONTEXT
+    call validate_current
+    jc control_push_bad
+    mov ax,old_cols
+    mov word ptr control+6,ax
+    mov ax,old_rows
+    mov word ptr control+8,ax
+    mov word ptr control+14,MT_UNSUPPORTED
+    call select_target
+    jc control_push_bad
+    mov bx,geo_depth
+    cmp bx,MT_STACK
+    jb control_push_room
+    mov si,offset geo_stack+4  ; full:  the oldest goes
+    mov di,offset geo_stack
+    mov cx,(MT_STACK-1)*2
+    cld
+    rep movsw
+    dec bx
+control_push_room:
+    mov geo_depth,bx
+    inc geo_depth
+    shl bx,2
+    mov ax,word ptr control+6
+    mov geo_stack[bx],ax
+    mov ax,word ptr control+8
+    mov geo_stack[bx+2],ax
+    mov word ptr control+14,MT_OK
+    jmp control_success
+control_push_bad:
+    jmp control_error
+; POP:  the last remembered geometry (columns, rows returned); still active:
+; no change, the screen kept; else as SET (it needs the scratch then)
+control_pop:
+    mov word ptr control+14,MT_EMPTY
+    mov bx,geo_depth
+    or bx,bx
+    jz control_push_bad
+    dec bx
+    mov geo_depth,bx
+    shl bx,2
+    mov ax,geo_stack[bx]
+    mov word ptr control+6,ax
+    mov ax,geo_stack[bx+2]
+    mov word ptr control+8,ax
+    call validate_current
+    jc control_dimensions
+    mov ax,old_cols
+    cmp ax,word ptr control+6
+    jne control_dimensions
+    mov ax,old_rows
+    cmp ax,word ptr control+8
+    jne control_dimensions
+    mov word ptr control+14,MT_OK
+    jmp control_success
 control_dimensions:
     call select_target
     jc control_error
