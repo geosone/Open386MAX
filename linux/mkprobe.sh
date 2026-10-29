@@ -14,7 +14,7 @@
 #        CSMWrap release (default ~/Iso/CSMWRAP/3.1.2); none:  no UEFI boot
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-VER=${VER:-1.1}
+VER=${VER:-1.2}
 SRC=$ROOT/MAXPROBE
 BIN=$ROOT/build/MAXPROBE
 OUT=$ROOT/build/maxprobe
@@ -28,8 +28,10 @@ crlf() { sed 's/$/\r/'; }
 crlf < "$SRC/AUTOEXEC.IN" > "$T/AUTOEXEC.BAT"
 printf 'FILES=20\nBUFFERS=10\nSHELL=COMMAND.COM /e:512 /p\n' | crlf > "$T/CONFIG.SYS"
 crlf < "$SRC/README.TXT" > "$T/README.TXT"
-for f in PCILIST VBELIST REGDUMP GPUINFO VGATEST; do crlf < "$SRC/$f.ASM" > "$T/$f.ASM"; done
+for f in PCILIST VBELIST REGDUMP GPUINFO SHDINFO VGATEST; do crlf < "$SRC/$f.ASM" > "$T/$f.ASM"; done
 crlf < "$SRC/AUTOEXEC.IN" > "$T/AUTOEXEC.IN"
+crlf < "$ROOT/386MAX/CSMROM.INC" > "$T/CSMROM.INC"
+crlf < "$BIN/SHDTAB.INC" > "$T/SHDTAB.INC"
 fill() {   # $1 = mtools image spec:  only kernel and shell stay, then the probe
     for f in $(mdir -b -i "$1" :: | sed 's|^::/||'); do
         case ${f^^} in KERNEL.SYS|COMMAND.COM) ;;
@@ -37,9 +39,9 @@ fill() {   # $1 = mtools image spec:  only kernel and shell stay, then the probe
         esac
     done
     mcopy -o -i "$1" "$T/AUTOEXEC.BAT" "$T/CONFIG.SYS" "$T/README.TXT" \
-        "$BIN/PCILIST.COM" "$BIN/VBELIST.COM" "$BIN/REGDUMP.COM" "$BIN/GPUINFO.COM" "$BIN/VGATEST.COM" ::/
+        "$BIN/PCILIST.COM" "$BIN/VBELIST.COM" "$BIN/REGDUMP.COM" "$BIN/GPUINFO.COM" "$BIN/SHDINFO.COM" "$BIN/VGATEST.COM" ::/
     mmd -i "$1" ::/SRC
-    mcopy -o -i "$1" "$T"/*.ASM "$T/AUTOEXEC.IN" ::/SRC/
+    mcopy -o -i "$1" "$T"/*.ASM "$T"/*.INC "$T/AUTOEXEC.IN" ::/SRC/
 }
 F=$OUT/maxprobe-$VER-disk.img
 cp "$SVF" "$F"; chmod u+w "$F"

@@ -1,4 +1,4 @@
-MAXPROBE 1.1 - Grafikkarten-Test fuer Open 386MAX / MAXTEXT
+MAXPROBE 1.2 - Grafikkarten-Test fuer Open 386MAX / MAXTEXT
 ============================================================
 
 Was es tut
@@ -6,13 +6,15 @@ Was es tut
 MAXPROBE startet ein kleines DOS (SvarDOS) und sammelt Daten ueber die
 Grafikkarte:  welche Karte (PCI-Kennung), welche VESA-Modi ihr BIOS
 anbietet, ob der VGA-Kern der Karte erreichbar und eingeschaltet
-ist (nur gelesen), die Inhalte der VGA-Register, und in einem Bildtest, welche
+ist (nur gelesen), BIOS-Hersteller und -Version, Speicheraufteilung
+und Shadow-RAM (fuer 386MAX), die Inhalte der VGA-Register, und in einem Bildtest, welche
 Textmodi (80/90 Spalten, 25-60 Zeilen, VESA-Textmodi) der Bildschirm
 wirklich sauber anzeigt.  Damit soll MAXTEXT moeglichst viele Textmodi
 auf moeglichst vielen Karten unterstuetzen, auch auf neuen von Intel,
 AMD und NVIDIA.
 
-Es wird NICHTS auf die Festplatte geschrieben.  Nur REPORT.TXT (und
+Es wird NICHTS auf die Festplatte geschrieben.  Seriennummern des
+Rechners werden nicht ausgelesen.  Nur REPORT.TXT (und
 ein paar Zwischendateien) landen auf dem MAXPROBE-Stick/der Diskette.
 
 Benoetigt
@@ -45,8 +47,8 @@ Ablauf
 5. Bleibt der Rechner vorher haengen (keine Reaktion mehr, auch nicht
    nach einigen Minuten):  ausschalten und statt REPORT.TXT die Dateien
    schicken, die auf dem Stick/der Diskette liegen:  1PCI.TXT, 2VBE.TXT,
-   4GPU.TXT, 3REG.TXT und VGA.TXT (soweit vorhanden), dazu, bei welchem
-   Schritt ([1/5] bis [5/5]) er stehen blieb.
+   4GPU.TXT, 5MEM.TXT, 3REG.TXT und VGA.TXT (soweit vorhanden), dazu,
+   bei welchem Schritt ([1/6] bis [6/6]) er stehen blieb.
 
 Ohne BIOS-Modus (CSMWrap)
 -------------------------
@@ -60,19 +62,20 @@ anlegen.  Bitte im Issue angeben, ob das so gemacht wurde.
 
 Lizenzen
 --------
-MAXPROBE-Werkzeuge (PCILIST, VBELIST, REGDUMP, GPUINFO, VGATEST):  GPL 3, Quelltext
+MAXPROBE-Werkzeuge (PCILIST, VBELIST, REGDUMP, GPUINFO, SHDINFO, VGATEST):  GPL 3, Quelltext
 im Verzeichnis SRC.  CSMWrap (USB-Image):  GNU LGPL 2.1, siehe CSMWRAP.TXT.
 SvarDOS-Kernel (Enhanced DR-DOS) und SvarCOM:  siehe
 http://svardos.org und https://github.com/SvarDOS/edrdos
 
 
-MAXPROBE 1.1 - graphics card probe for Open 386MAX / MAXTEXT
+MAXPROBE 1.2 - graphics card probe for Open 386MAX / MAXTEXT
 =============================================================
 
 MAXPROBE boots a small DOS (SvarDOS) and collects data about the graphics
 card:  which card (PCI IDs), the VESA modes its BIOS offers, the VGA
 register contents, whether the card's VGA core is reachable and on
-(only read), and in a picture test which text modes (80/90 columns,
+(only read), BIOS vendor and version, the memory map and shadow RAM
+(for 386MAX), and in a picture test which text modes (80/90 columns,
 25-60 rows, VESA text modes) the screen really shows clean.  Nothing is
 written to the hard disk; REPORT.TXT (and a few temporary files) go to the
 MAXPROBE stick/floppy only.
@@ -88,8 +91,8 @@ attach REPORT.TXT, with the PC and graphics card model, to an issue at
 https://github.com/geosone/Open386MAX/issues (title "MAXPROBE: <card>").
 If the PC hangs before "Done!" (no reaction even after some minutes),
 switch it off and send the files on the stick/floppy instead:  1PCI.TXT,
-2VBE.TXT, 4GPU.TXT, 3REG.TXT and VGA.TXT (those present), and the step
-([1/5] to [5/5]) where it stopped.
+2VBE.TXT, 4GPU.TXT, 5MEM.TXT, 3REG.TXT and VGA.TXT (those present), and
+the step ([1/6] to [6/6]) where it stopped.
 Under CSMWrap the card's own VGA BIOS runs when its ROM still has one,
 else SeaVGABIOS; REPORT.TXT shows which (VBE vendor).  A VGA BIOS file
 can be given as EFI\BOOT\VGABIOS.BIN with EFI\BOOT\CSMWRAP.INI holding

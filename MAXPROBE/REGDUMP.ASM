@@ -14,10 +14,24 @@
         .code
         org 100h
 start:  cld
+        mov dx,offset targs     ; the command tail as received
+        call puts
+        mov si,81h
+        movzx cx,byte ptr ds:[80h]
+@@:     jcxz @F
+        lodsb
+        mov dl,al
+        call pchar
+        loop @B
+@@:     call crlf
         mov si,81h
 arg:    call skipsp
         cmp al,13
         je  quit
+        test al,al
+        je  quit
+        cmp si,0FFh
+        jae quit
         cmp al,'S'
         je  fs3
         cmp al,'s'
@@ -34,8 +48,13 @@ arg:    call skipsp
         je  fvbe
         cmp al,'t'
         je  fts
+        mov di,si
         call gethex
-        mov [mode],bx
+        cmp si,di               ; no hex digit:  skip the character
+        jne @F
+        inc si
+        jmp arg
+@@:     mov [mode],bx
         push si
         call dump
         pop si
@@ -285,6 +304,12 @@ nib:    push ax
         call putc
         pop ax
         ret
+pchar:  cmp dl,20h
+        jb  @F
+        cmp dl,7Eh
+        jbe putc
+@@:     mov dl,'.'
+        jmp short putc
 space:  mov dl,' '
         jmp short putc
 crlf:   mov dl,13
@@ -301,6 +326,7 @@ puts:   push ax
         pop ax
         ret
 
+targs   db 'ARGS $'
 tmode   db 'MODE $'
 tres    db ' VBE $'
 tbda    db ' BDA mode/cols/rows-1/charh $'

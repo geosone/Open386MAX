@@ -7,13 +7,19 @@
 # -> build/MAXPROBE.  The bootable images:  linux/mkprobe.sh.
 ROOT := $(abspath ..)
 OUT  := $(ROOT)/build/MAXPROBE
-PROGS := PCILIST.COM VBELIST.COM REGDUMP.COM GPUINFO.COM VGATEST.COM
+PROGS := PCILIST.COM VBELIST.COM REGDUMP.COM GPUINFO.COM SHDINFO.COM VGATEST.COM
 
 all: $(addprefix $(OUT)/,$(PROGS))
 
 $(OUT)/%.COM: %.ASM
 	mkdir -p $(OUT)
-	$(ROOT)/linux/bin/jwasm -q -bin -Fo=$@ $<
+	$(ROOT)/linux/bin/jwasm -q -bin -I$(OUT) -I$(ROOT)/386MAX -Fo=$@ $<
+
+# SHDINFO uses 386MAX's host bridge table and CSM_ROMMAP
+$(OUT)/SHDTAB.INC: $(ROOT)/386MAX/SHADOWRAM.TXT $(ROOT)/linux/tools/shdtab.py
+	mkdir -p $(OUT)
+	python3 $(ROOT)/linux/tools/shdtab.py $< $@ $(OUT)/SHDTAB.H
+$(OUT)/SHDINFO.COM: $(OUT)/SHDTAB.INC $(ROOT)/386MAX/CSMROM.INC
 
 clean:
 	rm -rf $(OUT)
