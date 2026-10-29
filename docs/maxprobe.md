@@ -75,13 +75,25 @@ Every step writes its own file, so a hang leaves the earlier data:
    column marks; J/Y = complete and clean, N = not, Esc = stop, no key
    within the time (20 s) = timeout.  Each line is committed to disk at once.
 
+7. `GFXTEST` (`GFX.TXT`), for MAXVESA's text in a graphics mode:  EDID by
+   VBE/DDC (4F15h; the 128 bytes, maker, product, preferred resolution and
+   pixel clock, monitor name; a block without the EDID header counts as
+   none), every VBE graphics mode with resolution, depth, memory model,
+   bytes per line (VBE 3:  LinBytesPerScanLine), linear frame buffer
+   address and attributes, then the same picture test as VGATEST in up to
+   three LFB modes (the EDID resolution, 1024x768, the largest; packed 8
+   or direct 15/16/24/32 bits, the most bits first):  the BIOS 8x16 font
+   (INT 10h 1130h) drawn into the frame buffer in unreal mode with A20 on,
+   a grid of width/8 x height/16 cells with frame, column marks, row
+   numbers and the prompt.
+
 The 90-column modes keep mode 3's 28 MHz clock and scale its horizontal
 timing from 9- to 8-dot cells (total 113, display 90, blanking 90-110,
 sync 96-109:  31.3 kHz).  The 480-line modes use mode 12h's vertical timing
 with both sync polarities negative.  Only standard VGA registers and BIOS
 calls are used.
 
-`REPORT.TXT` joins the six files.  Testers attach it to an issue titled
+`REPORT.TXT` joins the seven files.  Testers attach it to an issue titled
 "MAXPROBE: <card>"; when the PC hangs before the end, they send the step
 files present instead and name the step where it stopped.  `REGDUMP`
 starts its output with the command tail it received (`ARGS`) and skips
@@ -99,7 +111,10 @@ under KVM it does not (4/4), as docs/shadowram.md says; UEFI with
 CSMWrap shows the CSM table, its UMA and the open option ROM space
 (map 07F8h).  QEMU q35 with TCG can hang in SeaBIOS's SMM call path
 during the VGA mode switches (CPU in SMM at A000:8000), depending on the
-memory layout; with KVM the same image runs through.  Under CSMWrap the card's own VGA BIOS runs when its option ROM
+memory layout; with KVM the same image runs through.  GFXTEST:  standard
+VGA (EDID "RHT" 1280x800; 1280x800x32, 1024x768x32, 3840x2160x16) and,
+under CSMWrap, bochs-display without VGA registers (1024x768x32,
+1280x800x32; its EDID block is empty):  the grid complete in every mode.  Under CSMWrap the card's own VGA BIOS runs when its option ROM
 still holds one (else SeaVGABIOS); `csmwrap.ini` `vgabios=` names a VBIOS
 file instead.  86Box:  the floppy on the emulated Tseng ET4000 (an ISA card,
 so no PCI display line).

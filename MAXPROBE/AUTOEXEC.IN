@@ -1,7 +1,7 @@
 @ECHO OFF
 CLS
 ECHO.
-ECHO  MAXPROBE 1.2  (Open 386MAX / MAXTEXT, GPL)
+ECHO  MAXPROBE 1.3  (Open 386MAX / MAXTEXT, GPL)
 ECHO  ==========================================
 ECHO  Sammle Grafikkarten-Daten, bitte warten ...
 ECHO  Collecting graphics card data, please wait ...
@@ -30,18 +30,21 @@ ECHO  [6/6] Bildtest / picture test
 ECHO.
 ECHO  Es folgen einige Textmodi mit einem Rahmen und Zeilennummern.
 ECHO  Druecke J, wenn Rahmen und alle Zeilen sauber und vollstaendig
-ECHO  zu sehen sind, sonst N.  Bleibt der Bildschirm schwarz oder
+ECHO  zu sehen sind, sonst N.  Danach dasselbe in bis zu drei
+ECHO  Grafikmodi mit hoher Aufloesung.  Bleibt der Bildschirm schwarz oder
 ECHO  meldet der Monitor "kein Signal", einfach warten: nach 20
 ECHO  Sekunden geht es von selbst weiter.  Esc bricht den Test ab.
 ECHO.
 ECHO  Some text modes with a frame and row numbers follow.  Press Y
 ECHO  if the frame and all rows are shown clean and complete, else N.
+ECHO  Then the same in up to three high resolution graphics modes.
 ECHO  If the screen stays black or the monitor says "no signal", just
 ECHO  wait:  it continues by itself after 20 seconds.  Esc stops.
 ECHO.
 PAUSE
 VGATEST 20
-ECHO MAXPROBE 1.2 > REPORT.TXT
+GFXTEST 20
+ECHO MAXPROBE 1.3 > REPORT.TXT
 ECHO ===== PCI >> REPORT.TXT
 TYPE 1PCI.TXT >> REPORT.TXT
 ECHO ===== VBE >> REPORT.TXT
@@ -52,6 +55,8 @@ ECHO ===== BIOS AND MEMORY >> REPORT.TXT
 TYPE 5MEM.TXT >> REPORT.TXT
 ECHO ===== PICTURE TEST >> REPORT.TXT
 TYPE VGA.TXT >> REPORT.TXT
+ECHO ===== GRAPHICS TEXT TEST >> REPORT.TXT
+TYPE GFX.TXT >> REPORT.TXT
 ECHO ===== REGISTERS >> REPORT.TXT
 TYPE 3REG.TXT >> REPORT.TXT
 CLS

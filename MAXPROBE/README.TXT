@@ -1,4 +1,4 @@
-MAXPROBE 1.2 - Grafikkarten-Test fuer Open 386MAX / MAXTEXT
+MAXPROBE 1.3 - Grafikkarten-Test fuer Open 386MAX / MAXTEXT
 ============================================================
 
 Was es tut
@@ -38,7 +38,9 @@ Ablauf
 2. Die ersten Schritte laufen allein (einige Sekunden).
 3. Bildtest:  Fuer jeden Modus J druecken, wenn Rahmen und alle Zeilen-
    nummern sauber und vollstaendig zu sehen sind, sonst N.  Bleibt das
-   Bild schwarz:  warten, nach 20 Sekunden geht es weiter.
+   Bild schwarz:  warten, nach 20 Sekunden geht es weiter.  Danach
+   folgen bis zu drei Grafikmodi mit hoher Aufloesung und demselben
+   Bild (Text in Grafik); auch hier J oder N.
 4. "Fertig!" erscheint.  Rechner ausschalten, Stick an einen anderen
    Rechner stecken und REPORT.TXT schicken, zusammen mit dem Modell von
    Rechner und Grafikkarte (und ob ueber Onboard-Grafik oder Karte):
@@ -47,7 +49,7 @@ Ablauf
 5. Bleibt der Rechner vorher haengen (keine Reaktion mehr, auch nicht
    nach einigen Minuten):  ausschalten und statt REPORT.TXT die Dateien
    schicken, die auf dem Stick/der Diskette liegen:  1PCI.TXT, 2VBE.TXT,
-   4GPU.TXT, 5MEM.TXT, 3REG.TXT und VGA.TXT (soweit vorhanden), dazu,
+   4GPU.TXT, 5MEM.TXT, 3REG.TXT, VGA.TXT und GFX.TXT (soweit vorhanden), dazu,
    bei welchem Schritt ([1/6] bis [6/6]) er stehen blieb.
 
 Ohne BIOS-Modus (CSMWrap)
@@ -62,13 +64,14 @@ anlegen.  Bitte im Issue angeben, ob das so gemacht wurde.
 
 Lizenzen
 --------
-MAXPROBE-Werkzeuge (PCILIST, VBELIST, REGDUMP, GPUINFO, SHDINFO, VGATEST):  GPL 3, Quelltext
+MAXPROBE-Werkzeuge (PCILIST, VBELIST, REGDUMP, GPUINFO, SHDINFO, VGATEST,
+GFXTEST):  GPL 3, Quelltext
 im Verzeichnis SRC.  CSMWrap (USB-Image):  GNU LGPL 2.1, siehe CSMWRAP.TXT.
 SvarDOS-Kernel (Enhanced DR-DOS) und SvarCOM:  siehe
 http://svardos.org und https://github.com/SvarDOS/edrdos
 
 
-MAXPROBE 1.2 - graphics card probe for Open 386MAX / MAXTEXT
+MAXPROBE 1.3 - graphics card probe for Open 386MAX / MAXTEXT
 =============================================================
 
 MAXPROBE boots a small DOS (SvarDOS) and collects data about the graphics
@@ -86,12 +89,15 @@ image contains CSMWrap and boots there too (Secure Boot off; possibly also
 Write MAXPROBE-USB.IMG to a stick (all its data is lost!) with dd, Rufus
 (DD image) or Win32 Disk Imager; MAXPROBE.IMG to a floppy.  Boot it,
 answer the picture test with Y (frame and all row numbers complete and
-clean) or N; a black screen continues by itself after 20 seconds.  Then
+clean) or N; a black screen continues by itself after 20 seconds.  The
+same picture follows in up to three high resolution graphics modes (text
+drawn into the frame buffer); answer Y or N there as well.  Then
 attach REPORT.TXT, with the PC and graphics card model, to an issue at
 https://github.com/geosone/Open386MAX/issues (title "MAXPROBE: <card>").
 If the PC hangs before "Done!" (no reaction even after some minutes),
 switch it off and send the files on the stick/floppy instead:  1PCI.TXT,
-2VBE.TXT, 4GPU.TXT, 5MEM.TXT, 3REG.TXT and VGA.TXT (those present), and
+2VBE.TXT, 4GPU.TXT, 5MEM.TXT, 3REG.TXT, VGA.TXT and GFX.TXT (those
+present), and
 the step ([1/6] to [6/6]) where it stopped.
 Under CSMWrap the card's own VGA BIOS runs when its ROM still has one,
 else SeaVGABIOS; REPORT.TXT shows which (VBE vendor).  A VGA BIOS file
