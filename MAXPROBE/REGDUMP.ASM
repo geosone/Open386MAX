@@ -6,7 +6,8 @@
 ; REGDUMP.COM mode [mode ...] [S] [T]:  sets each mode (hex; >=100h by VBE
 ; 4F02h, else INT 10h AH=00h), reads BDA, MISC, SEQ/CRTC/GC 00-7Fh and
 ; ATTR 00-1Fh, returns to mode 3 and prints the dump.  S unlocks S3
-; (CR38=48h, CR39=A5h), T Tseng (3BFh=3, 3D8h=A0h), N NVIDIA (CR1F=57h)
+; (CR38=48h, CR39=A5h), T Tseng (3BFh=3, 3D8h=A0h), N NVIDIA (CR1F=57h,
+; CR3F=57h from NV50 on)
 ; before reading; V dumps every VBE text mode the BIOS lists.
         .model tiny
         .386
@@ -140,7 +141,9 @@ setd:   cmp [s3],0
 @@:     cmp [nvidia],0
         je  @F
         mov dx,3D4h
-        mov ax,571Fh
+        mov ax,571Fh            ; up to NV4x
+        out dx,ax
+        mov ax,573Fh            ; NV50 and later
         out dx,ax
 @@:     cmp [tseng],0
         je  @F

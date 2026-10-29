@@ -7,7 +7,7 @@
 # -> build/MAXPROBE.  The bootable images:  linux/mkprobe.sh.
 ROOT := $(abspath ..)
 OUT  := $(ROOT)/build/MAXPROBE
-PROGS := PCILIST.COM VBELIST.COM REGDUMP.COM VGATEST.COM
+PROGS := PCILIST.COM VBELIST.COM REGDUMP.COM GPUINFO.COM VGATEST.COM
 
 all: $(addprefix $(OUT)/,$(PROGS))
 

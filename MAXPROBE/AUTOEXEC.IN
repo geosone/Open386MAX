@@ -1,7 +1,7 @@
 @ECHO OFF
 CLS
 ECHO.
-ECHO  MAXPROBE 1.0  (Open 386MAX / MAXTEXT, GPL)
+ECHO  MAXPROBE 1.1  (Open 386MAX / MAXTEXT, GPL)
 ECHO  ==========================================
 ECHO  Sammle Grafikkarten-Daten, bitte warten ...
 ECHO  Collecting graphics card data, please wait ...
@@ -9,20 +9,22 @@ ECHO.
 ECHO  Nur dieses Laufwerk wird beschrieben (REPORT.TXT).
 ECHO  Only this drive is written to (REPORT.TXT).
 ECHO.
-ECHO [1/4] PCI
+ECHO [1/5] PCI
 PCILIST > 1PCI.TXT
 SET RF=
 IF ERRORLEVEL 1 SET RF=N
 IF ERRORLEVEL 2 SET RF=
 IF ERRORLEVEL 4 SET RF=S
 IF ERRORLEVEL 5 SET RF=
-ECHO [2/4] VBE
+ECHO [2/5] VBE
 VBELIST > 2VBE.TXT
-ECHO [3/4] VGA registers
+ECHO [3/5] VGA core state
+GPUINFO > 4GPU.TXT
+ECHO [4/5] VGA registers
 REGDUMP %RF% 3 1 12 V > 3REG.TXT
 CLS
 ECHO.
-ECHO  [4/4] Bildtest / picture test
+ECHO  [5/5] Bildtest / picture test
 ECHO.
 ECHO  Es folgen einige Textmodi mit einem Rahmen und Zeilennummern.
 ECHO  Druecke J, wenn Rahmen und alle Zeilen sauber und vollstaendig
@@ -37,11 +39,13 @@ ECHO  wait:  it continues by itself after 20 seconds.  Esc stops.
 ECHO.
 PAUSE
 VGATEST 20
-ECHO MAXPROBE 1.0 > REPORT.TXT
+ECHO MAXPROBE 1.1 > REPORT.TXT
 ECHO ===== PCI >> REPORT.TXT
 TYPE 1PCI.TXT >> REPORT.TXT
 ECHO ===== VBE >> REPORT.TXT
 TYPE 2VBE.TXT >> REPORT.TXT
+ECHO ===== VGA CORE >> REPORT.TXT
+TYPE 4GPU.TXT >> REPORT.TXT
 ECHO ===== PICTURE TEST >> REPORT.TXT
 TYPE VGA.TXT >> REPORT.TXT
 ECHO ===== REGISTERS >> REPORT.TXT
