@@ -42,6 +42,11 @@ Ablauf
    Rechner und Grafikkarte (und ob ueber Onboard-Grafik oder Karte):
    als Issue an https://github.com/geosone/Open386MAX/issues
    Titel "MAXPROBE: <Grafikkarte>", REPORT.TXT als Anhang.
+5. Bleibt der Rechner vorher haengen (keine Reaktion mehr, auch nicht
+   nach einigen Minuten):  ausschalten und statt REPORT.TXT die Dateien
+   schicken, die auf dem Stick/der Diskette liegen:  1PCI.TXT, 2VBE.TXT,
+   4GPU.TXT, 3REG.TXT und VGA.TXT (soweit vorhanden), dazu, bei welchem
+   Schritt ([1/5] bis [5/5]) er stehen blieb.
 
 Ohne BIOS-Modus (CSMWrap)
 -------------------------
@@ -81,6 +86,10 @@ answer the picture test with Y (frame and all row numbers complete and
 clean) or N; a black screen continues by itself after 20 seconds.  Then
 attach REPORT.TXT, with the PC and graphics card model, to an issue at
 https://github.com/geosone/Open386MAX/issues (title "MAXPROBE: <card>").
+If the PC hangs before "Done!" (no reaction even after some minutes),
+switch it off and send the files on the stick/floppy instead:  1PCI.TXT,
+2VBE.TXT, 4GPU.TXT, 3REG.TXT and VGA.TXT (those present), and the step
+([1/5] to [5/5]) where it stopped.
 Under CSMWrap the card's own VGA BIOS runs when its ROM still has one,
 else SeaVGABIOS; REPORT.TXT shows which (VBE vendor).  A VGA BIOS file
 can be given as EFI\BOOT\VGABIOS.BIN with EFI\BOOT\CSMWRAP.INI holding

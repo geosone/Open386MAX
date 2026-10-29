@@ -66,7 +66,8 @@ with both sync polarities negative.  Only standard VGA registers and BIOS
 calls are used.
 
 `REPORT.TXT` joins the five files.  Testers attach it to an issue titled
-"MAXPROBE: <card>".
+"MAXPROBE: <card>"; when the PC hangs before the end, they send the step
+files present instead and name the step where it stopped.
 
 ## Validation
 
