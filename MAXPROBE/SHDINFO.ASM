@@ -528,7 +528,11 @@ host:   mov eax,80000000h
         mov ax,word ptr [hostid+2]
         call hex4
         call crlf
-        mov si,offset SHDTAB    ; its line in SHADOWRAM.TXT
+        cmp word ptr [hostid],0FFFFh
+        jne @F
+        mov dx,offset tnohost
+        jmp puts
+@@:     mov si,offset SHDTAB    ; its line in SHADOWRAM.TXT
 hl:     mov ax,(SHDT_STR ptr [si]).SHDT_VEN
         test ax,ax
         jz  hnot
@@ -1049,6 +1053,7 @@ tfixoff db 'AMD SYSCFG:  MtrrFixDramEn off',13,10,'$'
 tmoden  db 'AMD fixed MTRRs with MtrrFixDramModEn:',13,10,'$'
 tnopci  db 'no PCI configuration mechanism #1',13,10,'$'
 thost   db 'host bridge 00:00.0 $'
+tnohost db '  no device at 00:00.0 (no host bridge there)',13,10,'$'
 tnotab  db '  not in SHADOWRAM.TXT',13,10,'$'
 tamdtab db '  SHADOWRAM.TXT:  amdmtrr',13,10,'$'
 tpamtab db '  SHADOWRAM.TXT:  pam at $'

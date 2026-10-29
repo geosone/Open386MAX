@@ -114,7 +114,11 @@ during the VGA mode switches (CPU in SMM at A000:8000), depending on the
 memory layout; with KVM the same image runs through.  GFXTEST:  standard
 VGA (EDID "RHT" 1280x800; 1280x800x32, 1024x768x32, 3840x2160x16) and,
 under CSMWrap, bochs-display without VGA registers (1024x768x32,
-1280x800x32; its EDID block is empty):  the grid complete in every mode.  Under CSMWrap the card's own VGA BIOS runs when its option ROM
+1280x800x32; its EDID block is empty):  the grid complete in every mode.  VirtualBox (VBoxVGA, VMSVGA, VBoxSVGA;
+PIIX3 and ICH9):  all steps through, GFXTEST 1024x768x32 and
+1600x1200x32 complete, no EDID (4F15h AX=0100h); VirtualBox models no
+shadow RAM (PAM registers 0, C0000-FFFFF not writable), and with ICH9 it
+has no host bridge at 00:00.0.  Under CSMWrap the card's own VGA BIOS runs when its option ROM
 still holds one (else SeaVGABIOS); `csmwrap.ini` `vgabios=` names a VBIOS
 file instead.  86Box:  the floppy on the emulated Tseng ET4000 (an ISA card,
 so no PCI display line).
