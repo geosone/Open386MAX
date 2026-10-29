@@ -20,7 +20,7 @@ PROJECTS := 386MAX 386LOAD 386DISK MEMLIMIT ROMSRCH XLAT RAMBASIC QMT EXTRADOS M
 # new components and open source replacements for original binaries (help engine,
 # version library, DOS reader for Windows help files, the MAX shell
 # reconstructed from the binary)
-NEWPROJECTS := HELPENG VERLIB HHELP QSHELL MAXTEXT
+NEWPROJECTS := HELPENG VERLIB HHELP QSHELL MAXTEXT MAXPROBE
 # Windows programs (OpenWatcom, linux/mk/win.mk) and help files
 WINPROJECTS := CTL3D SFTTABS MAXMETER MAXEDIT QPOPUP QPIFEDIT DOSMAX16 DOSMAX32 RDOSMAX MAXCTRL GOAHEAD MAXSETUP STATUTIL WINMXMZ WINASQ MAXCFG DOSHELP MAXHELP
 # DOS regression tests (TESTS/README.md) -> build/TESTS

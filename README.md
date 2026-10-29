@@ -25,6 +25,7 @@ that existed only as binaries, and develops 386MAX further:
   contracts are implemented)
 - ASQ for Windows (WINASQ)
 - [MAXTEXT](docs/maxtext.md): optional DOS hardware text-mode driver and public API
+- [MAXPROBE](docs/maxprobe.md): bootable graphics card probe collecting text-mode data for MAXTEXT
 - no serial numbers or registration; English and German
 
 Branches:  `main` is the development line (9.x, test releases such as

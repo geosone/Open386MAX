@@ -1,0 +1,60 @@
+@ECHO OFF
+CLS
+ECHO.
+ECHO  MAXPROBE 1.0  (Open 386MAX / MAXTEXT, GPL)
+ECHO  ==========================================
+ECHO  Sammle Grafikkarten-Daten, bitte warten ...
+ECHO  Collecting graphics card data, please wait ...
+ECHO.
+ECHO  Nur dieses Laufwerk wird beschrieben (REPORT.TXT).
+ECHO  Only this drive is written to (REPORT.TXT).
+ECHO.
+ECHO [1/4] PCI
+PCILIST > 1PCI.TXT
+SET RF=
+IF ERRORLEVEL 1 SET RF=N
+IF ERRORLEVEL 2 SET RF=
+IF ERRORLEVEL 4 SET RF=S
+IF ERRORLEVEL 5 SET RF=
+ECHO [2/4] VBE
+VBELIST > 2VBE.TXT
+ECHO [3/4] VGA registers
+REGDUMP %RF% 3 1 12 V > 3REG.TXT
+CLS
+ECHO.
+ECHO  [4/4] Bildtest / picture test
+ECHO.
+ECHO  Es folgen einige Textmodi mit einem Rahmen und Zeilennummern.
+ECHO  Druecke J, wenn Rahmen und alle Zeilen sauber und vollstaendig
+ECHO  zu sehen sind, sonst N.  Bleibt der Bildschirm schwarz oder
+ECHO  meldet der Monitor "kein Signal", einfach warten: nach 20
+ECHO  Sekunden geht es von selbst weiter.  Esc bricht den Test ab.
+ECHO.
+ECHO  Some text modes with a frame and row numbers follow.  Press Y
+ECHO  if the frame and all rows are shown clean and complete, else N.
+ECHO  If the screen stays black or the monitor says "no signal", just
+ECHO  wait:  it continues by itself after 20 seconds.  Esc stops.
+ECHO.
+PAUSE
+VGATEST 20
+ECHO MAXPROBE 1.0 > REPORT.TXT
+ECHO ===== PCI >> REPORT.TXT
+TYPE 1PCI.TXT >> REPORT.TXT
+ECHO ===== VBE >> REPORT.TXT
+TYPE 2VBE.TXT >> REPORT.TXT
+ECHO ===== PICTURE TEST >> REPORT.TXT
+TYPE VGA.TXT >> REPORT.TXT
+ECHO ===== REGISTERS >> REPORT.TXT
+TYPE 3REG.TXT >> REPORT.TXT
+CLS
+ECHO.
+ECHO  Fertig!  REPORT.TXT liegt jetzt auf diesem Stick / dieser Diskette.
+ECHO  Bitte REPORT.TXT mit Rechner- und Grafikkarten-Modell als Issue an
+ECHO  github.com/geosone/Open386MAX/issues  (Titel: MAXPROBE: Karte)
+ECHO.
+ECHO  Done!  REPORT.TXT is now on this stick / floppy.  Please attach it,
+ECHO  with the PC and graphics card model, to an issue at
+ECHO  github.com/geosone/Open386MAX/issues  (title: MAXPROBE: card)
+ECHO.
+ECHO  Der Rechner kann jetzt ausgeschaltet werden.
+ECHO  The PC can be switched off now.
