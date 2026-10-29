@@ -66,6 +66,22 @@ the VGA core is present; AMD's D1VGA_CONTROL (TIMING_SELECT) in the amdgpu
 DCN headers suggests the VGA core's text is scanned out with the display
 engine's timing, to be confirmed by MAXPROBE reports.
 
+### The real VGA core under CSMWrap
+
+CSMWrap runs the card's own VGA BIOS when its option ROM still holds one;
+only otherwise SeaVGABIOS (`csmwrap.ini` `vgabios=` names a VBIOS file).
+For cards without a legacy VBIOS the open Linux drivers show what keeps or
+removes the VGA core (MAXPROBE 1.1's GPUINFO reads these registers):
+
+| Vendor | VGA core switches | Re-enable from DOS |
+| --- | --- | --- |
+| Intel (i915 and xe, to current Xe display) | iGPU:  `GMCH_CTRL` (00:00.0 50h) bit 1 VGA decode disable, locked by the BIOS from Ironlake on; dGPU (Arc):  bridge VGA enable and the card's I/O decode.  `CPU_VGACNTRL` (BAR0 + 41000h) bit 31 disables the VGA plane | possible when `GMCH_CTRL` is not locked to "disabled":  clear `VGA_DISP_DISABLE`, enable I/O decode / bridge VGA, set MISC colour and memory enable, SR01 screen on (the reverse of `intel_vga_disable`) |
+| AMD (amdgpu DC) | `D1VGA_CONTROL`-`D6VGA_CONTROL` (`MODE_ENABLE`, `TIMING_SELECT`), `VGA_RENDER_CONTROL`, `VGA_MEMORY_BASE_ADDRESS`; present to DCN 3.2 (RX 7000); absent from the DCN 3.5/3.51 (APU) and DCN 4.x headers | conceivable to DCN 3.2, but register bases come from the IP discovery table in VRAM; RX 9000 and recent APUs probably have no VGA core |
+| NVIDIA (nouveau, open kernel module) | extended CRTC unlock CR1F (to NV4x) / CR3F (NV50 on) = 57h; VGA ports mirrored at BAR0 + 601000h; from Turing the VBIOS keeps a VGA workspace (`VGA_WORKSPACE_BASE`, BAR0 + 625F04h) | not documented:  NVIDIA's own driver restores text mode only through the VBIOS (INT 10h 4F02h) and gives up on UEFI ("doesn't support efifb console restore") |
+
+So a stage "re-enable the VGA core" is plausible on Intel only, and only
+after MAXPROBE reports show `GMCH_CTRL` unlocked on real machines.
+
 ## Interface
 
 * INT 10h hook, chained:  AX=4F00h (controller info; MAXVESA's modes added
@@ -132,6 +148,11 @@ mode is struck from the list until reboot.
   Lake volume 13; CC-BY-ND), AMD's RV630 register reference (VGA CRT
   registers) and the amdgpu DCN headers, NVIDIA's open-gpu-doc and envytools
   (to Maxwell):  for recognising recent cards, not for programming them.
+* Linux 7.2 (GPL 2):  i915 `display/intel_vga.c` and `intel_vga_regs.h`,
+  amdgpu `display/dc/hwss/dcn10|dcn20` and `include/asic_reg/dcn`, nouveau
+  `nvkm/engine/disp/vga.c`, `nvkm/subdev/devinit`, `nvkm/subdev/gsp`;
+  NVIDIA open kernel module 615.78.08 (`dev_disp.h` v04_00,
+  `unix_console.c`):  register names and meanings only, no code taken.
 * 386SWAT (GPL 3):  INC/VESA.INC (VBE structures), SWAT_FVM.ASM (video PTEs).
 
 ## Appendix:  extended text modes by chipset (VGADOC 4b)
