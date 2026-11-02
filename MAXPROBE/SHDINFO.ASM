@@ -1019,7 +1019,7 @@ puts:   push ax
         SHDTAB_DATA             ; SHDTAB (SHDTAB.INC of SHADOWRAM.TXT)
 
 BUFSZ   equ 7000h
-head    db 'SHDINFO 1.2',13,10,'$'
+head    db 'SHDINFO 1.3',13,10,'$'
 fin     db 'END',13,10,'$'
 tdate   db 'BIOS date $'
 tmodel  db '  model $'

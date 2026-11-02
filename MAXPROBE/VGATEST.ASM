@@ -478,8 +478,8 @@ hx:     mov [di],al
         loop @B
         mov byte ptr [di],0
         mov si,offset tmp
-logz:   push ax                 ; zero-terminated string to VGA.TXT, commit
-        push bx
+logz:   push ax                 ; zero-terminated string to VGA.TXT,
+        push bx                 ; committed when it ends a line
         push cx
         push dx
         mov dx,si
@@ -492,8 +492,11 @@ logz:   push ax                 ; zero-terminated string to VGA.TXT, commit
 @@:     mov bx,[handle]
         mov ah,40h
         int 21h
+        cmp byte ptr [si-2],10
+        jne @F
         mov ah,68h
         int 21h
+@@:
         pop dx
         pop cx
         pop bx
