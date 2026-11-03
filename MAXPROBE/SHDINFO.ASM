@@ -576,6 +576,7 @@ hpam:   cmp (SHDT_STR ptr [si]).SHDT_METH,@SHDT_VIA
         mov dl,(SHDT_STR ptr [si]).SHDT_REG
         mov dh,(SHDT_STR ptr [si]).SHDT_FLAG
         call pamread
+        jmp hdump
 hvia:   mov dx,offset tviatab
         call puts
         mov al,(SHDT_STR ptr [si]).SHDT_REG
@@ -1065,7 +1066,7 @@ puts:   push ax
         SHDTAB_DATA             ; SHDTAB (SHDTAB.INC of SHADOWRAM.TXT)
 
 BUFSZ   equ 7000h
-head    db 'SHDINFO 1.3',13,10,'$'
+head    db 'SHDINFO 1.4',13,10,'$'
 fin     db 'END',13,10,'$'
 tdate   db 'BIOS date $'
 tmodel  db '  model $'

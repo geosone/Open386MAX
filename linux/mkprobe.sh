@@ -14,7 +14,7 @@
 #        CSMWrap release (default ~/Iso/CSMWRAP/3.1.2); none:  no UEFI boot
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-VER=${VER:-1.3}
+VER=${VER:-1.4}
 SRC=$ROOT/MAXPROBE
 BIN=$ROOT/build/MAXPROBE
 OUT=$ROOT/build/maxprobe

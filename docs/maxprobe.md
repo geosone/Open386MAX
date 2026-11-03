@@ -53,7 +53,8 @@ Every step writes its own file, so a hang leaves the earlier data:
    EBDA, INT 15h 88h, E801h and E820h; CPUID, MTRRcap, MTRRdefType and the
    fixed range MTRRs, on AMD from K8 SYSCFG and RdDram/WrDram; the host
    bridge, its line in `386MAX/SHADOWRAM.TXT` (the build's SHDTAB.INC),
-   its configuration space 00h-FFh and the PAM registers decoded; the UEFI
+   its configuration space 00h-FFh and the PAM (Intel) or shadow RAM
+   control (VIA, 61h-63h) registers decoded; the UEFI
    CSM table with UmaAddress/UmaSize and `CSM_ROMMAP` (386MAX/CSMROM.INC);
    the option ROMs with size and checksum; per 16KB block of C0000-FFFFF
    the DRAM read/write mapping, the content (data, all FFh, all 00h) and,
@@ -121,5 +122,13 @@ shadow RAM (PAM registers 0, C0000-FFFFF not writable), and with ICH9 it
 has no host bridge at 00:00.0.  Under CSMWrap the card's own VGA BIOS runs when its option ROM
 still holds one (else SeaVGABIOS); `csmwrap.ini` `vgabios=` names a VBIOS
 file instead.  86Box:  the floppy on the emulated Tseng ET4000 (an ISA card,
-so no PCI display line).
+so no PCI display line).  MAXPROBE 1.4 on twelve 86Box boards with an S3
+Trio64V2/DX (Intel 430FX/TX/440FX/BX, VIA VT82C598/VT82C691, ALi
+M1541, SiS 5591; Award, Phoenix and Intel BIOSes):  all steps through,
+GFXTEST 1024x768x32 and 1600x1200x8 complete (8-bit path), SHDINFO's
+386MAX map as the registers say; the ALi and SiS boards show no map
+(not in SHADOWRAM.TXT).  1.4 writes GFX.TXT and VGA.TXT with one commit
+per line (1.3 committed every piece, minutes on a floppy with many
+modes), VBELIST adds the raw mode info of VBE text modes and the 4F04h
+state size, SHDINFO decodes VIA.
 Physical hardware:  pending community reports.

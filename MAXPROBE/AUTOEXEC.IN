@@ -1,7 +1,7 @@
 @ECHO OFF
 CLS
 ECHO.
-ECHO  MAXPROBE 1.3  (Open 386MAX / MAXTEXT, GPL)
+ECHO  MAXPROBE 1.4  (Open 386MAX / MAXTEXT, GPL)
 ECHO  ==========================================
 ECHO  Sammle Grafikkarten-Daten, bitte warten ...
 ECHO  Collecting graphics card data, please wait ...
@@ -44,7 +44,7 @@ ECHO.
 PAUSE
 VGATEST 20
 GFXTEST 20
-ECHO MAXPROBE 1.3 > REPORT.TXT
+ECHO MAXPROBE 1.4 > REPORT.TXT
 ECHO ===== PCI >> REPORT.TXT
 TYPE 1PCI.TXT >> REPORT.TXT
 ECHO ===== VBE >> REPORT.TXT

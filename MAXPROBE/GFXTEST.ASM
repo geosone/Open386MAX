@@ -795,7 +795,7 @@ logz:   push ax                 ; zero-terminated string to GFX.TXT,
         ret
 
 fname   db 'GFX.TXT',0
-msg_head db 'GFXTEST 1.3:  J/Y = picture complete, N = not, timeout = no key',13,10,0
+msg_head db 'GFXTEST 1.4:  J/Y = picture complete, N = not, timeout = no key',13,10,0
 msg_novbe db 'no VBE',13,10,0
 msg_noedid db 'EDID:  not available, AX=',0
 msg_edid db 'EDID',13,10,0

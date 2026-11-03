@@ -1,4 +1,4 @@
-MAXPROBE 1.3 - Grafikkarten-Test fuer Open 386MAX / MAXTEXT
+MAXPROBE 1.4 - Grafikkarten-Test fuer Open 386MAX / MAXTEXT
 ============================================================
 
 Was es tut
@@ -71,7 +71,7 @@ SvarDOS-Kernel (Enhanced DR-DOS) und SvarCOM:  siehe
 http://svardos.org und https://github.com/SvarDOS/edrdos
 
 
-MAXPROBE 1.3 - graphics card probe for Open 386MAX / MAXTEXT
+MAXPROBE 1.4 - graphics card probe for Open 386MAX / MAXTEXT
 =============================================================
 
 MAXPROBE boots a small DOS (SvarDOS) and collects data about the graphics
