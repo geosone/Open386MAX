@@ -29,7 +29,7 @@ that existed only as binaries, and develops 386MAX further:
 - no serial numbers or registration; English and German
 
 Branches:  `main` is the development line (9.x, test releases such as
-9.00-beta5), `8.x` the maintenance line of 8.59 (bug fixes only).
+9.00-beta6), `8.x` the maintenance line of 8.59 (bug fixes only).
 
 Tested in QEMU with complete installation and MAXIMIZE runs (DOS and
 Windows SETUP, all three MAXIMIZE passes): MS-DOS 6.22, MS-DOS 7.1,
