@@ -19,9 +19,10 @@ ein paar Zwischendateien) landen auf dem MAXPROBE-Stick/der Diskette.
 
 Benoetigt
 ---------
-* Ein PC mit BIOS-/Legacy-Modus (CSM), oder ein reiner UEFI-PC:  der
-  USB-Stick enthaelt CSMWrap und startet auch dort (Secure Boot muss
-  dafuer aus sein; ggf. auch "Above 4G Decoding" / "Resizable BAR").
+* Ein PC mit BIOS-/Legacy-Modus (CSM), oder ein reiner 64-Bit-UEFI-PC:
+  der USB-Stick enthaelt ReBIOS und startet auch dort.  Dafuer muessen
+  Secure Boot aus und Virtualisierung (VT-x/AMD-V) sowie IOMMU (VT-d/
+  AMD-Vi) im Setup eingeschaltet sein.
 * Eine Diskette (MAXPROBE.IMG) oder einen USB-Stick (MAXPROBE-USB.IMG).
   ACHTUNG:  Der Stick wird dabei komplett ueberschrieben!
 
@@ -52,21 +53,21 @@ Ablauf
    4GPU.TXT, 5MEM.TXT, 3REG.TXT, VGA.TXT und GFX.TXT (soweit vorhanden), dazu,
    bei welchem Schritt ([1/6] bis [6/6]) er stehen blieb.
 
-Ohne BIOS-Modus (CSMWrap)
--------------------------
-CSMWrap nimmt das VGA-BIOS der Grafikkarte, wenn ihr ROM noch eines hat,
-sonst den einfachen Ersatz SeaVGABIOS.  Den Unterschied zeigt REPORT.TXT
-(VBE-Hersteller).  Hat man das VGA-BIOS der Karte als Datei, kann man es
-als EFI\BOOT\VGABIOS.BIN auf den Stick legen und daneben eine Datei
-EFI\BOOT\CSMWRAP.INI mit der Zeile
-    vgabios = \EFI\BOOT\VGABIOS.BIN
-anlegen.  Bitte im Issue angeben, ob das so gemacht wurde.
+Ohne BIOS-Modus (ReBIOS)
+------------------------
+ReBIOS nimmt das VGA-BIOS der Grafikkarte, wenn ihr ROM noch eines hat.
+Sonst, und bei Grafik im Prozessor oder auf der Platine ab 2018, bildet
+es eine eigene VGA nach; REPORT.TXT zeigt dann den VBE-Hersteller
+"ReBIOS".  Die Einstellungen stehen in EFI\BOOT\REBIOS.INI auf dem
+Stick:  "vga_emulation = never" probiert das VGA-BIOS der Grafik selbst
+(der Bildschirm kann dann dunkel bleiben), "vgabios = \EFI\BOOT\VGABIOS.BIN"
+nimmt ein VGA-BIOS als Datei.  Bitte im Issue angeben, was geaendert wurde.
 
 Lizenzen
 --------
 MAXPROBE-Werkzeuge (PCILIST, VBELIST, REGDUMP, GPUINFO, SHDINFO, VGATEST,
 GFXTEST):  GPL 3, Quelltext
-im Verzeichnis SRC.  CSMWrap (USB-Image):  GNU LGPL 2.1, siehe CSMWRAP.TXT.
+im Verzeichnis SRC.  ReBIOS (USB-Image):  GNU GPL 2, siehe REBIOS.TXT.
 SvarDOS-Kernel (Enhanced DR-DOS) und SvarCOM:  siehe
 http://svardos.org und https://github.com/SvarDOS/edrdos
 
@@ -83,9 +84,9 @@ register contents, whether the card's VGA core is reachable and on
 written to the hard disk; REPORT.TXT (and a few temporary files) go to the
 MAXPROBE stick/floppy only.
 
-Needs a PC with BIOS/legacy (CSM) mode, or a UEFI-only PC:  the USB
-image contains CSMWrap and boots there too (Secure Boot off; possibly also
-"Above 4G Decoding" / "Resizable BAR" off).
+Needs a PC with BIOS/legacy (CSM) mode, or a 64-bit UEFI-only PC:  the
+USB image contains ReBIOS and boots there too (Secure Boot off,
+virtualisation (VT-x/AMD-V) and IOMMU (VT-d/AMD-Vi) on).
 Write MAXPROBE-USB.IMG to a stick (all its data is lost!) with dd, Rufus
 (DD image) or Win32 Disk Imager; MAXPROBE.IMG to a floppy.  Boot it,
 answer the picture test with Y (frame and all row numbers complete and
@@ -99,7 +100,9 @@ switch it off and send the files on the stick/floppy instead:  1PCI.TXT,
 2VBE.TXT, 4GPU.TXT, 5MEM.TXT, 3REG.TXT, VGA.TXT and GFX.TXT (those
 present), and
 the step ([1/6] to [6/6]) where it stopped.
-Under CSMWrap the card's own VGA BIOS runs when its ROM still has one,
-else SeaVGABIOS; REPORT.TXT shows which (VBE vendor).  A VGA BIOS file
-can be given as EFI\BOOT\VGABIOS.BIN with EFI\BOOT\CSMWRAP.INI holding
-"vgabios = \EFI\BOOT\VGABIOS.BIN"; please say so in the issue.
+Under ReBIOS the card's own VGA BIOS runs when its ROM still has one;
+otherwise, and for graphics in the processor or on the board from 2018
+on, ReBIOS emulates a VGA (VBE vendor "ReBIOS" in REPORT.TXT).
+EFI\BOOT\REBIOS.INI on the stick:  "vga_emulation = never" tries the
+graphics' own VGA BIOS (the screen may stay dark), "vgabios =
+\EFI\BOOT\VGABIOS.BIN" a VGA BIOS file; please say so in the issue.

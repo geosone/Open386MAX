@@ -13,14 +13,22 @@ only to its own medium.
 | File | Contents |
 | --- | --- |
 | `maxprobe-VER-disk.img` | 1.44 MB floppy:  the SvarDOS boot floppy reduced to kernel and shell, plus the probe |
-| `maxprobe-VER-usb.img` | USB stick image:  the SvarDOS hard disk of `linux/test/mkdosdisk.sh svardos`, reduced the same way, with CSMWrap as `EFI\BOOT\BOOTX64.EFI` and `BOOTIA32.EFI` |
+| `maxprobe-VER-usb.img` | USB stick image:  the SvarDOS hard disk of `linux/test/mkdosdisk.sh svardos`, reduced the same way, with ReBIOS as `EFI\BOOT\BOOTX64.EFI`, its settings `EFI\BOOT\rebios.ini` (from `MAXPROBE/REBIOS.INI`) and its source tarball in `SRC` |
 | `maxprobe-VER.zip` | both images and the README |
 
-The USB image boots in BIOS/legacy (CSM) mode and, through CSMWrap
-(SeaBIOS CSM and SeaVGABIOS as a UEFI application), on UEFI-only PCs with
-Secure Boot off.  CSMWrap is taken unmodified from its release
-(`CSM=` names the directory, default `~/Iso/CSMWRAP/3.1.2`); `CSMWRAP.TXT`
-on the image names its licence and source.
+The USB image boots in BIOS/legacy (CSM) mode and, through
+[ReBIOS](https://github.com/ReBIOS-Project/ReBIOS) (SeaBIOS CSM under a
+minimal hypervisor, the successor of CSMWrap), on 64-bit UEFI-only PCs with
+Secure Boot off and VT-x/AMD-V and an IOMMU enabled.  There is no 32-bit
+UEFI loader any more (CSMWrap had `BOOTIA32.EFI`).  ReBIOS is taken
+unmodified from its release (`REB=` names the directory with `rebios.efi`
+and `rebios-VER.tar.xz`, default `~/Iso/REBIOS/0.5.2`); being GPL 2, its
+source tarball goes onto the image, `REBIOS.TXT` names licence and source.
+`rebios.ini` boots the stick itself (`boot_drive = self`) and documents
+`vga_emulation = never`:  ReBIOS emulates a VGA of its own (VBE OEM
+"ReBIOS VBE") for graphics without a VGA BIOS and for graphics in the
+processor or on the board from 2018 on, so a report from such a PC
+describes that emulation, not the graphics' own VGA BIOS.
 
 ## Probe sequence (`MAXPROBE/AUTOEXEC.IN`)
 
@@ -122,7 +130,15 @@ shadow RAM (PAM registers 0, C0000-FFFFF not writable), and with ICH9 it
 has no host bridge at 00:00.0.  Under CSMWrap the card's own VGA BIOS runs when its option ROM
 still holds one (else SeaVGABIOS); `csmwrap.ini` `vgabios=` names a VBIOS
 file instead.  86Box:  the floppy on the emulated Tseng ET4000 (an ISA card,
-so no PCI display line).  MAXPROBE 1.4 on twelve 86Box boards with an S3
+so no PCI display line).  ReBIOS 0.5.2 under QEMU q35 (nested KVM, `-cpu host`, `intel-iommu`, OVMF,
+stick on `qemu-xhci`):  boots the stick, all steps through; with
+`vga_emulation = always` the picture test and GFXTEST 1280x800x32 and
+1024x768x32 complete, VBE 3.0 "ReBIOS VBE", SHDINFO the CSM table (bad
+checksum) and the 386MAX map CSM 07FCh.  With QEMU's std VGA passed through
+(its own VGA BIOS) the probe reaches the picture test as well, but the
+nested guest's screen
+stays black, so that path still needs a real PC.
+MAXPROBE 1.4 on twelve 86Box boards with an S3
 Trio64V2/DX (Intel 430FX/TX/440FX/BX, VIA VT82C598/VT82C691, ALi
 M1541, SiS 5591; Award, Phoenix and Intel BIOSes):  all steps through,
 GFXTEST 1024x768x32 and 1600x1200x8 complete (8-bit path), SHDINFO's

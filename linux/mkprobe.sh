@@ -6,12 +6,13 @@
 #
 # MAXPROBE images (build/maxprobe):  maxprobe-VER-disk.img (1.44 MB floppy,
 # from the SvarDOS boot floppy), maxprobe-VER-usb.img (hard disk image for
-# USB sticks, from linux/test/mkdosdisk.sh svardos, with CSMWrap for
+# USB sticks, from linux/test/mkdosdisk.sh svardos, with ReBIOS for
 # UEFI-only PCs) and maxprobe-VER.zip.  Build the tools first (make MAXPROBE).
 #   SVF  SvarDOS 1.44 MB boot floppy   (default ~/Iso/Dos/svardos/...)
 #   SVH  SvarDOS hard disk image       (default build/dosdisk/svardos.img)
-#   CSM  directory with csmwrapx64.efi/csmwrapia32.efi, named by the
-#        CSMWrap release (default ~/Iso/CSMWRAP/3.1.2); none:  no UEFI boot
+#   REB  directory with rebios.efi and rebios-VERSION.tar.xz (its source,
+#        GPL 2, goes onto the stick), named by the ReBIOS release (default
+#        ~/Iso/REBIOS/0.5.2); none:  no UEFI boot
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 VER=${VER:-1.4}
@@ -20,7 +21,7 @@ BIN=$ROOT/build/MAXPROBE
 OUT=$ROOT/build/maxprobe
 SVF=${SVF:-$HOME/Iso/Dos/svardos/svdos-1.44M-disk-1.img}
 SVH=${SVH:-$ROOT/build/dosdisk/svardos.img}
-CSM=${CSM:-$HOME/Iso/CSMWRAP/3.1.2}
+REB=${REB:-$HOME/Iso/REBIOS/0.5.2}
 export MTOOLS_SKIP_CHECK=1
 rm -rf "$OUT"; mkdir -p "$OUT/tmp"
 T=$OUT/tmp
@@ -49,18 +50,22 @@ fill "$F"
 U=$OUT/maxprobe-$VER-usb.img
 cp "$SVH" "$U"; chmod u+w "$U"
 fill "$U@@32256"
-if [ -f "$CSM/csmwrapx64.efi" ]; then
-    v=$(basename "$CSM")
+if [ -f "$REB/rebios.efi" ]; then
+    v=$(basename "$REB")
+    srcx=$(ls "$REB"/rebios-*.tar.xz)
     mmd -i "$U@@32256" ::/EFI ::/EFI/BOOT
-    mcopy -o -i "$U@@32256" "$CSM/csmwrapx64.efi" ::/EFI/BOOT/BOOTX64.EFI
-    mcopy -o -i "$U@@32256" "$CSM/csmwrapia32.efi" ::/EFI/BOOT/BOOTIA32.EFI
-    printf '%s\n' "EFI\\BOOT\\BOOTX64.EFI and BOOTIA32.EFI:  CSMWrap $v" \
-        '(SeaBIOS CSM and SeaVGABIOS as a UEFI application), GNU LGPL 2.1;' \
-        'SeaBIOS:  GNU LGPL 3.  Unmodified release binaries, source:' \
-        "https://github.com/CSMWrap/CSMWrap/releases/tag/$v" | crlf > "$T/CSMWRAP.TXT"
-    mcopy -o -i "$U@@32256" "$T/CSMWRAP.TXT" ::/
+    mcopy -o -i "$U@@32256" "$REB/rebios.efi" ::/EFI/BOOT/BOOTX64.EFI
+    crlf < "$SRC/REBIOS.INI" > "$T/REBIOS.INI"
+    mcopy -o -i "$U@@32256" "$T/REBIOS.INI" ::/EFI/BOOT/rebios.ini
+    mcopy -o -i "$U@@32256" "$srcx" ::/SRC/
+    printf '%s\n' "EFI\\BOOT\\BOOTX64.EFI:  ReBIOS $v (SeaBIOS CSM under a minimal" \
+        'hypervisor, as a UEFI application), GNU GPL 2; SeaBIOS:  GNU LGPL 3.' \
+        "Unmodified release binary; its source is SRC\\$(basename "$srcx")" \
+        "and https://github.com/ReBIOS-Project/ReBIOS/releases/tag/v$v" \
+        'Settings:  EFI\BOOT\rebios.ini (see README.TXT).' | crlf > "$T/REBIOS.TXT"
+    mcopy -o -i "$U@@32256" "$T/REBIOS.TXT" ::/
 else
-    echo "no CSMWrap in $CSM:  the USB image boots in BIOS/legacy mode only" >&2
+    echo "no ReBIOS in $REB:  the USB image boots in BIOS/legacy mode only" >&2
 fi
 mkdir "$T/zip"
 cp "$F" "$T/zip/MAXPROBE.IMG"; cp "$U" "$T/zip/MAXPROBE-USB.IMG"; cp "$T/README.TXT" "$T/zip/"
