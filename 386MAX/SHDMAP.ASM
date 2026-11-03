@@ -28,10 +28,14 @@ AMD K8 and later:  fixed range MTRRs 268h-26Fh (one byte per 4KB,
   bit 4 = RdDram, bit 3 = WrDram, visible if SYSCFG.MtrrFixDramModEn,
   used if SYSCFG.MtrrFixDramEn), only in real mode (RDMSR faults in
   V86 mode).
+VIA Apollo (VT82C585 to VT82C694X, VT8601):  shadow RAM control at 61h
+  (C0000-CFFFF) and 62h (D0000-DFFFF), two bits per 16KB from bit 0
+  (bit 1 = read, bit 0 = write enable), 63h bits 7-6 E0000-EFFFF and
+  bits 5-4 F0000-FFFFF.
 
 typedef struct {
-	unsigned char kind;	// 0 = unknown, 1 = Intel PAM, 2 = AMD, 3 = AMD in V86
-	unsigned char reg;	// Intel:  PCI register of PAM0
+	unsigned char kind;	// 0 = unknown, 1 = Intel PAM, 2 = AMD, 3 = AMD in V86, 4 = VIA
+	unsigned char reg;	// Intel:  PCI register of PAM0; VIA:  of C0000-CFFFF
 	unsigned char lock;	// Intel:  1 = PAM0 LOCK set (lock in SHADOWRAM.TXT)
 	unsigned char res;
 	unsigned rd;		// 16KB blocks read from DRAM (bit 0 = C0000)
@@ -43,7 +47,8 @@ typedef struct {
 int shd_get (SHDINFO far *info);
 
 Fills *info, returns its kind:  0 = unknown chipset (maps zero), 1 =
-Intel PAM, 2 = AMD fixed MTRRs, 3 = AMD, but in V86 mode (not readable).
+Intel PAM, 2 = AMD fixed MTRRs, 3 = AMD, but in V86 mode (not readable),
+4 = VIA shadow RAM control.
 
 unsigned shd_protmap (void);
 
@@ -59,8 +64,8 @@ space of a UEFI CSM; 0 if unknown.
 	 include CSMROM.INC	; Option ROM space of a UEFI CSM
 
 SHD_STR  struc
-SHD_KIND db	 ?		; 0 = unknown, 1 = Intel, 2 = AMD, 3 = AMD in V86
-SHD_REG  db	 ?		; Intel:  PCI register of PAM0
+SHD_KIND db	 ?		; 0 = unknown, 1 = Intel, 2 = AMD, 3 = AMD in V86, 4 = VIA
+SHD_REG  db	 ?		; Intel:  PCI register of PAM0; VIA:  of C0000-CFFFF
 SHD_LOCK db	 ?		; Intel:  PAM0 LOCK set
 SHD_RES  db	 ?		; (reserved)
 SHD_RD	 dw	 ?		; 16KB blocks read from DRAM
@@ -183,8 +188,11 @@ SHD_TABHIT:
 	 cmp	 cs:[bx].SHDT_METH,@SHDT_AMD ; Izit AMD's fixed range MTRRs?
 	 je	 near ptr SHD_AMD ; Jump if so
 
-	 mov	 dl,cs:[bx].SHDT_REG ; Get PAM0 register
+	 mov	 dl,cs:[bx].SHDT_REG ; Get PAM0 register (VIA:  C0000-CFFFF)
 	 mov	 dh,cs:[bx].SHDT_FLAG ; Get flags
+
+	 cmp	 cs:[bx].SHDT_METH,@SHDT_VIA ; Izit VIA's shadow RAM control?
+	 je	 near ptr SHD_VIA ; Jump if so
 
 ; DL = PCI register of PAM0 (F0000-FFFFF in the high nibble), DH = flags;
 ; PAM1 (C0000-C7FFF) to PAM6 (E8000-EFFFF) follow as six consecutive bytes.
@@ -250,6 +258,67 @@ SHD_PAMNEXT:
 	 inc	 bx		; Next PAM register
 	 loop	 SHD_PAMNEXT	; Jump if more PAM registers
 
+	 jmp	 SHD_DONE	; Join common code
+
+; VIA:	DL = PCI register of C0000-CFFFF; D0000-DFFFF and E0000-FFFFF
+; follow.  Two bits per 16KB block from bit 0:  bit 1 = read, bit 0 =
+; write enable; the third byte has E0000-EFFFF in bits 7-6 and
+; F0000-FFFFF in bits 5-4.
+
+SHD_VIA:
+	 les	 bx,info	; ES:BX ==> SHDINFO
+	 mov	 es:[bx].SHD_KIND,4 ; VIA
+	 mov	 es:[bx].SHD_REG,dl ; Save register of C0000-CFFFF
+
+	 movzx	 bx,dl		; Copy register #
+	 xor	 dx,dx		; Bit # in maps (16KB blocks from C0000)
+	 mov	 cx,2		; C0000-CFFFF, D0000-DFFFF
+SHD_VIANEXT:
+	 call	 PAM_READ	; AL = shadow RAM control byte
+
+	 push	 cx		; Save for a moment
+	 mov	 cx,4		; Four 16KB blocks
+SHD_VIA16:
+	 test	 al,2		; Read enable?
+	 jz	 short @F	; Jump if not
+
+	 bts	 di,dx		; Mark as read from DRAM
+@@:
+	 test	 al,1		; Write enable?
+	 jz	 short @F	; Jump if not
+
+	 bts	 si,dx		; Mark as written to DRAM
+@@:
+	 inc	 dx		; Next 16KB block
+	 shr	 al,2		; Next two bits
+	 loop	 SHD_VIA16	; Jump if more blocks
+
+	 pop	 cx		; Restore
+	 inc	 bx		; Next register
+	 loop	 SHD_VIANEXT	; Jump if more registers
+
+	 call	 PAM_READ	; AL = E0000-FFFFF byte
+
+	 test	 al,80h 	; E0000-EFFFF read enable?
+	 jz	 short @F	; Jump if not
+
+	 or	 di,0F00h	; Mark E0000-EFFFF
+@@:
+	 test	 al,40h 	; E0000-EFFFF write enable?
+	 jz	 short @F	; Jump if not
+
+	 or	 si,0F00h	; Mark E0000-EFFFF
+@@:
+	 test	 al,20h 	; F0000-FFFFF read enable?
+	 jz	 short @F	; Jump if not
+
+	 or	 di,0F000h	; Mark F0000-FFFFF
+@@:
+	 test	 al,10h 	; F0000-FFFFF write enable?
+	 jz	 short @F	; Jump if not
+
+	 or	 si,0F000h	; Mark F0000-FFFFF
+@@:
 	 jmp	 SHD_DONE	; Join common code
 
 ; AMD:	the fixed range MTRRs are valid only on family 0Fh and later; they

@@ -406,6 +406,12 @@ static void shadow_report(HANDLE info)
 		item(info, L("Registers", "Register"),
 			L("fixed range MTRRs 268h-26Fh", "Fixed-Range-MTRRs 268h-26Fh"));
 		break;
+	case SHD_VIA:
+		sprintf(line, L("shadow RAM control at %02Xh-%02Xh",
+				"Shadow-RAM-Steuerung bei %02Xh-%02Xh"),
+			MOD.bShdReg, MOD.bShdReg + 2);
+		item(info, L("Registers", "Register"), line);
+		break;
 	case SHD_AMDV86:
 		iprintf(info, L("The fixed range MTRRs can't be read in V86 mode (start ASQ\n"
 				 "without a memory manager).",

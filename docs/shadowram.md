@@ -26,12 +26,13 @@ bridge, the registers, LOCK and the map.
 
 The host bridges are listed once, in 386MAX/SHADOWRAM.TXT:  vendor ID,
 range of device IDs, method (`pam`:  Intel PAM registers at a given
-PAM0 register, `amdmtrr`:  AMD fixed range MTRRs), flags (`lock`:
+PAM0 register, `amdmtrr`:  AMD fixed range MTRRs, `via`:  VIA Apollo
+shadow RAM control at a given register), flags (`lock`:
 PAM0 bit 0 is LOCK, checked in the datasheet).  linux/tools/shdtab.py
 makes SHDTAB.INC (for 386MAX and 386MAX/SHDMAP.ASM, which MAXIMIZE and
 ASQ build) and SHDTAB.H (the names for ASQ) of it.  A new chipset with
-one of these methods is one more line; another register layout (e.g.
-the chipsets of UMBPCI) needs a new method in GET_SHDMAP and SHDMAP.ASM.
+one of these methods is one more line; another register layout (SiS,
+ALi) needs a new method in GET_SHDMAP, SHDMAP.ASM and MAXPROBE SHDINFO.
 
 The AMD line covers every family from 0Fh (K8) on, Zen included (checked
 in the documents below; Family 19h not seen, the same MSRs assumed).
@@ -40,6 +41,35 @@ memory manager (V86 mode) don't get them, 386MAX reads them before it
 switches.
 
 Tested in QEMU:  pc (440FX, PAM at 59h) and q35 (Q35, PAM at 90h).
+
+## VIA Apollo
+
+The VIA Apollo host bridges (VT82C585VPX to VT82C694X, VT8501, VT8601,
+VT8605) and the VIA Pentium 4 host bridges up to the P4M800 have three
+shadow RAM control registers:
+
+| Register | Range | Bits |
+|---|---|---|
+| 61h | C0000-CFFFF | two per 16KB block from bit 0 (C0000-C3FFF) |
+| 62h | D0000-DFFFF | two per 16KB block from bit 0 (D0000-D3FFF) |
+| 63h | E0000-EFFFF, F0000-FFFFF | bits 7-6 and 5-4 (64KB each) |
+
+In each pair bit 1 sends reads to DRAM and bit 0 sends writes to DRAM
+(00b:  both to the bus, i.e. the ROM; 10b:  read-only shadow; 11b:
+read/write).  Bits 3-0 of 63h are not shadow RAM (memory hole, SMRAM).
+
+The layout is the one 86Box emulates for these chipsets
+(src/chipset/via_apollo.c, read as a description of the registers, no
+code taken).  MAXPROBE SHDINFO on 86Box boards with Award BIOSes agrees
+with it:  on the VT82C598 (FIC VA-503+) and VT82C691 (ASUS CUV4X-LS,
+6VIA90AP, FIC KA-6130) 61h is 0Ah, i.e. C0000-C7FFF read-only shadow
+holding the VGA BIOS, and 63h bits 5-4 are 10b, the system BIOS
+shadowed read-only.  UMBPCI (UMBCHIP.TXT, VIAList and VIAUniList) uses
+the same registers and bit pairs (11b for read/write) on the host
+bridges it marks "ok"; those are in the table as well.  Not in it:  the
+ones UMBPCI marks untested or undocumented, the CX700/VX800/VX855/VX900
+(registers 80h-83h, E0000-EFFFF in 16KB pairs) and the AMD-CPU chipsets
+(KT133 and later), for which no source was at hand.
 
 ## SHADOWUMB:  high DOS in the chipset's shadow RAM
 

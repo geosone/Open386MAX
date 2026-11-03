@@ -103,7 +103,7 @@ typedef struct _moderninfo {
 	SYSBUFH hOptRom;	/* OPTROM [nOptRom] */
 
 	BYTE bShdKind;		/* Shadow DRAM:  SHD_xxx */
-	BYTE bShdReg;		/* Intel:  PCI register of PAM0 */
+	BYTE bShdReg;		/* Intel:  PCI register of PAM0; VIA:  of C0000-CFFFF */
 	BYTE bShdLock;		/* Intel:  PAM0 LOCK set */
 	WORD wShdRd;		/* 16 KB blocks of C0000-FFFFF read from DRAM */
 	WORD wShdWr;		/* ... written to DRAM */
@@ -157,6 +157,7 @@ typedef struct _shdinfo {
 #define SHD_INTEL	1	/* Intel PAM registers */
 #define SHD_AMD 	2	/* AMD fixed range MTRRs */
 #define SHD_AMDV86	3	/* AMD, not readable in V86 mode */
+#define SHD_VIA 	4	/* VIA shadow RAM control (61h-63h) */
 int far shd_get(SHDINFO far *info);
 
 /* MODHW.ASM */

@@ -561,7 +561,9 @@ hhit:   cmp (SHDT_STR ptr [si]).SHDT_METH,@SHDT_AMD
         mov ax,[amdwr]
         mov [wr],ax
         jmp hdump
-hpam:   mov dx,offset tpamtab
+hpam:   cmp (SHDT_STR ptr [si]).SHDT_METH,@SHDT_VIA
+        je  hvia
+        mov dx,offset tpamtab
         call puts
         mov al,(SHDT_STR ptr [si]).SHDT_REG
         call hex2
@@ -574,6 +576,14 @@ hpam:   mov dx,offset tpamtab
         mov dl,(SHDT_STR ptr [si]).SHDT_REG
         mov dh,(SHDT_STR ptr [si]).SHDT_FLAG
         call pamread
+hvia:   mov dx,offset tviatab
+        call puts
+        mov al,(SHDT_STR ptr [si]).SHDT_REG
+        call hex2
+        call crlf
+        mov [kind],4
+        mov dl,(SHDT_STR ptr [si]).SHDT_REG
+        call viaread
 hdump:  mov dx,offset tcfg      ; configuration space 00h-FFh
         call puts
         xor bx,bx
@@ -637,6 +647,42 @@ pl:     call pamb
         inc bx
         loop pl
         ret
+; DL = VIA register of C0000-CFFFF (61h):  [rd], [wr] (as SHDMAP);
+; two bits per 16KB (bit 1 read, bit 0 write), the third byte
+; E0000-EFFFF in bits 7-6, F0000-FFFFF in bits 5-4
+viaread:
+        movzx bx,dl
+        xor dx,dx
+        mov cx,2
+vr:     call pamb
+        push cx
+        mov cx,4
+vb:     test al,2
+        jz  @F
+        bts [rd],dx
+@@:     test al,1
+        jz  @F
+        bts [wr],dx
+@@:     inc dx
+        shr al,2
+        loop vb
+        pop cx
+        inc bx
+        loop vr
+        call pamb
+        test al,80h
+        jz  @F
+        or  [rd],0F00h
+@@:     test al,40h
+        jz  @F
+        or  [wr],0F00h
+@@:     test al,20h
+        jz  @F
+        or  [rd],0F000h
+@@:     test al,10h
+        jz  @F
+        or  [wr],0F000h
+@@:     ret
 pamb:   push cx                 ; byte register BL of 00:00.0 -> AL
         push dx
         movzx eax,bl
@@ -1057,6 +1103,7 @@ tnohost db '  no device at 00:00.0 (no host bridge there)',13,10,'$'
 tnotab  db '  not in SHADOWRAM.TXT',13,10,'$'
 tamdtab db '  SHADOWRAM.TXT:  amdmtrr',13,10,'$'
 tpamtab db '  SHADOWRAM.TXT:  pam at $'
+tviatab db '  SHADOWRAM.TXT:  via at $'
 tlockf  db 'h, PAM0 bit 0 = LOCK$'
 tcfg    db '  configuration space:',13,10,'$'
 t2sp    db '  $'

@@ -2393,6 +2393,10 @@ bit 1 = write enable, the low nibble of PAM1 is C0000-C3FFF)
   at 80h:  2nd generation Core (Sandy Bridge) and later
 AMD K8 and later:  fixed range MTRRs 268h-26Dh (one byte per 4KB,
   bit 4 = RdMem, bit 3 = WrMem, visible if SYSCFG.MtrrFixDramModEn).
+VIA Apollo (VT82C585 to VT82C694X, VT8601):  shadow RAM control at 61h
+  (C0000-CFFFF) and 62h (D0000-DFFFF), two bits per 16KB from bit 0
+  (bit 1 = read, bit 0 = write enable), 63h bits 7-6 E0000-EFFFF and
+  bits 5-4 F0000-FFFFF.
 
 MiSTer ao486 core:  all of C0000-EFFFF.
 Unknown chipsets leave SHDMAP zero (old behavior).
@@ -2470,7 +2474,10 @@ GET_SHDMAP_TABHIT:
 	 cmp	 cs:[si].SHDT_METH,@SHDT_AMD ; Izit AMD's fixed range MTRRs?
 	 je	 near ptr GET_SHDMAP_AMD ; Jump if so
 
-	 mov	 bl,cs:[si].SHDT_REG ; Get PAM0 register
+	 mov	 bl,cs:[si].SHDT_REG ; Get PAM0 register (VIA:  C0000-CFFFF)
+
+	 cmp	 cs:[si].SHDT_METH,@SHDT_VIA ; Izit VIA's shadow RAM control?
+	 je	 near ptr GET_SHDMAP_VIA ; Jump if so
 
 ; BL = PCI register of PAM0; PAM1 (C0000-C7FFF) to PAM6 (E8000-EFFFF)
 ; follow as six consecutive bytes.
@@ -2534,6 +2541,75 @@ GET_SHDMAP_PAMLOOP:
 	 inc	 bx		; Next PAM register
 	 loop	 GET_SHDMAP_PAMNEXT ; Jump if more PAM registers
 
+	 jmp	 GET_SHDMAP_SAVE ; Join common code
+
+; VIA:	BL = PCI register of C0000-CFFFF; D0000-DFFFF and E0000-FFFFF
+; follow.  Two bits per 16KB block from bit 0:  bit 1 = read, bit 0 =
+; write enable; the third byte has E0000-EFFFF in bits 7-6 and
+; F0000-FFFFF in bits 5-4.
+
+GET_SHDMAP_VIA:
+	 movzx	 bx,bl		; Zero to use as word
+	 xor	 di,di		; Initialize read  enable map
+	 xor	 bp,bp		; ...	     write ...
+	 xor	 dx,dx		; Bit # in maps (16KB blocks from C0000)
+	 mov	 cx,3		; C0000-CFFFF, D0000-DFFFF, E0000-FFFFF
+GET_SHDMAP_VIANEXT:
+	 mov	 al,bl		; Copy register #
+	 call	 PCI_RDCFG	; Return with EAX = dword
+	 push	 cx		; Save for a moment
+	 mov	 cl,bl		; Copy register #
+	 and	 cl,3		; Byte # within dword
+	 shl	 cl,3		; Times 8 to get bit shift
+	 shr	 eax,cl 	; AL = shadow RAM control byte
+	 pop	 cx		; Restore
+
+	 cmp	 cx,1		; Izit E0000-FFFFF?
+	 je	 short GET_SHDMAP_VIAEF ; Jump if so
+
+	 push	 cx		; Save for a moment
+	 mov	 cx,4		; Four 16KB blocks
+GET_SHDMAP_VIA16:
+	 test	 al,2		; Read enable?
+	 jz	 short @F	; Jump if not
+
+	 bts	 di,dx		; Mark as read from DRAM
+@@:
+	 test	 al,1		; Write enable?
+	 jz	 short @F	; Jump if not
+
+	 bts	 bp,dx		; Mark as written to DRAM
+@@:
+	 inc	 dx		; Next 16KB block
+	 shr	 al,2		; Next two bits
+	 loop	 GET_SHDMAP_VIA16 ; Jump if more blocks
+
+	 pop	 cx		; Restore
+	 inc	 bx		; Next register
+
+	 loop	 GET_SHDMAP_VIANEXT ; Go around again (the last one jumps)
+
+GET_SHDMAP_VIAEF:
+	 test	 al,80h 	; E0000-EFFFF read enable?
+	 jz	 short @F	; Jump if not
+
+	 or	 di,0F00h	; Mark E0000-EFFFF
+@@:
+	 test	 al,40h 	; E0000-EFFFF write enable?
+	 jz	 short @F	; Jump if not
+
+	 or	 bp,0F00h	; Mark E0000-EFFFF
+@@:
+	 test	 al,20h 	; F0000-FFFFF read enable?
+	 jz	 short @F	; Jump if not
+
+	 or	 di,0F000h	; Mark F0000-FFFFF
+@@:
+	 test	 al,10h 	; F0000-FFFFF write enable?
+	 jz	 short @F	; Jump if not
+
+	 or	 bp,0F000h	; Mark F0000-FFFFF
+@@:
 	 jmp	 GET_SHDMAP_SAVE ; Join common code
 
 ; AMD:	the fixed range MTRRs are valid only on family 0Fh and later

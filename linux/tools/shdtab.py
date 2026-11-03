@@ -6,15 +6,16 @@ r"""Make the host bridge tables of 386MAX/SHADOWRAM.TXT:
 SHDTAB.INC (GET_SHDMAP in 386MAX\QMAX_MEM.ASM, SHDMAP.ASM):  SHDT_STR,
 the @SHDT_xxx equates and the macro SHDTAB_DATA, which puts the table
 SHDTAB where it is used (in a code segment).  Each entry (9 bytes):
-vendor ID, first and last device ID, method (@SHDT_PAM, @SHDT_AMD),
-PAM0 register, flags (@SHDT_LOCK); a vendor ID of 0 ends the table.
+vendor ID, first and last device ID, method (@SHDT_PAM, @SHDT_AMD,
+@SHDT_VIA), register (PAM0, VIA:  C0000-CFFFF), flags (@SHDT_LOCK); a
+vendor ID of 0 ends the table.
 
 SHDTAB.H (ASQ):  the same as a C array with the names (comments) of the
 lines, SHDT_xxx defines and SHDT_COUNT.
 """
 import sys
 
-METHODS = {'pam': '@SHDT_PAM', 'amdmtrr': '@SHDT_AMD'}
+METHODS = {'pam': '@SHDT_PAM', 'amdmtrr': '@SHDT_AMD', 'via': '@SHDT_VIA'}
 FLAGS = {'lock': '@SHDT_LOCK', '-': '0'}
 
 
@@ -59,6 +60,8 @@ def main():
             reg = 0 if p[3] == '-' else hexnum(p[3], 8, where)
             if p[2] == 'pam' and not reg:
                 sys.exit(f'{where}: pam needs the PAM0 register')
+            if p[2] == 'via' and not reg:
+                sys.exit(f'{where}: via needs the register of C0000-CFFFF')
             if p[4] not in FLAGS:
                 sys.exit(f'{where}: flags is one of {", ".join(FLAGS)}')
             rows.append((ven, lo, hi, METHODS[p[2]], reg, FLAGS[p[4]],
@@ -71,12 +74,13 @@ def main():
            'SHDT_LO   dw\t ?\t\t; First device ID',
            'SHDT_HI   dw\t ?\t\t; Last ...',
            'SHDT_METH db\t ?\t\t; Method (see @SHDT_xxx)',
-           'SHDT_REG  db\t ?\t\t; PAM0 register',
+           'SHDT_REG  db\t ?\t\t; PAM0 register (VIA:  C0000-CFFFF)',
            'SHDT_FLAG db\t ?\t\t; Flags (see @SHDT_xxx)',
            'SHDT_STR ends',
            '',
            '@SHDT_PAM  equ 1\t\t; Intel PAM registers',
            '@SHDT_AMD  equ 2\t\t; AMD fixed range MTRRs',
+           '@SHDT_VIA  equ 3\t\t; VIA shadow RAM control (61h-63h)',
            '@SHDT_LOCK equ 01h\t\t; PAM0 bit 0 is LOCK',
            '',
            'SHDTAB_DATA macro',
@@ -93,7 +97,7 @@ def main():
 
 
 def write_h(dst, rows):
-    cdef = {'@SHDT_PAM': 'SHDT_PAM', '@SHDT_AMD': 'SHDT_AMD',
+    cdef = {'@SHDT_PAM': 'SHDT_PAM', '@SHDT_AMD': 'SHDT_AMD', '@SHDT_VIA': 'SHDT_VIA',
             '@SHDT_LOCK': 'SHDT_LOCK', '0': '0'}
     out = ['/* SHDTAB.H -- made by linux/tools/shdtab.py of 386MAX/SHADOWRAM.TXT',
            ' * (do not edit; Open 386MAX - GNU General Public License version 3) */',
@@ -101,14 +105,15 @@ def write_h(dst, rows):
            'typedef struct _shdtab {',
            '\tunsigned ven;\t\t/* Vendor ID */',
            '\tunsigned lo, hi;\t/* Range of device IDs */',
-           '\tunsigned char meth;\t/* SHDT_PAM, SHDT_AMD */',
-           '\tunsigned char reg;\t/* PAM0 register */',
+           '\tunsigned char meth;\t/* SHDT_PAM, SHDT_AMD, SHDT_VIA */',
+           '\tunsigned char reg;\t/* PAM0 register (VIA:  C0000-CFFFF) */',
            '\tunsigned char flag;\t/* SHDT_LOCK */',
            '\tconst char *name;',
            '} SHDTAB;',
            '',
            '#define SHDT_PAM\t1\t/* Intel PAM registers */',
            '#define SHDT_AMD\t2\t/* AMD fixed range MTRRs */',
+           '#define SHDT_VIA\t3\t/* VIA shadow RAM control (61h-63h) */',
            '#define SHDT_LOCK\t0x01\t/* PAM0 bit 0 is LOCK */',
            f'#define SHDT_COUNT\t{len(rows)}',
            '',

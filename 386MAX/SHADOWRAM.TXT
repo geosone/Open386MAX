@@ -14,6 +14,10 @@
 ;	     one nibble per 16KB, bit 0 = reads from DRAM, bit 1 = writes
 ;   amdmtrr  AMD family 0Fh (K8) and later:  RdDram/WrDram of the fixed
 ;	     range MTRRs 268h-26Fh (register -)
+;   via      VIA Apollo shadow RAM control:  <register> (61h) C0000-CFFFF,
+;	     the next one D0000-DFFFF, two bits per 16KB from bit 0 (bit 1 =
+;	     reads from DRAM, bit 0 = writes); the third byte (63h) bits
+;	     7-6 E0000-EFFFF and bits 5-4 F0000-FFFFF in the same way
 ; flags:
 ;   lock     PAM0 bit 0 is LOCK (checked in the datasheet)
 ;   -        none
@@ -56,6 +60,34 @@
 8086  4600-46FF  pam     80  lock  12th generation Core (Alder Lake), 13th/14th
 8086  A700-A7FF  pam     80  lock  13th/14th generation Core (Raptor Lake)
 8086  7D00-7DFF  pam     80  -     Core Ultra (Meteor Lake, Arrow Lake)
+; VIA:  the register layout as 86Box emulates the Apollo host bridges
+; (VT82C598 and VT82C691 checked against the registers and the contents
+; of C0000-FFFFF with MAXPROBE SHDINFO on 86Box boards with Award BIOSes);
+; the same registers and bit pairs as UMBPCI's VIAList and VIAUniList
+; (UMBCHIP.TXT), whose "ok" host bridges are listed (the CX700 family
+; has its registers at 80h-83h in another layout and is left out)
+1106  0501       via     61  -     VT8501 (Apollo MVP4)
+1106  0585       via     61  -     VT82C585VPX (Apollo VP, VPX)
+1106  0595       via     61  -     VT82C595 (Apollo VP2)
+1106  1595       via     61  -     VT82C595 (Apollo VP2/97)
+1106  0597       via     61  -     VT82C597 (Apollo VP3)
+1106  0598       via     61  -     VT82C598MVP (Apollo MVP3)
+1106  0601       via     61  -     VT8601 (Apollo PM601, PLE133)
+1106  0605       via     61  -     VT8605 (Apollo PM133)
+1106  0691       via     61  -     VT82C691/693A/694X (Apollo Pro, Pro133, Pro133A)
+1106  0693       via     61  -     VT82C693 (Apollo Pro Plus)
+1106  8601       via     61  -     VT8601 (Apollo ProMedia, 86Box)
+1106  3091       via     61  -     VT8633 (Apollo Pro 266)
+1106  3123       via     61  -     VT8623 (EPIA-M)
+1106  3128       via     61  -     P4X266
+1106  3148       via     61  -     P4M266
+1106  3158       via     61  -     P4N266
+1106  3168       via     61  -     P4X333
+1106  3178       via     61  -     P4N333
+1106  3198       via     61  -     P4X600
+1106  0258       via     61  -     PT880
+1106  0259       via     61  -     PM880
+1106  0296       via     61  -     P4M800
 ; any AMD host bridge (all device IDs) with a family 0Fh or later CPU
 ; (K8 and 10h-16h BKDGs, 17h and 1Ah PPRs checked);
 ; lines for older AMD chipsets (e.g. of UMBPCI) go before it
