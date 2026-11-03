@@ -13,14 +13,16 @@ only to its own medium.
 | File | Contents |
 | --- | --- |
 | `maxprobe-VER-disk.img` | 1.44 MB floppy:  the SvarDOS boot floppy reduced to kernel and shell, plus the probe |
-| `maxprobe-VER-usb.img` | USB stick image:  the SvarDOS hard disk of `linux/test/mkdosdisk.sh svardos`, reduced the same way, with ReBIOS as `EFI\BOOT\BOOTX64.EFI`, its settings `EFI\BOOT\rebios.ini` (from `MAXPROBE/REBIOS.INI`) and its source tarball in `SRC` |
+| `maxprobe-VER-usb.img` | USB stick image:  the SvarDOS hard disk of `linux/test/mkdosdisk.sh svardos`, reduced the same way, with ReBIOS as `EFI\BOOT\BOOTX64.EFI`, its settings `EFI\BOOT\rebios.ini` (from `MAXPROBE/REBIOS.INI`) and its source tarball in `SRC`, and CSMWrap as `EFI\BOOT\BOOTIA32.EFI` |
 | `maxprobe-VER.zip` | both images and the README |
 
 The USB image boots in BIOS/legacy (CSM) mode and, through
 [ReBIOS](https://github.com/ReBIOS-Project/ReBIOS) (SeaBIOS CSM under a
 minimal hypervisor, the successor of CSMWrap), on 64-bit UEFI-only PCs with
-Secure Boot off and VT-x/AMD-V and an IOMMU enabled.  There is no 32-bit
-UEFI loader any more (CSMWrap had `BOOTIA32.EFI`).  ReBIOS is taken
+Secure Boot off and VT-x/AMD-V and an IOMMU enabled.  ReBIOS has no 32-bit
+UEFI loader, so 32-bit UEFI PCs keep CSMWrap as `BOOTIA32.EFI` for now
+(`CSM=`, default `~/Iso/CSMWRAP/3.1.2`, unmodified, `CSMWRAP.TXT` names
+licence and source).  ReBIOS is taken
 unmodified from its release (`REB=` names the directory with `rebios.efi`
 and `rebios-VER.tar.xz`, default `~/Iso/REBIOS/0.5.2`); being GPL 2, its
 source tarball goes onto the image, `REBIOS.TXT` names licence and source.

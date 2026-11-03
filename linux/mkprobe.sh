@@ -6,13 +6,15 @@
 #
 # MAXPROBE images (build/maxprobe):  maxprobe-VER-disk.img (1.44 MB floppy,
 # from the SvarDOS boot floppy), maxprobe-VER-usb.img (hard disk image for
-# USB sticks, from linux/test/mkdosdisk.sh svardos, with ReBIOS for
-# UEFI-only PCs) and maxprobe-VER.zip.  Build the tools first (make MAXPROBE).
+# USB sticks, from linux/test/mkdosdisk.sh svardos, with ReBIOS for 64-bit
+# and CSMWrap for 32-bit UEFI-only PCs) and maxprobe-VER.zip.  Build the tools first (make MAXPROBE).
 #   SVF  SvarDOS 1.44 MB boot floppy   (default ~/Iso/Dos/svardos/...)
 #   SVH  SvarDOS hard disk image       (default build/dosdisk/svardos.img)
 #   REB  directory with rebios.efi and rebios-VERSION.tar.xz (its source,
 #        GPL 2, goes onto the stick), named by the ReBIOS release (default
-#        ~/Iso/REBIOS/0.5.2); none:  no UEFI boot
+#        ~/Iso/REBIOS/0.5.2); none:  no 64-bit UEFI boot
+#   CSM  directory with csmwrapia32.efi, named by the CSMWrap release
+#        (default ~/Iso/CSMWRAP/3.1.2); none:  no 32-bit UEFI boot
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 VER=${VER:-1.4}
@@ -22,6 +24,7 @@ OUT=$ROOT/build/maxprobe
 SVF=${SVF:-$HOME/Iso/Dos/svardos/svdos-1.44M-disk-1.img}
 SVH=${SVH:-$ROOT/build/dosdisk/svardos.img}
 REB=${REB:-$HOME/Iso/REBIOS/0.5.2}
+CSM=${CSM:-$HOME/Iso/CSMWRAP/3.1.2}
 export MTOOLS_SKIP_CHECK=1
 rm -rf "$OUT"; mkdir -p "$OUT/tmp"
 T=$OUT/tmp
@@ -65,7 +68,19 @@ if [ -f "$REB/rebios.efi" ]; then
         'Settings:  EFI\BOOT\rebios.ini (see README.TXT).' | crlf > "$T/REBIOS.TXT"
     mcopy -o -i "$U@@32256" "$T/REBIOS.TXT" ::/
 else
-    echo "no ReBIOS in $REB:  the USB image boots in BIOS/legacy mode only" >&2
+    echo "no ReBIOS in $REB:  no 64-bit UEFI boot" >&2
+fi
+if [ -f "$CSM/csmwrapia32.efi" ]; then
+    v=$(basename "$CSM")
+    mmd -i "$U@@32256" ::/EFI ::/EFI/BOOT 2>/dev/null || true
+    mcopy -o -i "$U@@32256" "$CSM/csmwrapia32.efi" ::/EFI/BOOT/BOOTIA32.EFI
+    printf '%s\n' "EFI\\BOOT\\BOOTIA32.EFI (32-bit UEFI):  CSMWrap $v (SeaBIOS CSM" \
+        'and SeaVGABIOS as a UEFI application), GNU LGPL 2.1; SeaBIOS:  GNU LGPL 3.' \
+        'Unmodified release binary, source:' \
+        "https://github.com/CSMWrap/CSMWrap/releases/tag/$v" | crlf > "$T/CSMWRAP.TXT"
+    mcopy -o -i "$U@@32256" "$T/CSMWRAP.TXT" ::/
+else
+    echo "no CSMWrap in $CSM:  no 32-bit UEFI boot" >&2
 fi
 mkdir "$T/zip"
 cp "$F" "$T/zip/MAXPROBE.IMG"; cp "$U" "$T/zip/MAXPROBE-USB.IMG"; cp "$T/README.TXT" "$T/zip/"

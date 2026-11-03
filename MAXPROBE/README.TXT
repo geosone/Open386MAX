@@ -19,10 +19,11 @@ ein paar Zwischendateien) landen auf dem MAXPROBE-Stick/der Diskette.
 
 Benoetigt
 ---------
-* Ein PC mit BIOS-/Legacy-Modus (CSM), oder ein reiner 64-Bit-UEFI-PC:
-  der USB-Stick enthaelt ReBIOS und startet auch dort.  Dafuer muessen
-  Secure Boot aus und Virtualisierung (VT-x/AMD-V) sowie IOMMU (VT-d/
-  AMD-Vi) im Setup eingeschaltet sein.
+* Ein PC mit BIOS-/Legacy-Modus (CSM), oder ein reiner UEFI-PC:  der
+  USB-Stick enthaelt ReBIOS (64-Bit-UEFI) und startet auch dort.  Dafuer
+  muessen Secure Boot aus und Virtualisierung (VT-x/AMD-V) sowie IOMMU
+  (VT-d/AMD-Vi) im Setup eingeschaltet sein.  Auf 32-Bit-UEFI (manche
+  Tablets) startet vorerst CSMWrap (Secure Boot aus).
 * Eine Diskette (MAXPROBE.IMG) oder einen USB-Stick (MAXPROBE-USB.IMG).
   ACHTUNG:  Der Stick wird dabei komplett ueberschrieben!
 
@@ -67,7 +68,8 @@ Lizenzen
 --------
 MAXPROBE-Werkzeuge (PCILIST, VBELIST, REGDUMP, GPUINFO, SHDINFO, VGATEST,
 GFXTEST):  GPL 3, Quelltext
-im Verzeichnis SRC.  ReBIOS (USB-Image):  GNU GPL 2, siehe REBIOS.TXT.
+im Verzeichnis SRC.  ReBIOS (USB-Image):  GNU GPL 2, siehe REBIOS.TXT; CSMWrap (USB-Image,
+32-Bit-UEFI):  GNU LGPL 2.1, siehe CSMWRAP.TXT.
 SvarDOS-Kernel (Enhanced DR-DOS) und SvarCOM:  siehe
 http://svardos.org und https://github.com/SvarDOS/edrdos
 
@@ -84,9 +86,10 @@ register contents, whether the card's VGA core is reachable and on
 written to the hard disk; REPORT.TXT (and a few temporary files) go to the
 MAXPROBE stick/floppy only.
 
-Needs a PC with BIOS/legacy (CSM) mode, or a 64-bit UEFI-only PC:  the
-USB image contains ReBIOS and boots there too (Secure Boot off,
-virtualisation (VT-x/AMD-V) and IOMMU (VT-d/AMD-Vi) on).
+Needs a PC with BIOS/legacy (CSM) mode, or a UEFI-only PC:  the USB
+image contains ReBIOS for 64-bit UEFI and boots there too (Secure Boot
+off, virtualisation (VT-x/AMD-V) and IOMMU (VT-d/AMD-Vi) on); on 32-bit
+UEFI (some tablets) CSMWrap starts for now (Secure Boot off).
 Write MAXPROBE-USB.IMG to a stick (all its data is lost!) with dd, Rufus
 (DD image) or Win32 Disk Imager; MAXPROBE.IMG to a floppy.  Boot it,
 answer the picture test with Y (frame and all row numbers complete and
