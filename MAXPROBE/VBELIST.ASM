@@ -4,7 +4,10 @@
 ; SPDX-License-Identifier: GPL-3.0-only
 ;
 ; VBELIST.COM:  every VBE mode with attributes; text modes with columns,
-; rows and character cell; controller strings first.  Output to stdout (redirectable).
+; rows and character cell; controller strings first.  For VBE text modes
+; (from 100h) also the first 32 bytes of the mode info block, and whether
+; the BIOS saves the full state (4F04h), which MAXTEXT requires.  Output to
+; stdout (redirectable).
         .model tiny
         .386
         .code
@@ -58,7 +61,21 @@ start:  push cs
         mov dx,offset trev
         mov bx,1Eh
         call fstr
-@@:     mov dx,offset thead
+@@:     mov dx,offset tstate        ; 4F04h:  size of the full state
+        mov ah,9
+        int 21h
+        mov ax,4F04h
+        xor dl,dl
+        mov cx,000Fh
+        xor bx,bx
+        int 10h
+        call hex4
+        mov dl,' '
+        call putc
+        mov ax,bx
+        call hex4
+        call crlf
+        mov dx,offset thead
         mov ah,9
         int 21h
         call crlf
@@ -119,6 +136,19 @@ dims:   mov dl,' '
         call putc
         mov ax,word ptr minfo+8         ; window A segment
         call hex4
+        test byte ptr minfo,10h         ; text mode from 100h:  raw info
+        jnz eol
+        cmp [modeno],100h
+        jb  eol
+        call crlf
+        mov dx,offset tinfo
+        mov ah,9
+        int 21h
+        mov si,offset minfo
+        mov cx,32
+@@:     lodsb
+        call hex2
+        loop @B
         jmp short eol
 bad:    mov dl,'?'
         call putc
@@ -160,6 +190,11 @@ hex4m:  push ax
         call hex4
         pop ax
         ret
+hex2:   push ax                         ; AL as two hex digits
+        push cx
+        mov ah,al
+        mov cx,2
+        jmp short h4next
 hex4:   push ax
         push cx
         mov cx,4
@@ -213,6 +248,8 @@ tsw     db 'OEM software revision: $'
 tven    db 'vendor:  $'
 tprod   db 'product: $'
 trev    db 'revision: $'
+tstate  db 'state save 4F04h (all):  AX BX $'
+tinfo   db '  info $'
 thead   db 'mode attr T/G cols/xres x rows/yres cell bpp winA$'
 novbe   db 'no VBE',13,10,'$'
 endmsg  db 'END',13,10,'$'
