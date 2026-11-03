@@ -174,11 +174,13 @@ TVGA9000B), graphics and linear-only framebuffers are rejected. Other working VB
 extension; no register recipe is guessed for them.
 
 4F04h must report bounded full-state storage (hardware, BIOS, DAC and
-SVGA extensions), at most 8 KiB, and a non-zero size for the SVGA state
-alone (CX=8). Those modes are not exposed without it. The Realtek VGA
-BIOS 6.C01 (86Box RTG3105) reports 0 blocks for CX=8, the same size for
-CX=7 and CX=0Fh, and hangs when asked to save with CX=0Fh; S3, Cirrus,
-Tseng, Trident and 3dfx BIOSes report 1 to 8 blocks for CX=8.
+SVGA extensions), at most 8 KiB, with the SVGA state in it: blocks for
+CX=8 alone, or more blocks for CX=0Fh than for CX=7. Those modes are not
+exposed without it. The Realtek VGA BIOS 6.C01 (86Box RTG3105) reports 0
+blocks for CX=8 and the same size for CX=7 and CX=0Fh, and hangs when
+asked to save with CX=0Fh; S3, Cirrus, Tseng, Trident and 3dfx BIOSes
+report 1 to 8 blocks for CX=8, SeaVGABIOS 0 for CX=8 but 0Dh for CX=7 and
+0Eh for CX=0Fh (its SVGA part is smaller than a block).
 Transactions then use 4F04h save/restore, including when returning to VGA,
 and set VBE modes through 4F02h without custom CRTC timing or LFB flags.
 4F03h confirms the selected mode. The character height is then taken

@@ -268,20 +268,14 @@ vbe_query_skip:
     cmp vbe_bits,0
     je discover_vbe_end
     ; VGA 1Ch cannot save chipset extensions. VBE full state is mandatory.
-    ; A BIOS that reports no SVGA state (CX=8, BX=0) does not save it:
-    ; the Realtek VGA BIOS 6.C01 (RTG3105) then hangs in the 4F04h save.
-    mov ax,4F04h
-    mov cx,0008h
-    xor dx,dx
-    xor bx,bx
-    call video_bios
-    cmp ax,004Fh
-    jne vbe_discard
-    or bx,bx
-    jz vbe_discard
+    ; The SVGA state must be part of it:  blocks for CX=8 alone, or more
+    ; blocks for CX=0Fh than for CX=7 (SeaVGABIOS:  8 -> 0, 7 -> 0Dh,
+    ; 0Fh -> 0Eh).  The Realtek VGA BIOS 6.C01 (RTG3105) reports neither
+    ; (0, 0Fh, 0Fh) and hangs when asked to save it.
     mov ax,4F04h
     mov cx,000Fh
     xor dx,dx
+    xor bx,bx
     call video_bios
     cmp ax,004Fh
     jne vbe_discard
@@ -290,12 +284,32 @@ vbe_query_skip:
     cmp bx,128
     ja vbe_discard
     mov vbe_state_blocks,bx
+    mov ax,4F04h
+    mov cx,0008h
+    xor dx,dx
+    xor bx,bx
+    call video_bios
+    cmp ax,004Fh
+    jne vbe_discard
+    or bx,bx
+    jnz vbe_svga_state
+    mov ax,4F04h
+    mov cx,0007h
+    xor dx,dx
+    xor bx,bx
+    call video_bios
+    cmp ax,004Fh
+    jne vbe_discard
+    cmp bx,vbe_state_blocks
+    jae vbe_discard
+vbe_svga_state:
     mov ax,vbe_bits
     or word ptr info+MT_MODES,ax
     or word ptr info+MT_FLAGS,MT_VBE_HINT
     ret
 vbe_discard:
     mov vbe_bits,0
+    mov vbe_state_blocks,0   ; VGA transactions must not use 4F04h either
 discover_vbe_end:
     ret
 discover_vbe endp
