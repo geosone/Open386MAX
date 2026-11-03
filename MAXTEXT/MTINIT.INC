@@ -268,6 +268,17 @@ vbe_query_skip:
     cmp vbe_bits,0
     je discover_vbe_end
     ; VGA 1Ch cannot save chipset extensions. VBE full state is mandatory.
+    ; A BIOS that reports no SVGA state (CX=8, BX=0) does not save it:
+    ; the Realtek VGA BIOS 6.C01 (RTG3105) then hangs in the 4F04h save.
+    mov ax,4F04h
+    mov cx,0008h
+    xor dx,dx
+    xor bx,bx
+    call video_bios
+    cmp ax,004Fh
+    jne vbe_discard
+    or bx,bx
+    jz vbe_discard
     mov ax,4F04h
     mov cx,000Fh
     xor dx,dx

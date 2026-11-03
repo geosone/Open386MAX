@@ -124,15 +124,27 @@ check_vbe_info proc near
     jne vbe_info_bad
     cmp byte ptr vbe_mode_info+27,0 ; memory model: text
     jne vbe_info_bad
-    ; A fixed read/write window is preferred; no bank-switch dependency.
-    mov al,vbe_mode_info+2
-    and al,7
-    cmp al,6
-    jne vbe_info_bad
+    ; Window A at B800 must be writable and read there or through window B
+    ; at the same segment (ET4000/W32p:  A 05h, B 03h).  Bit 0 (VBE 1.2
+    ; "supported", VBE 3.0 "relocatable") is set by every card seen and does
+    ; not matter:  the whole page fits the 32 KiB window, 4F05h is never used.
+    test byte ptr vbe_mode_info+2,4
+    jz vbe_info_bad
     cmp word ptr vbe_mode_info+8,0B800h
     jne vbe_info_bad
-    cmp word ptr vbe_mode_info+6,32
+    test byte ptr vbe_mode_info+2,2
+    jnz vbe_info_window
+    test byte ptr vbe_mode_info+3,2
+    jz vbe_info_bad
+    cmp word ptr vbe_mode_info+10,0B800h
     jne vbe_info_bad
+vbe_info_window:
+    ; 32 KiB; Trident (TGUI9440, TVGA8900D) report 64 KiB at B800, of
+    ; which only the text page below C000 is used.
+    cmp word ptr vbe_mode_info+6,32
+    jb vbe_info_bad
+    cmp word ptr vbe_mode_info+6,64
+    ja vbe_info_bad
     mov ax,[si]
     cmp word ptr vbe_mode_info+18,ax
     jne vbe_info_bad

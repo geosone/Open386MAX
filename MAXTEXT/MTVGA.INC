@@ -749,6 +749,31 @@ set_bios_target:
     call video_bios
     cmp ax,004Fh
     jne rollback
+    ; The character height is the one the BIOS set (BDA), not the one of
+    ; the mode info:  Trident reports 16 for 132x25 and loads 8x14.  The
+    ; cursor and CRTC checks of verify_target still hold it to the hardware.
+    push si
+    mov ax,40h
+    mov es,ax
+    xor ax,ax
+    mov al,es:[85h]
+    cmp ax,8
+    jb vbe_height_done
+    cmp ax,32
+    ja vbe_height_done
+    mov target_height,ax
+    mov si,offset vbe_table
+vbe_height_next:
+    mov bx,target_vbe
+    cmp [si+4],bx
+    jne vbe_height_skip
+    mov [si+6],ax
+vbe_height_skip:
+    add si,10
+    cmp si,offset mode_table_end
+    jb vbe_height_next
+vbe_height_done:
+    pop si
     jmp set_cursor
 set_standard:
     ; BIOS timings only: 350 lines for 43 rows, 400 for 25/50.
@@ -1026,17 +1051,22 @@ verify_height:
     mov cl,al
     cmp es:[60h],cx
     jne verify_bad
+    ; Cursor enabled and inside the cell.  The BIOS cursor emulation may
+    ; move it (TVGA8900D 132x25:  0Ch/0Dh asked, 0Bh/0Ch in the CRTC).
     mov dx,3D4h
     mov ah,0Ah
     call vga_read
-    and al,3Fh              ; cursor enabled, start raster matches font
-    cmp al,ch
-    jne verify_bad
+    test al,20h
+    jnz verify_bad
+    and al,1Fh
+    mov ch,al
     mov ah,0Bh
     call vga_read
     and al,1Fh
+    cmp al,ch
+    jb verify_bad
     cmp al,cl
-    jne verify_bad
+    ja verify_bad
     mov ax,target_rows
     mul target_cols
     shl ax,1

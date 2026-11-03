@@ -160,18 +160,37 @@ Only listed IDs 108h–10Ch are queried with 4F01h. Returning success for an
 unlisted mode does not make it available.
 
 For each candidate the backend requires supported colour text with BIOS
-TTY services, VGA register compatibility, text memory model, a fixed
-read/write 32 KiB Window A at B800h, tightly packed character/attribute
+TTY services, VGA register compatibility, text memory model, a writable
+Window A at B800h of 32 KiB (64 KiB accepted:  Trident TGUI9440 and
+TVGA8900D report that; only the page below C000h is used) that is readable itself or through Window B at
+the same segment (ET4000/W32p splits them), tightly packed character/attribute
 rows, the expected character dimensions and bounded 8/9-pixel cell width
-and 8..32-pixel height. Banked/relocatable windows, graphics and linear-only
-framebuffers are rejected. Other working VBE layouts need a future backend
+and 8..32-pixel height. Window attribute bit 0 is ignored: VBE 1.2 calls it
+"supported", VBE 3.0 "relocatable", every BIOS seen sets it, and the whole
+text page fits the window, so 4F05h is never called (86Box: S3 Trio64,
+Trio64V2/DX, ViRGE/DX, CL-GD5436, ET4000/W32p, TGUI9440, TVGA8900D,
+Voodoo3, RTG3105 all report 07h). Windows at A000h (Matrox Millennium,
+TVGA9000B), graphics and linear-only framebuffers are rejected. Other working VBE layouts need a future backend
 extension; no register recipe is guessed for them.
 
 4F04h must report bounded full-state storage (hardware, BIOS, DAC and
-SVGA extensions), at most 8 KiB. Those modes are not exposed without it.
+SVGA extensions), at most 8 KiB, and a non-zero size for the SVGA state
+alone (CX=8). Those modes are not exposed without it. The Realtek VGA
+BIOS 6.C01 (86Box RTG3105) reports 0 blocks for CX=8, the same size for
+CX=7 and CX=0Fh, and hangs when asked to save with CX=0Fh; S3, Cirrus,
+Tseng, Trident and 3dfx BIOSes report 1 to 8 blocks for CX=8.
 Transactions then use 4F04h save/restore, including when returning to VGA,
 and set VBE modes through 4F02h without custom CRTC timing or LFB flags.
-4F03h confirms the selected mode. BDA geometry, native text layout and
+4F03h confirms the selected mode. The character height is then taken
+from the BDA (40:85h, 8..32) rather than from the mode info: Trident
+TGUI9440/TVGA8900D BIOSes report 16 for 132x25 and load an 8x14 font.
+The cursor only has to be enabled and inside the cell (start <= end <
+height): the TVGA8900D cursor emulation turns 0Ch/0Dh into 0Bh/0Ch.
+The CRTC cell height and the vertical display end still have to match
+the BDA geometry exactly, so in 86Box 132x43 is refused on the
+Trio64V2/DX and ViRGE/DX (8-pixel cells, 386 displayed lines instead of
+344) and on the TGUI9440 (BDA height 8, CRTC cell 11); the transaction
+rolls back to the previous mode (result 4). BDA geometry, native text layout and
 reversible B800h access are independently verified. Thus 4F02h success
 alone never establishes a usable hardware text mode.
 
