@@ -138,12 +138,17 @@ void unattend_init (void)
 	}
 }
 
-/* SETUP.INF to the 386MAX directory (for MAXIMIZE) */
+/* SETUP.INF to the 386MAX directory (for MAXIMIZE).  The one next to
+ * SETUPDOS came with the installer's other files (copy_missing, from disk
+ * 1); copying it again here, after the extraction, failed on floppies:
+ * disk 2 is in the drive then, and SETUP ended with a read/write error. */
 void unattend_copy (void)
 {
 	char path[MAXPATH+1];
 
 	if (!inf_loaded ()) return;
+	sprintf (path, "%s" SETUPINF_NAME, source_subdir);
+	if (!stricmp (path, InfPath)) return;
 	sprintf (path, "%s" SETUPINF_NAME, dest_subdir);
 	if (stricmp (path, InfPath)) copy_file (InfPath, path);
 }
