@@ -148,11 +148,11 @@ static void paintframe(HWND hwnd)
 	hline(hdc, 1, w - 1, h - 2, shadow);
 	vline(hdc, w - 2, 1, h - 1, shadow);
 	/*	inner line */
-	hline(hdc, d + 1, w - d - 1, d, shadow);
+	hline(hdc, d + 1, w - d - 2, d, shadow);
 	vline(hdc, d + 1, d, h - d - 1, shadow);
 	/*	white line under the caption */
 	if ((GetWindowLong(hwnd, GWL_STYLE) & WS_CAPTION) == WS_CAPTION)
-		hline(hdc, d + 2, w - d - 1, d + GetSystemMetrics(SM_CYCAPTION) - 1, light);
+		hline(hdc, d + 1, w - d - 1, d + GetSystemMetrics(SM_CYCAPTION) - 1, light);
 	ReleaseDC(hwnd, hdc);
 }
 
