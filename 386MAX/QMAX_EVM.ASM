@@ -2772,10 +2772,15 @@ SET_PHYS_CR3:
 	 or	 eax,@PTE_URP	; Mark as User/Read-write/Present
 	 mov	 OFFPDT[ebx],eax ; Save for later use
 
-; Because we update the PTE at this location when switching maps
-; via AMRS, we need to know whether or not it is within the first PDE
+; Because we update the PTE of our PDT alias (PDTDIR2) when switching
+; maps via AMRS (and QPI contexts), we need to know whether or not it is
+; within the first PDE.  Open 386MAX:  test PDTDIR2, not the PDIR PTE
+; (PPDTPDIR) as before:  with 4MB of memory the PDIR PTE is below 4MB
+; but the alias beyond it, so the switch left the alias on the old table
+; (QPI 0Ah then wrote the root's PTEs) and 5B03h/QPI 06h wrote past the
+; new table
 
-	 cmp	 ebx,1000h	; Izit beyond 4MB?
+	 cmp	 PDTDIR2,1000h	; Izit beyond 4MB?
 	 jb	 short SET_PHYS_X4MB ; No
 
 	 or	 LCL_FLAG,@LCL_4MB ; Mark as beyond 4MB
