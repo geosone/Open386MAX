@@ -10,6 +10,7 @@ XMS/XMSLOCK   needs=xms
 EMS/EMSFUNC   needs=ems
 EMS/EMSMORE   needs=ems
 VCPI/VCPIFUNC needs=vcpi
+VCPI/VCPIMAP  needs=vcpi,qpi
 VDS/VDSFUNC   needs=vds
 V86/V86FUNC
 V86/INT15

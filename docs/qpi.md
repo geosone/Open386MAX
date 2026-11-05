@@ -64,6 +64,14 @@ its registers.
   Windows support), the graphics virtualization of `13h` (`1300h`,
   `1302h`-`1305h`, `1307h`, `130Bh`, `130Dh`-`1310h`), `19h`, `1Dh`, `21h` (no Stealth), `24h`, `25h`
   (debugger interface), `26h` (VxD loader), `27h`, `29h`, `2Bh`, `2Ch`.
+* VCPI programs loaded before the multitasker (Novell Client32's NIOS)
+  keep the copy of the 0-4 MB page table that `DE01h` gave them.  On
+  every `DE0Ch` 386MAX copies the active context's entries for
+  conventional memory (pages `0`-`9Fh`) into the caller's table again, so
+  such a program reads a task's stack and buffers, not those of the task
+  that was current when it loaded.  QEMM 97 does not do this (it does
+  not need to under DESQview, which does not remap conventional memory
+  there); test `VCPI/VCPIMAP`.
 * QPI is a V86 interface; it is not available inside Windows DOS boxes.
 * With IRQ calldowns enabled (`1C01h`/`1C03h`), `HLT` in V86 mode with
   `IF=1` returns at once, as on QEMM:  the multitasker gets the IRQs in its
@@ -75,7 +83,8 @@ its registers.
 `TESTS/QPI`: `QPITEST` (detection, information functions), `QPITRAP`
 (ports), `QPIMISC` (1B07h, 1E03h/1E04h, 22h, 23h, 28h, 2Ah), `QPICTX`
 (contexts, 0Ah, 0Bh, 0Fh), `QPIIRQ` (1Ch), `QPITIMER` (15h), `QPICRT`
-(0Dh/0Eh), `QPIVID` (13h), `QPIPROT` (14h).  Run them with `linux/test/suite.py`; the
+(0Dh/0Eh), `QPIVID` (13h), `QPIPROT` (14h); `VCPI/VCPIMAP` (VCPI in a
+context).  Run them with `linux/test/suite.py`; the
 `qemm` profile runs them on QEMM 97 for comparison (local image only).
 
 DESQview 2.80 itself:  `linux/test/desqview.sh` (local images with

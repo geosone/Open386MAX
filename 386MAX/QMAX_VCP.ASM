@@ -70,6 +70,7 @@ if @OEM_DPMI
 	 extrn	 SET_HWSP:far
 endif				; IF @OEM_DPMI
 	 extrn	 CHECK_LOTUS:far
+	 extrn	 QPI_VCPIPTE:far
 if @VCP_OLD
 	 extrn	 QPI_API:far
 endif				; IF @VCP_OLD
@@ -1450,6 +1451,12 @@ CS	 =	 QMAX High, QMAX's GDT
 	 or	 ax,@PTE_URP	; Mark as User/Read-Write/Present
 	 mov	 PHAR_PDE,eax	; Save for later use
 VCPI0C_XCR3:
+
+; Open 386MAX:  the caller's PTEs of conventional memory again from ours
+; (QPI_VCPIPTE)
+
+	 FIXICALL JGROUP:QPI_VCPIPTE,DTE_CSJG ; Refresh them
+
 	 mov	 eax,PHAR_PDE	; Get the PDE
 	 mov	 esi,OFFCR3	; Get offset to PDE table
 	 xchg	 eax,ds:[esi]	; Save as first entry in PDE

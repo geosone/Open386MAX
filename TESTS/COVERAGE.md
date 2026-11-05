@@ -22,6 +22,7 @@ The results for every memory manager on every DOS:  docs/testmatrix.md.
 | EMS 4.0 | 40h-59h, 5Bh | yes | EMS/EMSFUNC |
 | EMS 4.0 | 4Bh-4Dh, 52h, 5Ah, 5Ch, 5Dh (OS/E) | yes | EMS/EMSMORE (found:  5201h volatile refused) |
 | VCPI | DE00h-DE0Ch | yes | VCPI/VCPIFUNC (DE01h at most one page table; DE05h at 512MB and up, pages not mapped one-to-one) |
+| VCPI | DE0Ch with conventional memory remapped after DE01h | yes | VCPI/VCPIMAP (QPI context of its own and in place; the client's PTEs 0-9Fh follow the active table) |
 | VDS | 8102h-810Ch | yes | VDS/VDSFUNC |
 | DPMI 1.0 (16-bit) | most functions | yes | DPMI/DPMI10 |
 | DPMI 0.9 (32-bit client) | all functions | part | DPMI/XLAT32, HDP*, EXEC32 |

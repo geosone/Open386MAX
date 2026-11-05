@@ -39,6 +39,7 @@ max/UMBDOS               PASS
 max/UTIL                 PASS
 max/V86FUNC              PASS
 max/VCPIFUNC             PASS
+max/VCPIMAP              PASS
 max/VDSFUNC              PASS
 max/XLAT32               PASS
 max/XMS35                PASS

@@ -112,6 +112,7 @@ EDATA	 segment use16 dword public 'edata' ; Start EDATA segment
 	 extrn	 NPHYS16S:byte
 	 extrn	 PPHYS2SEG:dword
 	 extrn	 PRGPDT:dword
+	 extrn	 PHAR_PDE:dword
 	 extrn	 PDTLEN:dword
 	 extrn	 POVR_MAC:word
 	 extrn	 SYSROM_START:word
@@ -3752,6 +3753,63 @@ QPI_API_SIMINT2:
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 
 QPI_API endp			; End QPI_API procedure
+
+	 FPPROC  QPI_VCPIPTE -- Refresh A VCPI Client's Conventional PTEs
+	 assume  ds:PGROUP,es:nothing,fs:nothing,gs:AGROUP,ss:nothing
+COMMENT|
+
+Open 386MAX:  VCPI DE0Ch (VCP_MODESUB) copies the caller's PTEs of
+conventional memory (pages 0-9Fh) again from ours, as they are now.
+DE01h copied them once; since then a multitasker may have mapped other
+pages there (DESQview's windows through EMS 5B01h, Open MaxView's tasks
+through QPI 08h; PRGPDT shows the active table).  A VCPI program loaded
+before it (Novell Client32's NIOS) would else read a window's stack and
+data through the old PTEs, those of another task.  As with DE01h,
+without the $PTE_AVx bits.  The caller's page table is mapped for the
+copy at linear 0FF000h, as VCP_MODESUB does to read its PDE 0.
+
+On entry:
+
+PHAR_PDE =	 the caller's PDE 0
+DS	 =	 PGROUP
+GS	 =	 AGROUP
+
+|
+
+@VCPIPTE_LIN equ 0FF000h	; Linear address the caller's table is seen at
+
+	 REGSAVE <eax,ebx,ecx,edi> ; Save registers
+
+	 mov	 ebx,PRGPDT	; Get offset in PGROUP of PDT
+	 mov	 eax,PHAR_PDE	; Get the caller's PDE 0
+	 and	 ax,mask $PTE_FRM ; Isolate its page table's frame
+	 or	 ax,@PTE_URP	; Mark as User/Read-Write/Present
+	 push	 PGROUP:[ebx+(@VCPIPTE_LIN shr (12-2))].PDT_PTE ; Save that PTE
+	 mov	 PGROUP:[ebx+(@VCPIPTE_LIN shr (12-2))].PDT_PTE,eax ; Map the table
+	 mov	 eax,cr3	; Flush the TLB
+	 mov	 cr3,eax	; ...
+
+	 mov	 edi,@VCPIPTE_LIN ; GS:EDI ==> the caller's page table
+	 xor	 ecx,ecx	; Start with page 0
+@@:
+	 mov	 eax,PGROUP:[ebx+ecx*4].PDT_PTE ; Get our PTE
+	 and	 ax,not ((mask $PTE_AV2) or (mask $PTE_AV1) or (mask $PTE_AV0))
+	 mov	 gs:[edi+ecx*4],eax ; Save in the caller's table
+	 inc	 ecx		; Next page
+	 cmp	 ecx,0A0h	; Through conventional memory?
+	 jb	 short @B	; Jump if not
+
+	 pop	 PGROUP:[ebx+(@VCPIPTE_LIN shr (12-2))].PDT_PTE ; Restore
+	 mov	 eax,cr3	; Flush the TLB
+	 mov	 cr3,eax	; ...
+
+	 REGREST <edi,ecx,ebx,eax> ; Restore
+
+	 ret			; Return to caller
+
+	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
+
+QPI_VCPIPTE endp		; End QPI_VCPIPTE procedure
 
 JCODE	 ends			; End JCODE segment
 

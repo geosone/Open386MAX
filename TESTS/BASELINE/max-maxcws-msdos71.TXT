@@ -38,6 +38,7 @@ max/STKFLT               SKIP
 max/UMBDOS               PASS
 max/V86FUNC              PASS
 max/VCPIFUNC             PASS
+max/VCPIMAP              SKIP
 max/VDSFUNC              PASS
 max/XLAT32               SKIP
 max/XMS35                PASS
