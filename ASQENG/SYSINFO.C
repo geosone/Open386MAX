@@ -2818,6 +2818,7 @@ double get_cpuclock(void)
 	for (kk = 0; kk < TRIALS; kk++) {
 		/* Obtain the number of clock ticks for 1000 multiplies. */
 		raw = multime(COUNT);
+		if (raw == 0) raw = 1;	/* faster than timer 2 can count */
 		/* Accumulate the clock time in microseconds by adjusting for the
 		 * timer rate, number of clocks per multiply, instruction count, and
 		 * test overhead. */

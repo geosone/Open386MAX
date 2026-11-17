@@ -2017,6 +2017,7 @@ void do_qmt (void)
  SizeK = ((DWORD) extcmos ()) + 512L;
  // Speed in mhz == (1.193180 * (MULCLKS*1000 + overhead)) / multime(1000)
  Clocks1000 = MULTIME (1000);
+ if (Clocks1000 == 0) Clocks1000 = 1; // Faster than timer 2 can count (0.84 us)
  // Get MULCLKS*1000 + overhead
  switch (cpu.cpu_type) {
   case CPU_80386SX:
