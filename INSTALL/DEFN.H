@@ -56,14 +56,18 @@ char	 update_subdir [MAXDIR+1] = MAX_INIDIR;
 
 // End of startup variables list
 
-int	 security_crc;
-int	 SECURITY_LEN;
+// PD_SUB.ASM defines these: SECURITY_LEN (350) and the checksum right
+// after the pattern.  A C definition here would win over the assembler
+// one (JWlink W1027) and leave SECURITY_LEN 0, so that the installed
+// programs got a checksum of 0 over their identification string.
+extern int	 security_crc;
+extern int	 SECURITY_LEN;
 
 WORD	dcache = DCACHE_NONE;		// Disk cache found & flags
 WORD	dcache_arg = 0; 		// Size argument to disk cache
 int	dcache_arg2 = -1;		// 2nd size argument to disk cache
 
-char	 security_pattern [ 352 ];
+extern char	 security_pattern [];
 char	 drv_drive[ _MAX_DRIVE ];	// parsed device= drive
 char	 drv_dir[ _MAX_DIR ];		//  ..			  dir
 char	 drv_fname[ _MAX_FNAME ];	//  ..			  name
