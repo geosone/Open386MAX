@@ -1741,11 +1741,59 @@ DPMIFN_VSAPI2:
 DPMIFN_VSAPI_ERR:
 	 or	 [esp].RETFDPI1_EFL.ELO,mask $CF ; Indicate not supported (CF=1)
 DPMIFN_VSAPI_EXIT:
-	 push	 [esp].RETFDPI1_EFL.ELO ; Get return flags (with caller's IF)
-	 popf			; Put into effect (interrupts not enabled
-				; until after the next instruction
-				; at which point we're back at PL3).
-	 retfd	 (@VSAPI_DDSTKSIZE+2)*4 ; Return to caller, popping arguments
+
+; Open 386MAX:  return with an IRETD, which loads the caller's flags and
+; leaves PL0 in one instruction.  The POPF that used to precede a RETFD
+; here has no interrupt shadow:  with the caller's IF=1 a pending
+; interrupt came in while still at PL0, where the LPM stack top isn't
+; moved below the caller's stack pointer (DPMIFN_LPMSTK), so a caller
+; inside an interrupt handler got the nested interrupt's frame on top of
+; the stack it was using (VSBHDA polling the PICs through the HDPMI API:
+; its return address overwritten, LPM stack overflow, triple fault).
+
+; Build the IRETD frame in the argument area, just below the caller's
+; ESP and SS
+
+@VSAPI_ARGLEN equ (@VSAPI_DDSTKSIZE+2)*4 ; Size of the arguments in bytes
+@VSAPI_IRET equ  @VSAPI_ARGLEN-4 ; Offset of the frame in RETFDPI1_STR
+
+	 push	 eax		; Save for a moment
+
+	 mov	 eax,[esp+4].RETFDPI1_EFL ; Get return flags (with caller's IF)
+	 mov	 [esp+4+@VSAPI_IRET+8].EDD,eax ; Save in the frame
+	 movzx	 eax,[esp+4].RETFDPI1_CS ; Get return CS
+	 mov	 [esp+4+@VSAPI_IRET+4].EDD,eax ; Save in the frame
+	 mov	 eax,[esp+4].RETFDPI1_EIP ; Get return EIP
+	 mov	 [esp+4+@VSAPI_IRET+0].EDD,eax ; Save in the frame
+
+; Pop the arguments from the caller's stack as the RETFD did (SP only if
+; the B-bit in the caller's SS is clear)
+
+	 movzx	 eax,[esp+4+@VSAPI_IRET+16].ELO ; Get the caller's SS
+	 lar	 eax,eax	; Get its access rights
+
+	 test	 eax,1 shl 22	; Izit a 32-bit stack?
+	 jnz	 short @F	; Jump if so
+
+	 add	 [esp+4+@VSAPI_IRET+12].ELO,@VSAPI_ARGLEN ; Pop from SP
+
+	 jmp	 short DPMIFN_VSAPI_EXIT1 ; Join common code
+
+@@:
+	 add	 [esp+4+@VSAPI_IRET+12].EDD,@VSAPI_ARGLEN ; Pop from ESP
+DPMIFN_VSAPI_EXIT1:
+	 pop	 eax		; Restore
+
+	 add	 esp,@VSAPI_IRET ; Strip to the frame
+
+; A call gate leaves NT as the caller had it:  ensure it's clear so the
+; IRETD returns through the frame (interrupts stay disabled)
+
+	 pushf			; Get our flags
+	 and	 [esp].ELO,not ((mask $NT) or (mask $IF)) ; NT=0, IF=0
+	 popf			; Put into effect
+
+	 iretd			; Return to caller with its flags
 
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 
