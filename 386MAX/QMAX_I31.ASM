@@ -1513,10 +1513,14 @@ endif				; IF @OEM_VIRTUALMEM
 	 mov	 ecx,(256/8)/4	; Size of the table in dwords
 S32  rep movs	 <AGROUP:[edi].EDD,AGROUP:[esi].EDD> ; Copy it
 
-	 REGREST <es,edi,esi,ecx> ; Restore
-	 assume  es:IGROUP	; Tell the assembler about it
+; SIRBCUR2B copies through ES, which must address AGROUP (with ES back
+; at IGROUP the copy ended in a GP fault, "internal system error" as soon
+; as a nested client started on a CPU with VME)
 
 	 FIXICALL PGROUP:SIRBCUR2B,DTE_CS2 ; Copy SIRBCUR values to SIRB
+
+	 REGREST <es,edi,esi,ecx> ; Restore
+	 assume  es:IGROUP	; Tell the assembler about it
 @@:
 if @OEM_VIRTUALMEM
 
