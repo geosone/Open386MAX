@@ -1,6 +1,9 @@
-/* WAVPLAY.C - play a 16-bit PCM WAVE file on a Sound Blaster 16 (or an
-   emulation of it):  8-bit stereo, auto-init DMA with two half buffers
-   refilled after each IRQ.  More than two channels are mixed down
+/* WAVPLAY.C - play a 16-bit PCM WAVE file on a Sound Blaster 16 or a Sound
+   Blaster Pro (or an emulation of either):  8-bit stereo, auto-init DMA with
+   two half buffers refilled after each IRQ.  DSP 4.xx:  SB16 commands 41h and
+   C6h; DSP 3.xx:  the SB Pro way, stereo in mixer register 0Eh, a time
+   constant (40h) and high-speed auto-init (48h, 90h), which only a DSP reset
+   ends; the SB Pro plays up to 22050 Hz stereo.  More than two channels are mixed down
    (left = even channels, right = odd channels).  One source, two builds:
 
      real mode   wcl -q -cc -bt=dos -ml -fe=WAVRM.EXE WAVPLAY.C
@@ -175,7 +178,7 @@ int main(int argc, char **argv)
     unsigned blocks = 0, played, vec, ver, mask, pic, expect;
     int more;
 
-    printf("WAVPLAY (%s):  SB16 8-bit stereo, auto-init DMA\n",
+    printf("WAVPLAY (%s):  SB16/SB Pro 8-bit stereo, auto-init DMA\n",
 #ifdef __386__
            "DOS/4GW"
 #else
@@ -194,7 +197,9 @@ int main(int argc, char **argv)
     dspw(0xE1);
     ver = dspr() << 8;
     ver |= dspr();
-    if (ver < 0x400) { printf("DSP %u.%02u:  not a Sound Blaster 16\n", ver >> 8, ver & 0xFF); return 2; }
+    if (ver < 0x300) { printf("DSP %u.%02u:  not a Sound Blaster 16 or Pro\n", ver >> 8, ver & 0xFF); return 2; }
+    printf("DSP %u.%02u:  %s\n", ver >> 8, ver & 0xFF, ver >= 0x400 ? "Sound Blaster 16" : "Sound Blaster Pro");
+    if (ver < 0x400 && rate > 22050) { printf("%lu Hz:  more than a SB Pro plays in stereo\n", rate); return 2; }
 
     fill(0);
     fill(1);
@@ -215,14 +220,27 @@ int main(int argc, char **argv)
     outp(dma * 2 + 1, (2 * HALF - 1) >> 8);
     outp(0x0A, dma);                        /* unmask */
 
-    dspw(0x41);                             /* output rate */
-    dspw((int)(rate >> 8));
-    dspw((int)(rate & 0xFF));
-    _enable();
-    dspw(0xC6);                             /* 8-bit, auto-init, FIFO */
-    dspw(0x20);                             /* stereo, unsigned */
-    dspw((HALF - 1) & 0xFF);
-    dspw((HALF - 1) >> 8);
+    if (ver >= 0x400) {
+        dspw(0x41);                         /* output rate */
+        dspw((int)(rate >> 8));
+        dspw((int)(rate & 0xFF));
+        _enable();
+        dspw(0xC6);                         /* 8-bit, auto-init, FIFO */
+        dspw(0x20);                         /* stereo, unsigned */
+        dspw((HALF - 1) & 0xFF);
+        dspw((HALF - 1) >> 8);
+    } else {
+        outp(base + 4, 0x0E);               /* mixer:  stereo, no filter */
+        outp(base + 5, (inp(base + 5) | 0x02) & ~0x20);
+        dspw(0xD1);                         /* speaker on */
+        dspw(0x40);                         /* time constant, both channels */
+        dspw((int)((65536UL - 256000000UL / (2 * rate)) >> 8));
+        dspw(0x48);                         /* block size */
+        dspw((HALF - 1) & 0xFF);
+        dspw((HALF - 1) >> 8);
+        _enable();
+        dspw(0x90);                         /* high-speed 8-bit auto-init */
+    }
 
     /* after IRQ n the half (n-1)&1 is played:  refill it */
     played = 0;
@@ -236,8 +254,14 @@ int main(int argc, char **argv)
         if (!more) break;                   /* the last data half is out */
         more = fill((played - 1) & 1);
     }
-    dspw(0xDA);                             /* exit 8-bit auto-init */
-    dspw(0xD0);
+    if (ver >= 0x400) {
+        dspw(0xDA);                         /* exit 8-bit auto-init */
+        dspw(0xD0);
+    } else {
+        dspreset();                         /* ends high-speed mode */
+        outp(base + 4, 0x0E);               /* mixer:  mono again */
+        outp(base + 5, inp(base + 5) & ~0x02);
+    }
     outp(0x0A, 4 | dma);
     outp(pic, mask);
     _dos_setvect(vec, oldisr);

@@ -1,8 +1,10 @@
 ; WAVPM.ASM - WAVPLAY.C for a plain 32-bit DPMI client:  plays a 16-bit
 ; PCM WAVE file (up to 4 channels, mixed down to stereo:  left = even
-; channels, right = odd ones) on a Sound Blaster 16 or an emulation of
-; it, 8-bit stereo, auto-init DMA with two half buffers refilled after
-; each IRQ.  The WAVE header is parsed and the buffers are allocated in
+; channels, right = odd ones) on a Sound Blaster 16 or a Sound Blaster Pro
+; (or an emulation of either), 8-bit stereo, auto-init DMA with two half
+; buffers refilled after each IRQ.  DSP 4.xx:  SB16 commands 41h and C6h;
+; DSP 3.xx:  stereo in mixer register 0Eh, a time constant (40h) and
+; high-speed auto-init (48h, 90h), which only a DSP reset ends.  The WAVE header is parsed and the buffers are allocated in
 ; real mode; the client (it stays in a 16-bit code segment) reads the
 ; data, converts it and handles the IRQ in protected mode.
 ; BLASTER gives A, I and D (8-bit DMA).  Usage:  WAVPM file.wav
@@ -21,6 +23,7 @@ entry	dd	?
 base	dw	220h
 irq	db	5
 dma	db	1
+dspver	db	?			; DSP major version
 fhandle	dw	?
 chans	dw	?
 rate	dd	?
@@ -42,13 +45,16 @@ picmask	db	?
 fname	db	80 dup (0)
 hdr	db	40 dup (?)
 hexbuf	db	'00000000$'
-mban	db	'WAVPM (DPMI):  SB16 8-bit stereo, auto-init DMA',13,10,'$'
+mban	db	'WAVPM (DPMI):  SB16/SB Pro 8-bit stereo, auto-init DMA',13,10,'$'
 musage	db	'usage:  WAVPM file.wav',13,10,'$'
 mnowav	db	'no 16-bit PCM WAVE file with up to 4 channels',13,10,'$'
 mnodpmi	db	'no 32-bit DPMI host',13,10,'$'
 mnomem	db	'no memory',13,10,'$'
 mnodsp	db	'no DSP',13,10,'$'
-mnosb16	db	'not a Sound Blaster 16',13,10,'$'
+mnosb16	db	'not a Sound Blaster 16 or Pro',13,10,'$'
+msb16	db	'DSP 4.xx:  Sound Blaster 16',13,10,'$'
+msbpro	db	'DSP 3.xx:  Sound Blaster Pro',13,10,'$'
+mrate	db	'more than 22050 Hz:  too fast for a SB Pro in stereo',13,10,'$'
 mfmt1	db	'channels, Hz, bytes:  $'
 mtime	db	'no IRQ within 1 s',13,10,'$'
 mres1	db	'blocks played:  $'
@@ -147,6 +153,34 @@ dspr	proc			; AL from the DSP
 	pop	cx
 	ret
 dspr	endp
+
+dsprst	proc			; reset the DSP, AL = its answer
+	mov	dx,base
+	add	dx,6
+	mov	al,1
+	out	dx,al
+	mov	cx,200
+@@:	in	al,dx
+	loop	@B
+	xor	al,al
+	out	dx,al
+	jmp	dspr
+dsprst	endp
+
+sbpmix	proc			; SB Pro mixer 0Eh:  AL = bits to set, AH = to keep
+	push	ax
+	mov	dx,base
+	add	dx,4
+	mov	al,0Eh
+	out	dx,al
+	inc	dx
+	in	al,dx
+	pop	cx
+	and	al,ch
+	or	al,cl
+	out	dx,al
+	ret
+sbpmix	endp
 
 ; read the next frames into INB, convert them into half BL (0/1) of the
 ; DMA buffer, silence after the end;  MORE := 0 if there was no data
@@ -502,17 +536,8 @@ pm:	movzx	esp,sp
 	mov	dx,offset crlf
 	call	print
 
-	; the DSP:  reset, version 4 or later
-	mov	dx,base
-	add	dx,6
-	mov	al,1
-	out	dx,al
-	mov	cx,200
-@@:	in	al,dx
-	loop	@B
-	xor	al,al
-	out	dx,al
-	call	dspr
+	; the DSP:  reset, version 3 (SB Pro) or 4 (SB16) or later
+	call	dsprst
 	cmp	al,0AAh
 	je	@F
 	mov	dx,offset mnodsp
@@ -522,12 +547,22 @@ pm:	movzx	esp,sp
 	call	dspr
 	mov	ah,al
 	call	dspr
+	mov	dspver,ah
+	mov	dx,offset msb16
 	cmp	ah,4
 	jae	@F
 	mov	dx,offset mnosb16
+	cmp	ah,3
+	jb	pmerr
+	mov	dx,offset mrate
+	cmp	rate,22050
+	ja	pmerr
+	mov	dx,offset msbpro
+	jmp	short @F
 pmerr:	call	print
 	mov	ax,4C02h
 	int	21h
+@@:	call	print
 
 @@:	mov	bl,0
 	call	fill
@@ -601,6 +636,8 @@ pmerr:	call	print
 	mov	al,dma
 	out	0Ah,al			; unmask
 
+	cmp	dspver,4
+	jb	sbpro
 	mov	al,41h			; output rate
 	call	dspw
 	mov	al,byte ptr rate+1
@@ -615,6 +652,31 @@ pmerr:	call	print
 	mov	al,(HALF-1) and 0FFh
 	call	dspw
 	mov	al,(HALF-1) shr 8
+	call	dspw
+	jmp	short play
+sbpro:	mov	ax,0DD02h		; mixer:  stereo, no output filter
+	call	sbpmix
+	mov	al,0D1h			; speaker on
+	call	dspw
+	mov	eax,256000000		; time constant:  65536 - 256000000 / (2 rate)
+	xor	edx,edx
+	mov	ecx,rate
+	add	ecx,ecx
+	div	ecx
+	mov	ebx,65536
+	sub	ebx,eax
+	mov	al,40h
+	call	dspw
+	mov	al,bh
+	call	dspw
+	mov	al,48h			; block size
+	call	dspw
+	mov	al,(HALF-1) and 0FFh
+	call	dspw
+	mov	al,(HALF-1) shr 8
+	call	dspw
+	sti
+	mov	al,90h			; high-speed 8-bit auto-init
 	call	dspw
 
 	; after IRQ n the half (n-1)&1 is played:  refill it
@@ -643,10 +705,17 @@ got:	pop	es
 	call	fill
 	jmp	play
 
-stop:	mov	al,0DAh			; exit 8-bit auto-init
+stop:	cmp	dspver,4
+	jb	@F
+	mov	al,0DAh			; exit 8-bit auto-init
 	call	dspw
 	mov	al,0D0h
 	call	dspw
+	jmp	short stopped
+@@:	call	dsprst			; ends high-speed mode
+	mov	ax,0FD00h		; mixer:  mono again
+	call	sbpmix
+stopped:
 	mov	al,dma
 	or	al,4
 	out	0Ah,al
