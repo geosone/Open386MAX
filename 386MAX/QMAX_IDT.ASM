@@ -468,6 +468,13 @@ FDATA	 ends			; End FDATA segment
 JCODE	 segment use16 dword public 'jcode' ; Start JCODE segment
 	 assume  cs:JGROUP
 
+	 extrn	 HDP_IRETD:far
+
+JCODE	 ends			; End JCODE segment
+
+JCODE	 segment use16 dword public 'jcode' ; Start JCODE segment
+	 assume  cs:JGROUP
+
 	 extrn	 QPI_CDVEC:far	; QMAX_QPI:  vector of an IRQ calldown
 	 public  @QMAX_IDT_JCODE
 @QMAX_IDT_JCODE:		; Mark module start in .MAP file
@@ -1202,7 +1209,10 @@ if @OEM_DPMI
 	 FIXICALL IGROUP:FDPMIFN_LMSW,DTE_CSIG ; Put MSW and INT 07h values into effect
 endif				; IF @OEM_DPMI
 
-	 iretd			; Return to interrupted code
+	 public  INTCOM_IRETDC
+INTCOM_IRETDC:
+	 FIXIJMP JGROUP:HDP_IRETD,DTE_CSJG ; IRETD (clean ESP on 16-bit stacks):
+				; Return to interrupted code
 
 	 assume  ss:nothing	; Tell the assembler about it
 
@@ -4426,7 +4436,8 @@ INTFF2:
 
 	 mov	 eax,SAVE_EAX	; Restore
 
-	 iretd			; Return to caller
+	 jmp	 INTCOM_IRETDC ; IRETD (clean ESP on 16-bit stacks):
+				; Return to caller
 
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 

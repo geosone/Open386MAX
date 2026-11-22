@@ -59,6 +59,7 @@ if @OEM_DPMI
 PGROUP	 group	 ECODE,EDATA
 IGROUP	 group	 LCODE,LDATA,ICODE,IDATA,ACTSEG
 PSPGRP	 group	 PSPSEG
+JGROUP	 group	 JCODE
 
 
 PSPSEG	 segment use16 at 0	; Start PSPSEG segment
@@ -1020,6 +1021,13 @@ DSKPKT	 macro	 NN
 
 IDATA	 ends			; End IDATA segment
 
+
+JCODE	 segment use16 dword public 'jcode' ; Start JCODE segment
+	 assume  cs:JGROUP
+
+	 extrn	 HDP_IRETD:far
+
+JCODE	 ends			; End JCODE segment
 
 ICODE	 segment use16 dword public 'icode' ; Start ICODE segment
 	 assume  cs:IGROUP
@@ -3480,7 +3488,8 @@ INT21_DPMI_EXIT:
 
 	 add	 esp,size INTXX_ERR ; Strip off pseudo-error code
 
-	 iretd			; Return to caller
+	 FIXIJMP JGROUP:HDP_IRETD,DTE_CSJG ; IRETD (clean ESP on 16-bit stacks):
+				; Return to caller
 
 
 INT21_DPMI_UNSUP:

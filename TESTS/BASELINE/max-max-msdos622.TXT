@@ -24,6 +24,7 @@ max/MOUSE18              SKIP
 max/NULLSEG              PASS
 max/PM26                 PASS
 max/PMSTACK              PASS
+max/ESPHI                PASS
 max/QPICRT               PASS
 max/QPICTX               PASS
 max/QPIIRQ               PASS

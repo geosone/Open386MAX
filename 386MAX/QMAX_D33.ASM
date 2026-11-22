@@ -45,6 +45,7 @@ if @OEM_DPMI
 
 PGROUP	 group	 ECODE,EDATA
 IGROUP	 group	 LCODE,ICODE,IDATA,ACTSEG
+JGROUP	 group	 JCODE
 
 
 ECODE	 segment use16 dword public 'ecode' ; Start ECODE segment
@@ -322,6 +323,13 @@ JMPTAB33 label	 word
 
 IDATA	 ends			; End IDATA segment
 
+
+JCODE	 segment use16 dword public 'jcode' ; Start JCODE segment
+	 assume  cs:JGROUP
+
+	 extrn	 HDP_IRETD:far
+
+JCODE	 ends			; End JCODE segment
 
 ICODE	 segment use16 dword public 'icode' ; Start ICODE segment
 	 assume  cs:IGROUP
@@ -902,7 +910,8 @@ INT33_DPMI_EXIT:
 
 	 add	 esp,size INTXX_ERR ; Strip off pseudo-error code
 
-	 iretd			; Return to caller
+	 FIXIJMP JGROUP:HDP_IRETD,DTE_CSJG ; IRETD (clean ESP on 16-bit stacks):
+				; Return to caller
 
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 
@@ -1148,7 +1157,8 @@ endif				; IF @OEM_VIRTUALMEM
 	 assume  ds:nothing,es:nothing ; Tell the assembler about it
 	 assume  fs:nothing,gs:nothing ; Tell the assembler about it
 
-	 iretd			; Continue with the callback procedure
+	 FIXIJMP JGROUP:HDP_IRETD,DTE_CSJG ; IRETD (clean ESP on 16-bit stacks):
+				; Continue with the callback procedure
 
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 

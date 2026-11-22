@@ -42,6 +42,7 @@ if @OEM_DPMI
 
 PGROUP	 group	 ECODE,EDATA
 IGROUP	 group	 LDATA,ICODE,IDATA,ACTSEG
+JGROUP	 group	 JCODE
 
 
 ECODE	 segment use16 dword public 'ecode' ; Start ECODE segment
@@ -247,6 +248,13 @@ JMPTAB10 label	 word
 
 IDATA	 ends			; End IDATA segment
 
+
+JCODE	 segment use16 dword public 'jcode' ; Start JCODE segment
+	 assume  cs:JGROUP
+
+	 extrn	 HDP_IRETD:far
+
+JCODE	 ends			; End JCODE segment
 
 ICODE	 segment use16 dword public 'icode' ; Start ICODE segment
 	 assume  cs:IGROUP
@@ -612,7 +620,8 @@ INT10_DPMI_EXIT:
 
 	 add	 esp,size INTXX_ERR ; Strip off pseudo-error code
 
-	 iretd			; Return to caller
+	 FIXIJMP JGROUP:HDP_IRETD,DTE_CSJG ; IRETD (clean ESP on 16-bit stacks):
+				; Return to caller
 
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 

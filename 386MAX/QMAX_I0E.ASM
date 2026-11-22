@@ -174,6 +174,8 @@ ICODE	ends			; End ICODE segment
 
 
 ECODE	 segment use16 dword public 'ecode' ; Start ECODE segment
+
+	 extrn	 INTCOM_IRETDC:near
 	 assume  cs:PGROUP
 
 	 public  @QMAX_I0E_ECODE
@@ -683,7 +685,8 @@ INT0E_IRETD1:
 	 add	 esp,@STK_DIFF + (size INTXX_ERR) ; Strip off error code
 				; and restore stack to original state
 
-	 iretd			; Return to caller
+	 jmp	 INTCOM_IRETDC ; IRETD (clean ESP on 16-bit stacks):
+				; Return to caller
 
 INT0E_XDPMI:
 endif				; IF @OEM_DPMI
@@ -914,7 +917,8 @@ DPMI_VPFRET:
 
 	 add	 esp,size INTDPF_ERR ; Strip off pseudo-error code
 
-	 iretd			; Return to fault address
+	 jmp	 INTCOM_IRETDC ; IRETD (clean ESP on 16-bit stacks):
+				; Return to fault address
 endif				; IF @OEM_DPMI
 
 

@@ -25,6 +25,7 @@ check (OK / FAIL) and ends with errorlevel 0 when all checks passed.
 | DPMI | MAXAPI  | vendor API 0A00h/INT 2Fh 168Ah:  "MS-DOS" (version, LDT selector), "386MAX", unknown names |
 | DPMI | RMCBNEST | nested real-mode callbacks (0303h + 0301h) up to 250 levels; a refused level (8012h) must unwind cleanly |
 | DPMI | PMSTACK | client stack past its limit:  INT (reported only), IRET, a nested exception in a child (nothing written below SS:SP) |
+| DPMI | ESPHI | the high-order word of ESP of a 16-bit client stays 0 (entry, INT 31h/21h/2Fh/10h/15h/41h, reflected and hardware interrupts, a page fault of the host) |
 | DPMI | CALLGATE | 386 call gate written through the "MS-DOS" LDT selector, called |
 | DPMI | NULLSEG | read/write through a null selector faults (skipped under QEMU TCG) |
 | DPMI | LINOOM  | 0501h of exactly the largest free block (twice), 1MB more refused |

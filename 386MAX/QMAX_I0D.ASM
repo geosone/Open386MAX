@@ -511,6 +511,8 @@ EDATA	 ends			; End EDATA segment
 
 
 ECODE	 segment use16 dword public 'ecode' ; Start ECODE segment
+
+	 extrn	 INTCOM_IRETDC:near
 	 assume  cs:PGROUP
 
 	 public  @QMAX_I0D_ECODE
@@ -1352,7 +1354,8 @@ if @OEM_DPMI
 	 add	 esp,@STK_DIFF + (size INTXX_ERR) ; Strip off error code
 				; and restore stack to original state
 
-	 iretd			; Return to caller
+	 jmp	 INTCOM_IRETDC ; IRETD (clean ESP on 16-bit stacks):
+				; Return to caller
 
 INT0D_XDPMI:
 endif				; IF @OEM_DPMI

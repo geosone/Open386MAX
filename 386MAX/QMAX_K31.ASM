@@ -52,6 +52,7 @@ if @OEM_DPMI
 
 PGROUP	 group	 CODE,ECODE,EDATA
 IGROUP	 group	 LCODE,LDATA,ICODE,IDATA
+JGROUP	 group	 JCODE
 
 
 LCODE	 segment use16 dword public 'icode' ; Start LCODE segment
@@ -164,6 +165,13 @@ IDATA	 segment use16 dword public 'idata' ; Start IDATA segment
 
 IDATA	 ends			; End IDATA segment
 
+
+JCODE	 segment use16 dword public 'jcode' ; Start JCODE segment
+	 assume  cs:JGROUP
+
+	 extrn	 HDP_IRETD:far
+
+JCODE	 ends			; End JCODE segment
 
 ICODE	 segment use16 dword public 'icode' ; Start ICODE segment
 	 assume  cs:IGROUP
@@ -1717,7 +1725,8 @@ DPMI_VMCB_COM:
 	 VERREST <gs,fs>	; Restore selectors with VERR
 	 assume  fs:nothing,gs:nothing ; Tell the assembler about it
 
-	 iretd			; Continue with the callback procedure
+	 FIXIJMP JGROUP:HDP_IRETD,DTE_CSJG ; IRETD (clean ESP on 16-bit stacks):
+				; Continue with the callback procedure
 
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 
@@ -1781,7 +1790,8 @@ DPMI_RMSVM2PM:
 	 mov	 edi,[ebp].INTXX_EDI ; ...		EDI
 	 mov	 ebp,[ebp].INTXX_EBP ; ...		EBP
 
-	 iretd			; Jump to DPMI client
+	 FIXIJMP JGROUP:HDP_IRETD,DTE_CSJG ; IRETD (clean ESP on 16-bit stacks):
+				; Jump to DPMI client
 
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 

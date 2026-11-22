@@ -156,6 +156,13 @@ IDATA_NXT label  dword		; Next available byte in IGROUP
 IDATZ	 ends			; End IDATZ segment
 
 
+JCODE	 segment use16 dword public 'jcode' ; Start JCODE segment
+	 assume  cs:JGROUP
+
+	 extrn	 HDP_IRETD:far
+
+JCODE	 ends			; End JCODE segment
+
 ICODE	 segment use16 dword public 'icode' ; Start ICODE segment
 	 assume  cs:IGROUP
 
@@ -1793,7 +1800,8 @@ DPMIFN_VSAPI_EXIT1:
 	 and	 [esp].ELO,not ((mask $NT) or (mask $IF)) ; NT=0, IF=0
 	 popf			; Put into effect
 
-	 iretd			; Return to caller with its flags
+	 FIXIJMP JGROUP:HDP_IRETD,DTE_CSJG ; IRETD (clean ESP on 16-bit stacks):
+				; Return to caller with its flags
 
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 

@@ -24,6 +24,7 @@ DPMI/DPMIMISC needs=dpmi,xlat
 DPMI/MAXAPI   needs=dpmi,xlat
 DPMI/RMCBNEST needs=dpmi timeout=90
 DPMI/PMSTACK  needs=dpmi,xlat timeout=60
+DPMI/ESPHI    needs=dpmi timeout=60
 DPMI/CALLGATE needs=dpmi,xlat
 DPMI/NULLSEG  needs=dpmi,xlat
 DPMI/LINOOM   needs=dpmi,xlat

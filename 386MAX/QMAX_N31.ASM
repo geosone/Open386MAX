@@ -56,6 +56,7 @@ if @OEM_DPMI
 PGROUP	 group	 CODE,HICODE,ECODE,EDATA
 FGROUP	 group	 FDATA
 IGROUP	 group	 LCODE,LDATA,ICODE,IDATA
+JGROUP	 group	 JCODE
 
 
 CODE	 segment use16 byte public 'prog' ; Start CODE segment
@@ -602,6 +603,13 @@ INT00NXT_FVEC df ?		; Address of next interrupt in GP_INT
 
 IDATA	 ends			; End IDATA segment
 
+
+JCODE	 segment use16 dword public 'jcode' ; Start JCODE segment
+	 assume  cs:JGROUP
+
+	 extrn	 HDP_IRETD:far
+
+JCODE	 ends			; End JCODE segment
 
 ICODE	 segment use16 dword public 'icode' ; Start ICODE segment
 	 assume  cs:IGROUP
@@ -1162,7 +1170,8 @@ SS:ESP	 ==>	 INTDPI_STR (if we're called from DPMI)
 
 	 public  INT20_INTRETPM
 INT20_INTRETPM:
-	 iretd			; Return to caller
+	 FIXIJMP JGROUP:HDP_IRETD,DTE_CSJG ; IRETD (clean ESP on 16-bit stacks):
+				; Return to caller
 
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 
@@ -1240,7 +1249,7 @@ the AX in INTXX_EAX.ELO.
 	 mov	 [esp].INTCOM_INTNO,4*22h + offset PGROUP:INTPROC00Z ; Mark as INT 22h
 
 	 cmp	 DPMITYPEIG,@DPMITYPEXX ; Izit active?
-	 jne	 short INT22_INTRETPM_ABORT ; Jump if so to common abort code
+	 jne	 near ptr INT22_INTRETPM_ABORT ; Jump if so to common abort code
 @@:
 	 iretd			; Return to caller (which jumps to the
 				; next handler)
@@ -1276,7 +1285,8 @@ SS:ESP	 ==>	 INTCOM_STR (if we're called from VM86 mode)
 
 	 or	 VMM_FLAG,@VMM_CTRLBREAK ; Mark as Ctrl-Break pressed
 
-	 iretd			; Return to caller, ignoring the event
+	 FIXIJMP JGROUP:HDP_IRETD,DTE_CSJG ; IRETD (clean ESP on 16-bit stacks):
+				; Return to caller, ignoring the event
 
 @@:
 	 FIXIJMP PGROUP:INTPROC23,DTE_CS2 ; Jump if not (call as VM INT 23h)
@@ -1484,7 +1494,8 @@ SS:ESP	 ==>	 INTCOM_STR (if we're called from VM86 mode)
 
 	 mov	 al,@INT24_RETRY ; Tell 'em we're retrying the DOS call
 
-	 iretd			; Return to caller, ignoring the event
+	 FIXIJMP JGROUP:HDP_IRETD,DTE_CSJG ; IRETD (clean ESP on 16-bit stacks):
+				; Return to caller, ignoring the event
 
 @@:
 	 FIXIJMP PGROUP:INTPROC24,DTE_CS2 ; Jump if not (call as VM INT 24h)
@@ -1882,7 +1893,8 @@ SS:ESP	 ==>	 INTDPI_STR (if we're called from DPMI)
 
 	 public  INT27_INTRETPM
 INT27_INTRETPM:
-	 iretd			; Return to caller
+	 FIXIJMP JGROUP:HDP_IRETD,DTE_CSJG ; IRETD (clean ESP on 16-bit stacks):
+				; Return to caller
 
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 
@@ -2012,7 +2024,8 @@ SS:ESP	 ==>	 INTDPI_STR (if we're called from DPMI)
 
 	 public  INT41_INTRETPM
 INT41_INTRETPM:
-	 iretd			; Return to caller
+	 FIXIJMP JGROUP:HDP_IRETD,DTE_CSJG ; IRETD (clean ESP on 16-bit stacks):
+				; Return to caller
 
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 
@@ -2176,7 +2189,8 @@ INT68_CLIENT:
 
 	 public  INT68_INTRETPM
 INT68_INTRETPM:
-	 iretd			; Return to caller
+	 FIXIJMP JGROUP:HDP_IRETD,DTE_CSJG ; IRETD (clean ESP on 16-bit stacks):
+				; Return to caller
 
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing
 

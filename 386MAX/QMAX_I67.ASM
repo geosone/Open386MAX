@@ -469,6 +469,13 @@ endif				; IF @OEM_EMS
 JCODE	 ends			; End JCODE segment
 
 
+JCODE	 segment use16 dword public 'jcode' ; Start JCODE segment
+	 assume  cs:JGROUP
+
+	 extrn	 HDP_IRETD:far
+
+JCODE	 ends			; End JCODE segment
+
 ECODE	 segment use16 dword public 'ecode' ; Start ECODE segment
 	 assume  cs:PGROUP
 
@@ -736,7 +743,8 @@ INT67_VCPI:
 
 	 add	 esp,size INTXX_ERR ; Strip off error code
 
-	 iretd			; Return to caller
+	 FIXIJMP JGROUP:HDP_IRETD,DTE_CSJG ; IRETD (clean ESP on 16-bit stacks):
+				; Return to caller
 endif				; IF @OEM_VCPI and @VCP_OLD
 
 	 assume  ds:nothing,es:nothing,fs:nothing,gs:nothing,ss:nothing

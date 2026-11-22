@@ -390,6 +390,13 @@ ACTSEG	 segment use16 word public 'idata' ; Start ACTSEG segment
 ACTSEG	 ends			; End ACTSEG segment
 
 
+JCODE	 segment use16 dword public 'jcode' ; Start JCODE segment
+	 assume  cs:JGROUP
+
+	 extrn	 HDP_IRETD:far
+
+JCODE	 ends			; End JCODE segment
+
 ICODE	 segment use16 dword public 'icode' ; Start ICODE segment
 	 assume  cs:IGROUP
 
@@ -1197,7 +1204,8 @@ INT31_EXIT:
 
 	 add	 esp,size INTXX_ERR ; Strip off pseudo-error code
 
-	 iretd			; Return to caller
+	 FIXIJMP JGROUP:HDP_IRETD,DTE_CSJG ; IRETD (clean ESP on 16-bit stacks):
+				; Return to caller
 
 
 COMMENT|
@@ -2057,7 +2065,8 @@ INT31_VM2PM_TS:
 
 	 pop	 edx		; Restore
 
-	 iretd			; Switch to the new task
+	 FIXIJMP JGROUP:HDP_IRETD,DTE_CSJG ; IRETD (clean ESP on 16-bit stacks):
+				; Switch to the new task
 
 	 assume  ds:PGROUP,es:IGROUP  ; Tell the assembler about it
 	 assume  fs:nothing,gs:AGROUP ; Tell the assembler about it

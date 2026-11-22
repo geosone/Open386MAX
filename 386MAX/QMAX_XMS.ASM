@@ -481,6 +481,8 @@ ICODE	 ends			; End ICODE segment
 
 
 ECODE	 segment use16 dword public 'ecode' ; Start ECODE segment
+
+	 extrn	 INTCOM_IRETDC:near
 	 assume  cs:PGROUP
 
 if @OEM_XMS
@@ -546,7 +548,8 @@ INT2F_INTRETPM:
 
 	 xor	 ax,ax		; Mark as PM
 
-	 iretd			; Return to caller with AX = 0
+	 jmp	 short INT2F_IRETD ; IRETD (clean ESP on 16-bit stacks):
+				; Return to caller with AX = 0
 
 INT2F_INTRETPM1:
 	 cmp	 ax,@DPMI_API2F ; Izit Vendor-Specific API Entry Point request?
@@ -563,7 +566,8 @@ INT2F_INTRETPM1:
 
 	 mov	 al,0		; Tell 'em it's a match
 
-	 iretd			; Return to caller
+	 jmp	 short INT2F_IRETD ; IRETD (clean ESP on 16-bit stacks):
+				; Return to caller
 
 INT2F_INTRETPM2:
 
@@ -577,7 +581,9 @@ INT2F_INTRETPM2:
 	 test	 I31_FLAG,mask $I31_KRNL ; Izit Windows?
 	 jz	 short INT2F_INTRETPM3 ; Jump if not
 
-	 iretd			; Return to caller
+INT2F_IRETD:
+	 jmp	 INTCOM_IRETDC ; IRETD (clean ESP on 16-bit stacks):
+				; Return to caller
 
 INT2F_INTRETPM3:
 
@@ -592,7 +598,8 @@ INT2F_INTRETPM3:
 	 or	 bl,DPMI_CPL	; Plus DPMI CPL
 	 xor	 ax,ax		; Tell 'em we succeeded
 
-	 iretd			; Return to caller
+	 jmp	 short INT2F_IRETD ; IRETD (clean ESP on 16-bit stacks):
+				; Return to caller
 
 INT2F_INTRETPM4:
 
@@ -611,7 +618,8 @@ INT2F_INTRETPM4:
 
 	 mov	 ax,0003h	; Tell a lie
 
-	 iretd			; Return to caller
+	 jmp	 short INT2F_IRETD ; IRETD (clean ESP on 16-bit stacks):
+				; Return to caller
 
 INT2F_INTRETPM5:
 
@@ -644,7 +652,8 @@ INT2F_HIMEM_CS label near
 	 cmp	 ax,@DPMI_CPUMODE ; Izit DPMI mode check (PM vs VM)?
 	 jne	 short @F	; Jump if not
 
-	 iretd			; Return to caller with AX <> 0
+	 jmp	 short INT2F_IRETD ; IRETD (clean ESP on 16-bit stacks):
+				; Return to caller with AX <> 0
 
 @@:
 endif				; IF @OEM_DPMI
