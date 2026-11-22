@@ -1954,16 +1954,10 @@ XMS_QRYXMB_COM:
 	 jmp	 short XMS_QRYXMB3 ; Join common code
 
 XMS_QRYXMB2:
-	 cmp	 eax,0FFFFh	; Izit bigger than 16-bits?
-	 jbe	 short @F	; Jump if not
-
-	 mov	 eax,0FFFFh	; Use maximum
-@@:
-	 cmp	 edx,0FFFFh	; Izit bigger than 16-bits?
-	 jbe	 short @F	; Jump if not
-
-	 mov	 edx,0FFFFh	; Use maximum
-@@:
+	 call	 XMS_SAT16	; Use the maximum if bigger than 16 bits
+	 xchg	 eax,edx	; The same for the largest block
+	 call	 XMS_SAT16	; Use the maximum if bigger than 16 bits
+	 xchg	 eax,edx	; Restore
 	 mov	 [ebp].INTXX_EDX.ELO,dx ; Return as DX
 XMS_QRYXMB3:
 	 call	 CHECK_HOOK	; See if we should unhook INT 15h
@@ -2676,7 +2670,7 @@ A2	 =	 Invalid handle
 
 	 public  XMS_GETINF
 XMS_GETINF:
-	 mov	 cx,0		; Mark as primary function
+	 xor	 cx,cx		; Mark as primary function
 
 	 jmp	 short @F	; Join common code
 
@@ -2725,9 +2719,26 @@ XMS_GETINF1:
 	 jmp	 short @F	; Join common code
 
 XMS_GETINF2:
+	 call	 XMS_SAT16	; A block of 64MB or more returns the maximum:
+				; a truncated size (0 for 64MB) makes Windows
+				; refuse to move to and from the block
 	 mov	 [ebp].INTXX_EDX.ELO,ax ; Return in DX
 @@:
 	 jmp	 XMS_SUCCESS	; Join common success code
+
+
+	 public  XMS_SAT16
+XMS_SAT16:
+
+; Limit EAX to what a 16-bit register returns (the primary functions)
+
+	 cmp	 eax,0FFFFh	; Izit bigger than 16-bits?
+	 jbe	 short XMS_SAT16_EXIT ; Jump if not
+
+	 xor	 eax,eax	; Use the maximum
+	 dec	 ax		; ... 0000FFFFh
+XMS_SAT16_EXIT:
+	 retn			; Return to caller (inside a far procedure)
 
 	 assume  es:nothing,fs:nothing,gs:nothing ; Tell the assembler about it
 
