@@ -5,8 +5,9 @@
 ; then reads elsewhere.  HDPMI keeps its ring 0 stack below 64 KB; 386MAX
 ; returns through a stack alias (HDP_IRETD).  Checked at the entry and
 ; after INT 31h, INT 21h, INT 2Fh, INT 10h, INT 15h, INT 41h, a reflected
-; interrupt, a page fault of an uncommitted page and while hardware
-; interrupts arrive.
+; interrupt, a page fault of an uncommitted page, while hardware
+; interrupts arrive, after an exception handler of the client and with a
+; chained timer handler of the client.
 ; Errorlevel 0 = always 0, 1 = not (the places are named), 2 = no DPMI host.
 ; Build: jwasm -mz ESPHI.ASM
 
@@ -24,7 +25,8 @@ okmsg	db	'ESPHI: the high-order word of ESP stays 0',13,10,'$'
 failmsg	db	'ESPHI: FAIL, high-order word of ESP not 0 after: $'
 crlf	db	13,10,'$'
 bad	db	'................$'
-tags	db	'E3331222AFI4PH??'
+tags	db	'E3331222AFI4PHXT'
+old8	dd	?
 
 	.code
 chk	macro	n		;; note the place if ESP's high-order word isn't 0
@@ -70,7 +72,17 @@ start:	mov	ax,es		; shrink to the program
 	jnc	@F
 	mov	ax,4C02h
 	int	21h
-@@:	chk	0		; E  at the entry
+@@:	push	es
+	push	ds
+	mov	ax,cs
+	mov	bx,ax
+	mov	ax,0Ah
+	int	31h		; a data alias of the code
+	mov	es,ax
+	mov	es:dsel,ds
+	pop	ds
+	pop	es
+	chk	0		; E  at the entry
 	mov	ax,400h
 	int	31h
 	chk	1		; 3  INT 31h 0400h
@@ -148,6 +160,41 @@ busy:	mov	eax,esp
 busybad:
 	inc	nfail
 	mov	bad+13,'H'	; H  a hardware interrupt
+; an exception handler of the client returns
+	mov	ax,203h
+	mov	bl,6
+	mov	cx,cs
+	mov	dx,offset exc6
+	int	31h
+	db	0Fh,0Bh		; UD2
+	chk	14		; X  the return of an exception handler
+; an interrupt handler of the client for the timer, chained
+	mov	ax,204h
+	mov	bl,8
+	int	31h
+	mov	word ptr old8,dx
+	mov	word ptr old8+2,cx
+	mov	ax,205h
+	mov	bl,8
+	mov	cx,cs
+	mov	dx,offset irq8
+	int	31h
+	mov	ecx,300000000
+busy2:	mov	eax,esp
+	shr	eax,16
+	jnz	short busy2bad
+	dec	ecx
+	jnz	busy2
+	jmp	short busy2ok
+busy2bad:
+	inc	nfail
+	mov	bad+15,'T'	; T  a chained timer interrupt handler
+busy2ok:
+	mov	ax,205h
+	mov	bl,8
+	mov	dx,word ptr old8
+	mov	cx,word ptr old8+2
+	int	31h
 done:	cmp	nfail,0
 	jne	short fail
 	mov	dx,offset okmsg
@@ -166,4 +213,22 @@ fail:	mov	dx,offset failmsg
 	int	21h
 	mov	ax,4C01h
 	int	21h
+exc6:	push	bp
+	mov	bp,sp
+	add	word ptr [bp+2+6],2	; IP past the UD2
+	pop	bp
+	retf
+irq8:	push	ds
+	push	ax
+	mov	ax,cs:dsel
+	mov	ds,ax
+	pop	ax
+	push	word ptr old8+2
+	push	word ptr old8
+	push	bp
+	mov	bp,sp
+	mov	ds,[bp+6]
+	pop	bp
+	retf	2
+dsel	dw	?
 	end	start
