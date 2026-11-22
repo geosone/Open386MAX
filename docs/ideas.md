@@ -69,6 +69,45 @@ HDPMI API, extended DOS translation, the legacy paths) become modules
 USE32 code possible); cold core code moves out of PGROUP first.  See
 segments.md.
 
+## 10.x or later:  hosting GonWare's modules under DOS
+
+GonWare (GPL-2) plans a DOS client of its
+own:  a loader that runs its 32-bit driver modules (GLMs:  the network
+cards' drivers, IPX/SPX, TCP/IP and the NCP requester) unchanged under
+DOS, with NetWare volumes as DOS drives through the INT 2Fh redirector,
+as Novell's Client32 for DOS did with NLMs under NIOS.EXE.  It needs
+386MAX (or another DPMI host with VDS) and uses only its interfaces, no
+code is exchanged (GPL-3 here, GPL-2-only there).  As a plain DPMI
+client it already has what it needs from DPMI 0.9/1.0 (memory, locking,
+0800h for the cards' MMIO, protected-mode IRQ handlers, real-mode
+callbacks), VDS (physical addresses for DMA) and XMS.  What 386MAX could
+add for it, most useful first:
+
+* **Ring-0 modules in the monitor:**  the loadable modules above, opened
+  to outside modules:  a 32-bit module loaded into 386MAX that runs at
+  ring 0 with its own IDT entries and access to the page tables, as
+  NIOS was for Client32.  The GLMs would then run as on GonWare itself,
+  without the DPMI round trips, and the next two points become possible.
+  Model:  Jemm's JLMs (Japheth: JLOAD, QPIEMU, XDMA32, JHDCD), Windows
+  9x's VxDs.  Jemm's terms are to be checked before anything is taken
+  over; otherwise written from the interface, as the HDPMI API was.
+* **MSI vectors:**  a service that gives a module an IDT vector and
+  sends the local APIC's EOI, so drivers can use MSI/MSI-X instead of
+  INTx.  No DOS model known; without it the drivers stay on INTx, which
+  most cards have.
+* **Physical memory above 4GB mapped:**  PAE page tables, for PCI BARs
+  above 4GB and DMA buffers there.  XMS 3.5 moves (PSE-36) reach that
+  memory already but map nothing.  Rarely needed:  for a CSM boot the
+  firmware puts the 32-bit BARs below 4GB.
+* **Long mode for 64-bit modules:**  Japheth's Dos64stb (JWasm
+  samples) starts 64-bit programs from DOS; whether that works under a
+  V86 monitor like 386MAX is to be checked.  Until then GonWare's 32-bit
+  (i686) modules are used.
+
+The threads of the modules (a scheduler on the timer, sleeping locks)
+stay in GonWare's loader; QPI's multitasking functions are for
+programs, not for kernel threads.
+
 ## 10.x:  common user interface
 
 One library, its own project, used by 386MAX, MaxView, OpenTape,
